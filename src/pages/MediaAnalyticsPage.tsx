@@ -65,6 +65,8 @@ interface MediaChannel {
   likes: number;
   comments: number;
   shares: number;
+  last_synced_at: string | null;
+  username: string | null;
 }
 
 interface TelegramAd {
@@ -1089,7 +1091,17 @@ const MediaAnalyticsPage = () => {
                               </div>
                               <div>
                                 <CardTitle className="text-lg">{channel.name}</CardTitle>
-                                <p className="text-sm text-muted-foreground">{formatNumber(channel.subscribers || 0)} подписчиков</p>
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <span>{formatNumber(channel.subscribers || 0)} подписчиков</span>
+                                  {channel.last_synced_at && (
+                                    <>
+                                      <span>•</span>
+                                      <span className="text-xs">
+                                        {new Date(channel.last_synced_at).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
                               </div>
                             </div>
                             <div className="flex items-center gap-3">
