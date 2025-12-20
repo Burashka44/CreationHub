@@ -1,46 +1,6 @@
 import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { MapPin, Globe } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
-
-// Fix for default marker icon
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
-
-// Custom marker icon
-const customIcon = new L.DivIcon({
-  className: 'custom-marker',
-  html: `
-    <div style="
-      width: 20px;
-      height: 20px;
-      background: hsl(217, 91%, 60%);
-      border-radius: 50%;
-      border: 3px solid white;
-      box-shadow: 0 0 20px hsla(217, 91%, 60%, 0.6);
-      animation: pulse-glow 2s ease-in-out infinite;
-    "></div>
-  `,
-  iconSize: [20, 20],
-  iconAnchor: [10, 10],
-});
-
-interface MapUpdaterProps {
-  center: [number, number];
-}
-
-const MapUpdater = ({ center }: MapUpdaterProps) => {
-  const map = useMap();
-  React.useEffect(() => {
-    map.flyTo(center, map.getZoom(), { duration: 1.5 });
-  }, [center, map]);
-  return null;
-};
 
 const VpnMap = () => {
   const { t } = useLanguage();
@@ -55,45 +15,68 @@ const VpnMap = () => {
     org: 'NordVPN',
   };
 
-  const position: [number, number] = [location.lat, location.lon];
-
   const countryFlags: Record<string, string> = {
     NL: '🇳🇱', US: '🇺🇸', DE: '🇩🇪', GB: '🇬🇧', FR: '🇫🇷', 
     JP: '🇯🇵', RU: '🇷🇺', CA: '🇨🇦', AU: '🇦🇺', CH: '🇨🇭',
   };
 
+  // Using static map image instead of react-leaflet to avoid Context conflicts
+  const mapUrl = `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/pin-l+3b82f6(${location.lon},${location.lat})/${location.lon},${location.lat},4,0/600x400@2x?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw`;
+  
+  // Fallback to OpenStreetMap static image
+  const osmMapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${location.lon - 10},${location.lat - 5},${location.lon + 10},${location.lat + 5}&layer=mapnik&marker=${location.lat},${location.lon}`;
+
   return (
     <div className="dashboard-card h-[300px] lg:h-[400px] overflow-hidden">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-foreground">{t('vpnLocation')}</h3>
+        <h3 className="font-semibold text-foreground flex items-center gap-2">
+          <Globe className="h-5 w-5 text-primary" />
+          {t('vpnLocation')}
+        </h3>
         <div className="flex items-center gap-2 text-sm">
           <span className="text-2xl">{countryFlags[location.country] || '🌍'}</span>
           <span className="text-muted-foreground">{location.city}, {location.country}</span>
         </div>
       </div>
-      <div className="h-[calc(100%-40px)] rounded-lg overflow-hidden">
-        <MapContainer
-          center={position}
-          zoom={4}
-          style={{ height: '100%', width: '100%' }}
-          zoomControl={true}
-          scrollWheelZoom={false}
-        >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          />
-          <Marker position={position} icon={customIcon}>
-            <Popup>
-              <div className="text-center">
-                <p className="font-semibold">{location.city}, {location.country}</p>
-                <p className="text-xs font-mono">{location.ip}</p>
-                {location.org && <p className="text-xs text-muted-foreground">{location.org}</p>}
+      
+      <div className="h-[calc(100%-40px)] rounded-lg overflow-hidden relative bg-muted">
+        {/* Map iframe */}
+        <iframe
+          src={osmMapUrl}
+          className="w-full h-full border-0"
+          style={{ filter: 'hue-rotate(180deg) invert(90%) contrast(90%)' }}
+          title="VPN Location Map"
+        />
+        
+        {/* Overlay with location info */}
+        <div className="absolute bottom-4 left-4 right-4 bg-card/90 backdrop-blur-sm rounded-lg p-3 border border-border">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                <MapPin className="h-5 w-5 text-primary" />
               </div>
-            </Popup>
-          </Marker>
-          <MapUpdater center={position} />
-        </MapContainer>
+              <div>
+                <p className="font-semibold text-foreground">{location.city}, {location.country}</p>
+                <p className="text-xs text-muted-foreground">{location.org}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="font-mono text-sm text-foreground">{location.ip}</p>
+              <p className="text-xs text-muted-foreground">
+                {location.lat.toFixed(4)}, {location.lon.toFixed(4)}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Pulse indicator */}
+        <div 
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+          style={{ marginTop: '-30px' }}
+        >
+          <div className="w-6 h-6 rounded-full bg-primary animate-ping opacity-50" />
+          <div className="absolute inset-0 w-6 h-6 rounded-full bg-primary border-2 border-white" />
+        </div>
       </div>
     </div>
   );
