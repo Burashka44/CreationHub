@@ -629,54 +629,108 @@ const AIHubPage = () => {
               {/* AI Chat Tab */}
               <TabsContent value="chat" className="space-y-4">
                 {/* Model selector */}
-                <div className="flex items-center gap-4 p-3 bg-muted/30 rounded-lg border border-border/50">
-                  <Label className="text-sm whitespace-nowrap">Модель:</Label>
-                  <Select value={selectedModel} onValueChange={setSelectedModel}>
-                    <SelectTrigger className="w-[200px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="gemini-flash">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-blue-500" />
-                          Gemini Flash
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="gemini-pro">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-purple-500" />
-                          Gemini Pro
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="gemini-lite">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-cyan-500" />
-                          Gemini Lite
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="gpt-5">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                          GPT-5
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="gpt-5-mini">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-green-500" />
-                          GPT-5 Mini
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="gpt-5-nano">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-lime-500" />
-                          GPT-5 Nano
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Badge variant="outline" className="text-xs">
-                    {selectedModel.includes('gpt') ? 'OpenAI' : 'Google'}
-                  </Badge>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border/50">
+                  <div className="flex items-center gap-3">
+                    <Label className="text-sm whitespace-nowrap">Модель:</Label>
+                    <Select value={selectedModel} onValueChange={setSelectedModel}>
+                      <SelectTrigger className="w-[280px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="w-[320px]">
+                        <SelectItem value="gemini-flash">
+                          <div className="flex items-center justify-between w-full gap-3">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-blue-500" />
+                              <span>Gemini Flash</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span className="text-emerald-500">⚡ Быстрая</span>
+                              <span>•</span>
+                              <span className="text-blue-400">$ Дешёвая</span>
+                            </div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="gemini-pro">
+                          <div className="flex items-center justify-between w-full gap-3">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-purple-500" />
+                              <span>Gemini Pro</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span className="text-yellow-500">🐢 Медленная</span>
+                              <span>•</span>
+                              <span className="text-orange-400">$$$ Дорогая</span>
+                            </div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="gemini-lite">
+                          <div className="flex items-center justify-between w-full gap-3">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-cyan-500" />
+                              <span>Gemini Lite</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span className="text-emerald-500">⚡⚡ Очень быстрая</span>
+                              <span>•</span>
+                              <span className="text-blue-400">$ Самая дешёвая</span>
+                            </div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="gpt-5">
+                          <div className="flex items-center justify-between w-full gap-3">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                              <span>GPT-5</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span className="text-yellow-500">🐢 Медленная</span>
+                              <span>•</span>
+                              <span className="text-orange-400">$$$ Самая дорогая</span>
+                            </div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="gpt-5-mini">
+                          <div className="flex items-center justify-between w-full gap-3">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-green-500" />
+                              <span>GPT-5 Mini</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span className="text-emerald-500">⚡ Быстрая</span>
+                              <span>•</span>
+                              <span className="text-yellow-400">$$ Средняя</span>
+                            </div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="gpt-5-nano">
+                          <div className="flex items-center justify-between w-full gap-3">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-lime-500" />
+                              <span>GPT-5 Nano</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span className="text-emerald-500">⚡⚡ Очень быстрая</span>
+                              <span>•</span>
+                              <span className="text-blue-400">$ Дешёвая</span>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      {selectedModel.includes('gpt') ? 'OpenAI' : 'Google'}
+                    </Badge>
+                    <Badge variant="outline" className={cn(
+                      "text-xs",
+                      (selectedModel === 'gemini-pro' || selectedModel === 'gpt-5') 
+                        ? 'bg-purple-500/10 text-purple-400 border-purple-500/30'
+                        : 'bg-blue-500/10 text-blue-400 border-blue-500/30'
+                    )}>
+                      {(selectedModel === 'gemini-pro' || selectedModel === 'gpt-5') ? 'Pro' : 'Fast'}
+                    </Badge>
+                  </div>
                 </div>
 
                 <div className="border border-border/50 rounded-lg h-[280px] flex flex-col">
