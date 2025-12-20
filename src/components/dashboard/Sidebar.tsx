@@ -4,6 +4,7 @@ import {
   Youtube, Settings, ChevronLeft, ChevronRight,
   Activity, HardDrive, Network, History
 } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 
@@ -34,17 +35,17 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
 const Sidebar = () => {
   const { t } = useLanguage();
   const { isOpen, setIsOpen } = useSidebar();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const location = useLocation();
 
   const menuItems = [
-    { id: 'dashboard', icon: LayoutDashboard, labelKey: 'dashboard' },
-    { id: 'channels', icon: Youtube, labelKey: 'channels' },
-    { id: 'data', icon: Database, labelKey: 'data' },
-    { id: 'network', icon: Network, labelKey: 'network' },
-    { id: 'security', icon: Shield, labelKey: 'security' },
-    { id: 'backups', icon: HardDrive, labelKey: 'backups' },
-    { id: 'activity', icon: History, labelKey: 'activity' },
-    { id: 'settings', icon: Settings, labelKey: 'settings' },
+    { path: '/', icon: LayoutDashboard, labelKey: 'dashboard' },
+    { path: '/channels', icon: Youtube, labelKey: 'channels' },
+    { path: '/data', icon: Database, labelKey: 'data' },
+    { path: '/network', icon: Network, labelKey: 'network' },
+    { path: '/security', icon: Shield, labelKey: 'security' },
+    { path: '/backups', icon: HardDrive, labelKey: 'backups' },
+    { path: '/activity', icon: History, labelKey: 'activity' },
+    { path: '/settings', icon: Settings, labelKey: 'settings' },
   ];
 
   return (
@@ -54,10 +55,13 @@ const Sidebar = () => {
     )}>
       {/* Logo */}
       <div className="h-16 flex items-center border-b border-sidebar-border px-4">
-        <div className={cn(
-          "flex items-center gap-3 transition-all duration-300",
-          !isOpen && "justify-center w-full"
-        )}>
+        <Link 
+          to="/"
+          className={cn(
+            "flex items-center gap-3 transition-all duration-300",
+            !isOpen && "justify-center w-full"
+          )}
+        >
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
             <Activity className="h-4 w-4 text-primary-foreground" />
           </div>
@@ -67,31 +71,35 @@ const Sidebar = () => {
           )}>
             CreationHub
           </span>
-        </div>
+        </Link>
       </div>
 
       <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto scrollbar-thin">
-        {menuItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setActiveTab(item.id)}
-            className={cn(
-              "flex items-center gap-3 w-full px-3 py-3 rounded-lg text-muted-foreground transition-all duration-200",
-              "hover:text-foreground hover:bg-secondary/50",
-              activeTab === item.id && "text-primary bg-primary/10 hover:bg-primary/15",
-              !isOpen && "justify-center px-2"
-            )}
-            title={!isOpen ? t(item.labelKey) : undefined}
-          >
-            <item.icon className="h-5 w-5 shrink-0" />
-            <span className={cn(
-              "whitespace-nowrap transition-all duration-200 overflow-hidden",
-              isOpen ? "opacity-100 w-auto" : "opacity-0 w-0"
-            )}>
-              {t(item.labelKey)}
-            </span>
-          </button>
-        ))}
+        {menuItems.map((item) => {
+          const isActive = location.pathname === item.path;
+          
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={cn(
+                "flex items-center gap-3 w-full px-3 py-3 rounded-lg text-muted-foreground transition-all duration-200",
+                "hover:text-foreground hover:bg-secondary/50",
+                isActive && "text-primary bg-primary/10 hover:bg-primary/15",
+                !isOpen && "justify-center px-2"
+              )}
+              title={!isOpen ? t(item.labelKey) : undefined}
+            >
+              <item.icon className="h-5 w-5 shrink-0" />
+              <span className={cn(
+                "whitespace-nowrap transition-all duration-200 overflow-hidden",
+                isOpen ? "opacity-100 w-auto" : "opacity-0 w-0"
+              )}>
+                {t(item.labelKey)}
+              </span>
+            </Link>
+          );
+        })}
       </nav>
 
       {/* User section */}
