@@ -20,7 +20,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, type, model: requestedModel } = await req.json();
+    const { messages, type, model: requestedModel, stream = false } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
@@ -33,10 +33,10 @@ serve(async (req) => {
     if (type === 'summarize') {
       systemPrompt = "Ты эксперт по суммаризации текста. Твоя задача - сократить текст до ключевых тезисов, сохраняя основной смысл. Выдели главные идеи и представь их в структурированном виде.";
     } else if (type === 'chat') {
-      systemPrompt = "Ты умный AI ассистент. Помогай пользователю с любыми вопросами. Будь дружелюбным и полезным.";
+      systemPrompt = "Ты умный AI ассистент. Помогай пользователю с любыми вопросами. Будь дружелюбным и полезным. Если пользователь прикрепил файл, проанализируй его содержимое.";
     }
 
-    console.log('AI Chat request:', { type, model, messagesCount: messages.length });
+    console.log('AI Chat request:', { type, model, stream, messagesCount: messages.length });
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -50,6 +50,7 @@ serve(async (req) => {
           { role: "system", content: systemPrompt },
           ...messages,
         ],
+        stream,
       }),
     });
 
@@ -71,6 +72,14 @@ serve(async (req) => {
       throw new Error(`AI gateway error: ${response.status}`);
     }
 
+    // Handle streaming response
+    if (stream) {
+      return new Response(response.body, {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      });
+    }
+
+    // Non-streaming response
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "";
 

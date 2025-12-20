@@ -3,7 +3,7 @@ import {
   Settings, Server, Activity, Mic, Languages, Volume2, 
   Video, Sparkles, Play, Trash2, Plus, RefreshCw, 
   Check, AlertCircle, HelpCircle, FileAudio, Upload,
-  MessageSquare, Image, FileText, History, Send, Loader2, Download
+  MessageSquare, Image, FileText, History, Send, Loader2, Download, Paperclip, X
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -116,7 +116,11 @@ const AIHubPage = () => {
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState('gemini-flash');
+  const [streamingContent, setStreamingContent] = useState('');
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [fileContent, setFileContent] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Image generation state
   const [imagePrompt, setImagePrompt] = useState('');
@@ -289,38 +293,149 @@ const AIHubPage = () => {
     </TooltipProvider>
   );
 
-  // AI Chat handler
-  const handleSendChat = async () => {
-    if (!chatInput.trim() || chatLoading) return;
+  // Handle file attachment
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    const userMessage: ChatMessage = { role: 'user', content: chatInput.trim() };
-    setChatMessages(prev => [...prev, userMessage]);
-    setChatInput('');
-    setChatLoading(true);
+    // Check file size (max 1MB for text files)
+    if (file.size > 1024 * 1024) {
+      toast.error('Файл слишком большой (макс. 1MB)');
+      return;
+    }
+
+    // Check if it's a text-based file
+    const textTypes = ['text/', 'application/json', 'application/xml', 'application/javascript'];
+    const isTextFile = textTypes.some(type => file.type.startsWith(type)) || 
+                       /\.(txt|md|json|xml|csv|js|ts|tsx|py|html|css|yaml|yml|log)$/i.test(file.name);
+
+    if (!isTextFile) {
+      toast.error('Поддерживаются только текстовые файлы');
+      return;
+    }
 
     try {
-      const { data, error } = await supabase.functions.invoke('ai-chat', {
-        body: { 
+      const content = await file.text();
+      setAttachedFile(file);
+      setFileContent(content);
+      toast.success(`Файл ${file.name} прикреплён`);
+    } catch {
+      toast.error('Не удалось прочитать файл');
+    }
+  };
+
+  const removeAttachment = () => {
+    setAttachedFile(null);
+    setFileContent(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // AI Chat handler with streaming
+  const handleSendChat = async () => {
+    if ((!chatInput.trim() && !fileContent) || chatLoading) return;
+
+    let messageContent = chatInput.trim();
+    if (fileContent) {
+      messageContent = `${messageContent}\n\n[Прикреплённый файл: ${attachedFile?.name}]\n\`\`\`\n${fileContent}\n\`\`\``;
+    }
+
+    const userMessage: ChatMessage = { role: 'user', content: messageContent };
+    setChatMessages(prev => [...prev, userMessage]);
+    setChatInput('');
+    removeAttachment();
+    setChatLoading(true);
+    setStreamingContent('');
+
+    try {
+      // Use streaming
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
           messages: [...chatMessages, userMessage],
           type: 'chat',
-          model: selectedModel
-        }
+          model: selectedModel,
+          stream: true
+        }),
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+      }
 
-      const assistantMessage: ChatMessage = { role: 'assistant', content: data.content };
-      setChatMessages(prev => [...prev, assistantMessage]);
-      
-      await saveToHistory('chat', { messages: [...chatMessages, userMessage] }, { response: data.content }, data.model, 'completed');
-      pushLog('AI Chat', { response: data.content.substring(0, 100) + '...' });
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = '';
+      let textBuffer = '';
+
+      // Add empty assistant message for streaming
+      setChatMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        textBuffer += decoder.decode(value, { stream: true });
+
+        // Process line-by-line
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
+          const line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          if (line.startsWith(':') || line.trim() === '') continue;
+          if (!line.startsWith('data: ')) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              fullContent += content;
+              // Update the last assistant message
+              setChatMessages(prev => {
+                const updated = [...prev];
+                if (updated.length > 0 && updated[updated.length - 1].role === 'assistant') {
+                  updated[updated.length - 1] = { role: 'assistant', content: fullContent };
+                }
+                return updated;
+              });
+            }
+          } catch {
+            // Incomplete JSON, continue
+          }
+        }
+      }
+
+      await saveToHistory('chat', { messages: [...chatMessages, userMessage] }, { response: fullContent }, selectedModel, 'completed');
+      pushLog('AI Chat (streaming)', { responseLength: fullContent.length });
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : 'Unknown error';
       toast.error('Ошибка AI: ' + errorMessage);
       pushLog('AI Chat error', undefined, undefined, errorMessage);
       await saveToHistory('chat', { messages: [...chatMessages, userMessage] }, null, null, 'error', errorMessage);
+      
+      // Remove empty assistant message on error
+      setChatMessages(prev => {
+        if (prev.length > 0 && prev[prev.length - 1].role === 'assistant' && prev[prev.length - 1].content === '') {
+          return prev.slice(0, -1);
+        }
+        return prev;
+      });
     } finally {
       setChatLoading(false);
+      setStreamingContent('');
     }
   };
 
@@ -752,30 +867,57 @@ const AIHubPage = () => {
                                 ? 'bg-primary text-primary-foreground' 
                                 : 'bg-muted'
                             )}>
-                              {msg.content}
+                              <div className="whitespace-pre-wrap">{msg.content || (chatLoading && idx === chatMessages.length - 1 ? <Loader2 className="h-4 w-4 animate-spin" /> : '')}</div>
                             </div>
                           </div>
                         ))}
-                        {chatLoading && (
-                          <div className="flex justify-start">
-                            <div className="bg-muted p-3 rounded-lg">
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            </div>
-                          </div>
-                        )}
                         <div ref={chatEndRef} />
                       </div>
                     )}
                   </ScrollArea>
+
+                  {/* Attachment preview */}
+                  {attachedFile && (
+                    <div className="px-3 py-2 border-t border-border/50 bg-muted/30">
+                      <div className="flex items-center gap-2 text-sm">
+                        <FileText className="h-4 w-4 text-primary" />
+                        <span className="truncate flex-1">{attachedFile.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {(attachedFile.size / 1024).toFixed(1)} KB
+                        </span>
+                        <Button variant="ghost" size="sm" onClick={removeAttachment} className="h-6 w-6 p-0">
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="p-3 border-t border-border/50 flex gap-2">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileSelect}
+                      accept=".txt,.md,.json,.xml,.csv,.js,.ts,.tsx,.py,.html,.css,.yaml,.yml,.log"
+                      className="hidden"
+                    />
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={chatLoading}
+                      title="Прикрепить файл"
+                    >
+                      <Paperclip className="h-4 w-4" />
+                    </Button>
                     <Input
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
-                      placeholder="Введите сообщение..."
+                      placeholder={attachedFile ? "Добавьте комментарий к файлу..." : "Введите сообщение..."}
                       onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendChat()}
                       disabled={chatLoading}
+                      className="flex-1"
                     />
-                    <Button onClick={handleSendChat} disabled={chatLoading || !chatInput.trim()}>
+                    <Button onClick={handleSendChat} disabled={chatLoading || (!chatInput.trim() && !attachedFile)}>
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>
