@@ -115,6 +115,7 @@ const AIHubPage = () => {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('gemini-flash');
   const chatEndRef = useRef<HTMLDivElement>(null);
   
   // Image generation state
@@ -301,7 +302,8 @@ const AIHubPage = () => {
       const { data, error } = await supabase.functions.invoke('ai-chat', {
         body: { 
           messages: [...chatMessages, userMessage],
-          type: 'chat'
+          type: 'chat',
+          model: selectedModel
         }
       });
 
@@ -626,7 +628,58 @@ const AIHubPage = () => {
 
               {/* AI Chat Tab */}
               <TabsContent value="chat" className="space-y-4">
-                <div className="border border-border/50 rounded-lg h-[300px] flex flex-col">
+                {/* Model selector */}
+                <div className="flex items-center gap-4 p-3 bg-muted/30 rounded-lg border border-border/50">
+                  <Label className="text-sm whitespace-nowrap">Модель:</Label>
+                  <Select value={selectedModel} onValueChange={setSelectedModel}>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gemini-flash">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-blue-500" />
+                          Gemini Flash
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="gemini-pro">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-purple-500" />
+                          Gemini Pro
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="gemini-lite">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-cyan-500" />
+                          Gemini Lite
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="gpt-5">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                          GPT-5
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="gpt-5-mini">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-green-500" />
+                          GPT-5 Mini
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="gpt-5-nano">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-lime-500" />
+                          GPT-5 Nano
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Badge variant="outline" className="text-xs">
+                    {selectedModel.includes('gpt') ? 'OpenAI' : 'Google'}
+                  </Badge>
+                </div>
+
+                <div className="border border-border/50 rounded-lg h-[280px] flex flex-col">
                   <ScrollArea className="flex-1 p-4">
                     {chatMessages.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-8">
