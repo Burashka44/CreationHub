@@ -381,6 +381,165 @@ export const RuTubeAnalytics = ({ channel }: { channel: MediaChannel }) => {
   );
 };
 
+// ============== Telegram Analytics ==============
+export const TelegramAnalytics = ({ channel, subscriberData }: { channel: MediaChannel; subscriberData?: any[] }) => {
+  const viewsData = generateViewsData(channel.views / 30);
+  
+  // Telegram monetization:
+  // 1. Telegram Premium revenue sharing (50% от подписок Premium в канале)
+  // 2. Telegram Ads (для каналов с 1000+ подписчиков)
+  // 3. Продажа рекламы напрямую
+  
+  const requirements = {
+    subscribers: { current: channel.subscribers, required: 1000 },
+  };
+
+  const subscribersProgress = Math.min((requirements.subscribers.current / requirements.subscribers.required) * 100, 100);
+  const isEligibleForAds = subscribersProgress >= 100;
+  
+  // Estimated Premium revenue (based on subscribers with Premium)
+  const estimatedPremiumUsers = Math.floor(channel.subscribers * 0.08); // ~8% пользователей с Premium
+  const estimatedPremiumRevenue = estimatedPremiumUsers * 2.5; // ~$2.5 за Premium пользователя в месяц (50% от $5)
+  
+  // Estimated Ad revenue 
+  const estimatedCPM = channel.subscribers >= 10000 ? 3 : channel.subscribers >= 5000 ? 2 : 1; // $/1000 просмотров
+  const estimatedAdRevenue = (channel.views / 1000) * estimatedCPM * 0.5; // 50% от рекламы
+
+  return (
+    <div className="space-y-6">
+      {/* Telegram Monetization Status */}
+      <div className="p-4 rounded-xl bg-background/50 border border-border/50">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <DollarSign className={`h-5 w-5 ${channel.is_monetized ? 'text-sky-500' : 'text-muted-foreground'}`} />
+            <span className="font-medium">Монетизация Telegram</span>
+          </div>
+          {channel.is_monetized ? (
+            <Badge className="bg-sky-500/20 text-sky-400 border-sky-500/30">Активна</Badge>
+          ) : isEligibleForAds ? (
+            <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">Доступна</Badge>
+          ) : (
+            <Badge variant="outline">Недоступна</Badge>
+          )}
+        </div>
+
+        {/* Monetization Methods */}
+        <div className="space-y-4">
+          {/* Telegram Premium */}
+          <div className="p-3 rounded-lg bg-gradient-to-r from-sky-500/10 to-purple-500/10 border border-sky-500/20">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Star className="h-4 w-4 text-sky-500" />
+                <span className="text-sm font-medium">Telegram Premium</span>
+              </div>
+              <Badge className="bg-emerald-500/20 text-emerald-400 text-xs">Активно</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mb-2">
+              50% дохода от подписчиков Premium, которые смотрят ваш контент
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-2 rounded bg-background/50">
+                <p className="text-xs text-muted-foreground">Premium подписчики</p>
+                <p className="text-lg font-bold text-sky-500">~{formatNumber(estimatedPremiumUsers)}</p>
+              </div>
+              <div className="p-2 rounded bg-background/50">
+                <p className="text-xs text-muted-foreground">Оценка дохода/мес</p>
+                <p className="text-lg font-bold text-emerald-500">${estimatedPremiumRevenue.toFixed(0)}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Telegram Ads */}
+          <div className={`p-3 rounded-lg border ${isEligibleForAds ? 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/20' : 'bg-muted/20 border-border/50'}`}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Zap className={`h-4 w-4 ${isEligibleForAds ? 'text-amber-500' : 'text-muted-foreground'}`} />
+                <span className="text-sm font-medium">Telegram Ads</span>
+              </div>
+              {isEligibleForAds ? (
+                <Badge className="bg-emerald-500/20 text-emerald-400 text-xs">Доступно</Badge>
+              ) : (
+                <Badge variant="outline" className="text-xs">1K подписчиков</Badge>
+              )}
+            </div>
+            {isEligibleForAds ? (
+              <>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Официальная рекламная платформа Telegram. 50% от дохода.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2 rounded bg-background/50">
+                    <p className="text-xs text-muted-foreground">CPM</p>
+                    <p className="text-lg font-bold text-amber-500">${estimatedCPM}</p>
+                  </div>
+                  <div className="p-2 rounded bg-background/50">
+                    <p className="text-xs text-muted-foreground">Оценка дохода/мес</p>
+                    <p className="text-lg font-bold text-emerald-500">${estimatedAdRevenue.toFixed(0)}</p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  Требуется минимум 1,000 подписчиков
+                </p>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Прогресс</span>
+                    <span>{formatNumber(channel.subscribers)} / 1K</span>
+                  </div>
+                  <Progress value={subscribersProgress} className="h-2" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Direct Ad Sales */}
+          <div className="p-3 rounded-lg bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-emerald-500" />
+                <span className="text-sm font-medium">Прямые продажи рекламы</span>
+              </div>
+              <Badge className="bg-emerald-500/20 text-emerald-400 text-xs">100% дохода</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Продавайте рекламу напрямую рекламодателям через раздел "Реклама"
+            </p>
+          </div>
+        </div>
+
+        {/* Total Revenue Estimate */}
+        {channel.is_monetized && (
+          <div className="mt-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Общий доход за месяц</span>
+              <span className="text-xl font-bold text-emerald-500">{formatCurrency(channel.revenue || 0)}</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Key Metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <MetricCard icon={Users} label="Подписчики" value={formatNumber(channel.subscribers)} trend="+5.2%" positive />
+        <MetricCard icon={Eye} label="Просмотры поста" value={formatNumber(Math.floor(channel.subscribers * 0.4))} trend="+8%" positive />
+        <MetricCard icon={Activity} label="ERR" value={((channel.engagement || 45) / 10).toFixed(1) + '%'} trend="+1.2%" positive />
+        <MetricCard icon={TrendingUp} label="Охват" value={formatNumber(Math.floor(channel.subscribers * 0.6))} trend="+3%" positive />
+      </div>
+
+      {/* Engagement */}
+      <div className="grid grid-cols-3 gap-3">
+        <EngagementCard icon={ThumbsUp} label="Реакции" value={formatNumber(channel.likes || Math.floor(channel.subscribers * 0.05))} color="sky" />
+        <EngagementCard icon={MessageSquare} label="Комментарии" value={formatNumber(channel.comments || Math.floor(channel.subscribers * 0.01))} color="blue" />
+        <EngagementCard icon={Share2} label="Репосты" value={formatNumber(channel.shares || Math.floor(channel.subscribers * 0.02))} color="indigo" />
+      </div>
+
+      <ViewsChart data={viewsData} color="#0088cc" title="Просмотры постов" />
+    </div>
+  );
+};
+
 // ============== TikTok Analytics ==============
 export const TikTokAnalytics = ({ channel }: { channel: MediaChannel }) => {
   const viewsData = generateViewsData(channel.views / 30);

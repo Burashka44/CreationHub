@@ -8,7 +8,7 @@ import {
   Megaphone, BarChart, PieChart, Tv2
 } from 'lucide-react';
 import { ApiSettingsDialog } from '@/components/media/ApiSettingsDialog';
-import { YouTubeAnalytics, TwitchAnalytics, VKVideoAnalytics, RuTubeAnalytics, TikTokAnalytics } from '@/components/media/PlatformAnalytics';
+import { YouTubeAnalytics, TwitchAnalytics, VKVideoAnalytics, RuTubeAnalytics, TikTokAnalytics, TelegramAnalytics } from '@/components/media/PlatformAnalytics';
 import { AdRevenueManager } from '@/components/media/AdRevenueManager';
 import TelegramIntegration from '@/components/media/TelegramIntegration';
 import AdAnalytics from '@/components/media/AdAnalytics';
@@ -1039,91 +1039,108 @@ const MediaAnalyticsPage = () => {
                 const channelAds = ads.filter(ad => ad.channel_id === channel.id);
                 
                 return (
-                  <Card key={channel.id} className="bg-gradient-to-r from-sky-500/10 to-sky-600/5 border-border/50">
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-3 rounded-lg bg-sky-500/20">
-                            <MessageCircle className="h-6 w-6 text-sky-500" />
+                  <Collapsible key={channel.id} open={expandedChannels[channel.id]} onOpenChange={() => toggleChannel(channel.id)}>
+                    <Card className="bg-gradient-to-r from-sky-500/10 to-sky-600/5 border-border/50">
+                      <CollapsibleTrigger asChild>
+                        <CardHeader className="cursor-pointer hover:bg-muted/10 transition-colors">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              {expandedChannels[channel.id] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                              <div className="p-3 rounded-lg bg-sky-500/20">
+                                <MessageCircle className="h-6 w-6 text-sky-500" />
+                              </div>
+                              <div>
+                                <CardTitle className="text-lg">{channel.name}</CardTitle>
+                                <p className="text-sm text-muted-foreground">{formatNumber(channel.subscribers || 0)} подписчиков</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="text-right">
+                                <p className={`text-lg font-bold ${netGrowth >= 0 ? 'text-emerald-500' : 'text-destructive'}`}>
+                                  {netGrowth >= 0 ? '+' : ''}{netGrowth}
+                                </p>
+                                <p className="text-xs text-muted-foreground">за месяц</p>
+                              </div>
+                              {channel.is_monetized && (
+                                <Badge className="bg-emerald-500/20 text-emerald-400">
+                                  <DollarSign className="h-3 w-3 mr-1" />
+                                  Монетизация
+                                </Badge>
+                              )}
+                              {channel.channel_url && (
+                                <Button variant="ghost" size="icon" asChild onClick={(e) => e.stopPropagation()}>
+                                  <a href={channel.channel_url} target="_blank" rel="noopener noreferrer">
+                                    <ExternalLink className="h-4 w-4" />
+                                  </a>
+                                </Button>
+                              )}
+                              <Button variant="ghost" size="icon" className="text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteChannel(channel.id); }}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
-                          <div>
-                            <CardTitle className="text-lg">{channel.name}</CardTitle>
-                            <p className="text-sm text-muted-foreground">{formatNumber(channel.subscribers || 0)} подписчиков</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <p className={`text-lg font-bold ${netGrowth >= 0 ? 'text-emerald-500' : 'text-destructive'}`}>
-                              {netGrowth >= 0 ? '+' : ''}{netGrowth}
-                            </p>
-                            <p className="text-xs text-muted-foreground">за месяц</p>
-                          </div>
-                          {channel.channel_url && (
-                            <Button variant="ghost" size="icon" asChild>
-                              <a href={channel.channel_url} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="h-4 w-4" />
-                              </a>
-                            </Button>
-                          )}
-                          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteChannel(channel.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      {/* Quick Stats */}
-                      <div className="grid grid-cols-4 gap-3">
-                        <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center">
-                          <UserPlus className="h-5 w-5 text-emerald-500 mx-auto mb-1" />
-                          <p className="text-xl font-bold text-emerald-500">+{weeklyGain}</p>
-                          <p className="text-xs text-muted-foreground">Подписалось</p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-center">
-                          <UserMinus className="h-5 w-5 text-destructive mx-auto mb-1" />
-                          <p className="text-xl font-bold text-destructive">-{weeklyLoss}</p>
-                          <p className="text-xs text-muted-foreground">Отписалось</p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 text-center">
-                          <TrendingUp className="h-5 w-5 text-primary mx-auto mb-1" />
-                          <p className="text-xl font-bold text-primary">{(((channel.subscribers || 0) > 0 ? netGrowth / (channel.subscribers || 1) : 0) * 100).toFixed(1)}%</p>
-                          <p className="text-xs text-muted-foreground">Рост</p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-center">
-                          <Megaphone className="h-5 w-5 text-amber-500 mx-auto mb-1" />
-                          <p className="text-xl font-bold text-amber-500">{channelAds.length}</p>
-                          <p className="text-xs text-muted-foreground">Кампаний</p>
-                        </div>
-                      </div>
+                        </CardHeader>
+                      </CollapsibleTrigger>
                       
-                      {/* Subscriber Chart */}
-                      <div className="p-4 rounded-xl bg-background/50 border border-border/50">
-                        <h4 className="font-medium mb-4">Динамика подписчиков</h4>
-                        <div className="h-[200px]">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <RechartsBarChart data={subscriberData} barGap={0}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                              <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
-                              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
-                              <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
-                              <Bar dataKey="subscribed" name="Подписалось" fill="hsl(142 76% 36%)" radius={[4, 4, 0, 0]} />
-                              <Bar dataKey="unsubscribed" name="Отписалось" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
-                            </RechartsBarChart>
-                          </ResponsiveContainer>
-                        </div>
-                        <div className="flex justify-center gap-6 mt-4">
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(142 76% 36%)' }} />
-                            <span className="text-sm text-muted-foreground">Подписалось</span>
+                      <CollapsibleContent>
+                        <CardContent className="pt-0 space-y-6">
+                          {/* Quick Stats */}
+                          <div className="grid grid-cols-4 gap-3">
+                            <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center">
+                              <UserPlus className="h-5 w-5 text-emerald-500 mx-auto mb-1" />
+                              <p className="text-xl font-bold text-emerald-500">+{weeklyGain}</p>
+                              <p className="text-xs text-muted-foreground">Подписалось</p>
+                            </div>
+                            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-center">
+                              <UserMinus className="h-5 w-5 text-destructive mx-auto mb-1" />
+                              <p className="text-xl font-bold text-destructive">-{weeklyLoss}</p>
+                              <p className="text-xs text-muted-foreground">Отписалось</p>
+                            </div>
+                            <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 text-center">
+                              <TrendingUp className="h-5 w-5 text-primary mx-auto mb-1" />
+                              <p className="text-xl font-bold text-primary">{(((channel.subscribers || 0) > 0 ? netGrowth / (channel.subscribers || 1) : 0) * 100).toFixed(1)}%</p>
+                              <p className="text-xs text-muted-foreground">Рост</p>
+                            </div>
+                            <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-center">
+                              <Megaphone className="h-5 w-5 text-amber-500 mx-auto mb-1" />
+                              <p className="text-xl font-bold text-amber-500">{channelAds.length}</p>
+                              <p className="text-xs text-muted-foreground">Кампаний</p>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded bg-destructive" />
-                            <span className="text-sm text-muted-foreground">Отписалось</span>
+                          
+                          {/* Subscriber Chart */}
+                          <div className="p-4 rounded-xl bg-background/50 border border-border/50">
+                            <h4 className="font-medium mb-4">Динамика подписчиков</h4>
+                            <div className="h-[200px]">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <RechartsBarChart data={subscriberData} barGap={0}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
+                                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
+                                  <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
+                                  <Bar dataKey="subscribed" name="Подписалось" fill="hsl(142 76% 36%)" radius={[4, 4, 0, 0]} />
+                                  <Bar dataKey="unsubscribed" name="Отписалось" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+                                </RechartsBarChart>
+                              </ResponsiveContainer>
+                            </div>
+                            <div className="flex justify-center gap-6 mt-4">
+                              <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(142 76% 36%)' }} />
+                                <span className="text-sm text-muted-foreground">Подписалось</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded bg-destructive" />
+                                <span className="text-sm text-muted-foreground">Отписалось</span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                          
+                          {/* Full Telegram Analytics with Monetization */}
+                          <TelegramAnalytics channel={channel} />
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
                 );
               })}
             </div>
