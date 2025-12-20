@@ -5,7 +5,7 @@ import {
   Play, ExternalLink, Trash2, DollarSign, Clock, ThumbsUp, MessageSquare,
   Share2, MousePointer, Target, Calendar, Link2, Copy, Check, Settings,
   AlertTriangle, CheckCircle, Percent, Timer, PlayCircle, TrendingDown,
-  Megaphone, BarChart, PieChart, Tv2, RefreshCw
+  Megaphone, BarChart, PieChart, Tv2, RefreshCw, Edit2
 } from 'lucide-react';
 import { ApiSettingsDialog } from '@/components/media/ApiSettingsDialog';
 import { YouTubeAnalytics, TwitchAnalytics, VKVideoAnalytics, RuTubeAnalytics, TikTokAnalytics, TelegramAnalytics } from '@/components/media/PlatformAnalytics';
@@ -157,6 +157,9 @@ const MediaAnalyticsPage = () => {
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [syncingChannelId, setSyncingChannelId] = useState<string | null>(null);
+  const [syncingAllTelegram, setSyncingAllTelegram] = useState(false);
+  const [editingChannel, setEditingChannel] = useState<MediaChannel | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -290,6 +293,62 @@ const MediaAnalyticsPage = () => {
       toast({ title: 'Канал удалён' });
       fetchChannels();
     }
+  };
+
+  const handleEditChannel = (channel: MediaChannel) => {
+    setEditingChannel(channel);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateChannel = async () => {
+    if (!editingChannel) return;
+    
+    const { error } = await supabase
+      .from('media_channels')
+      .update({
+        name: editingChannel.name,
+        channel_url: editingChannel.channel_url,
+        username: editingChannel.username,
+        channel_id: editingChannel.channel_id,
+      })
+      .eq('id', editingChannel.id);
+    
+    if (error) {
+      toast({ title: t('error'), description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Канал обновлён' });
+      fetchChannels();
+      setIsEditDialogOpen(false);
+      setEditingChannel(null);
+    }
+  };
+
+  const handleSyncAllTelegramChannels = async () => {
+    setSyncingAllTelegram(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-telegram-stats');
+      
+      if (error) throw error;
+      
+      if (data.configured === false) {
+        toast({ 
+          title: 'Бот не настроен', 
+          description: data.message || 'Добавьте активный Telegram бот для синхронизации',
+          variant: 'destructive'
+        });
+      } else if (data.success) {
+        const successCount = data.results?.filter((r: any) => r.success).length || 0;
+        const errorCount = data.results?.filter((r: any) => !r.success).length || 0;
+        toast({ 
+          title: 'Синхронизация завершена', 
+          description: `Обновлено: ${successCount}, ошибок: ${errorCount}`
+        });
+        fetchChannels();
+      }
+    } catch (error: any) {
+      toast({ title: 'Ошибка', description: error.message, variant: 'destructive' });
+    }
+    setSyncingAllTelegram(false);
   };
 
   const handleDeleteAd = async (id: string) => {
@@ -786,6 +845,55 @@ const MediaAnalyticsPage = () => {
             </div>
           </DialogContent>
           </Dialog>
+
+          {/* Edit Channel Dialog */}
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Редактировать канал</DialogTitle>
+                <DialogDescription>Измените данные канала</DialogDescription>
+              </DialogHeader>
+              {editingChannel && (
+                <div className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label>Название *</Label>
+                    <Input
+                      value={editingChannel.name}
+                      onChange={(e) => setEditingChannel({ ...editingChannel, name: e.target.value })}
+                      placeholder="Название канала"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Username</Label>
+                    <Input
+                      value={editingChannel.username || ''}
+                      onChange={(e) => setEditingChannel({ ...editingChannel, username: e.target.value })}
+                      placeholder="@username"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>URL канала</Label>
+                    <Input
+                      value={editingChannel.channel_url || ''}
+                      onChange={(e) => setEditingChannel({ ...editingChannel, channel_url: e.target.value })}
+                      placeholder="https://t.me/channel"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>ID канала (для API)</Label>
+                    <Input
+                      value={editingChannel.channel_id || ''}
+                      onChange={(e) => setEditingChannel({ ...editingChannel, channel_id: e.target.value })}
+                      placeholder="-1001234567890"
+                    />
+                  </div>
+                  <Button onClick={handleUpdateChannel} className="w-full">
+                    Сохранить
+                  </Button>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -963,6 +1071,14 @@ const MediaAnalyticsPage = () => {
                                             </a>
                                           </Button>
                                         )}
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          onClick={(e) => { e.stopPropagation(); handleEditChannel(channel); }}
+                                          title="Редактировать"
+                                        >
+                                          <Edit2 className="h-4 w-4" />
+                                        </Button>
                                         <Button variant="ghost" size="icon" className="text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteChannel(channel.id); }}>
                                           <Trash2 className="h-4 w-4" />
                                         </Button>
@@ -1006,6 +1122,18 @@ const MediaAnalyticsPage = () => {
             }))} 
             onSync={fetchChannels} 
           />
+
+          {/* Mass Sync Button */}
+          <div className="flex justify-end">
+            <Button 
+              onClick={handleSyncAllTelegramChannels} 
+              disabled={syncingAllTelegram || telegramChannels.length === 0}
+              className="gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${syncingAllTelegram ? 'animate-spin' : ''}`} />
+              {syncingAllTelegram ? 'Синхронизация...' : 'Синхронизировать все каналы'}
+            </Button>
+          </div>
           
           {/* Summary Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1143,6 +1271,14 @@ const MediaAnalyticsPage = () => {
                                   </a>
                                 </Button>
                               )}
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={(e) => { e.stopPropagation(); handleEditChannel(channel); }}
+                                title="Редактировать канал"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
                               <Button variant="ghost" size="icon" className="text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteChannel(channel.id); }}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
