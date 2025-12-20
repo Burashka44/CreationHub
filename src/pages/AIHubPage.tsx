@@ -21,6 +21,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import ContextualPresets from '@/components/aihub/ContextualPresets';
 
 interface Preset {
   id: string;
@@ -107,11 +108,6 @@ const AIHubPage = () => {
   const [avTgtLang, setAvTgtLang] = useState('en');
   const [cleanMethod, setCleanMethod] = useState('propainter');
   const [cleanObjects, setCleanObjects] = useState('logo,face');
-  
-  // New preset form
-  const [presetName, setPresetName] = useState('');
-  const [presetTarget, setPresetTarget] = useState('av');
-  const [presetJSON, setPresetJSON] = useState('{\n  "src_lang": "auto",\n  "tgt_lang": "en"\n}');
   
   // AI Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -265,20 +261,17 @@ const AIHubPage = () => {
     setPresets(prev => prev.filter(p => p.id !== id));
   };
   
-  const addPreset = () => {
-    try {
-      const payload = JSON.parse(presetJSON);
-      const newPreset: Preset = {
-        id: Math.random().toString(36).slice(2),
-        name: presetName || 'New Preset',
-        target: presetTarget,
-        payload,
-      };
-      setPresets(prev => [newPreset, ...prev]);
-      setPresetName('');
-    } catch {
-      pushLog('Preset error', undefined, undefined, 'Invalid JSON');
-    }
+
+  // Добавление пресета для конкретной вкладки (для контекстных пресетов)
+  const addPresetForTab = (name: string, payload: Record<string, string>) => {
+    const newPreset: Preset = {
+      id: Math.random().toString(36).slice(2),
+      name,
+      target: activeTab,
+      payload,
+    };
+    setPresets(prev => [newPreset, ...prev]);
+    toast.success('Пресет сохранён');
   };
 
   // Словарь описаний полей для экспорта
@@ -862,155 +855,7 @@ const AIHubPage = () => {
         </CardContent>
       </Card>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Presets */}
-        <Card className="border-border/50 bg-card/50 backdrop-blur">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <Settings className="h-4 w-4 text-primary" />
-              <CardTitle className="text-base">Быстрые пресеты</CardTitle>
-              <HintTooltip text="Пресеты — это сохранённые настройки для быстрого запуска задач. Нажмите 'Применить' чтобы заполнить параметры автоматически." />
-            </div>
-            <CardDescription>
-              Готовые шаблоны настроек для частых задач
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <ScrollArea className="h-[280px] pr-3">
-              <div className="space-y-3">
-                {presets.map((preset) => (
-                  <div 
-                    key={preset.id} 
-                    className="p-3 rounded-lg border border-border/50 bg-background/50 space-y-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-sm">{preset.name}</span>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Badge variant="outline" className={cn("text-xs cursor-help", getTargetBadgeColor(preset.target))}>
-                              {preset.target === 'av' ? 'Дубляж' : 
-                               preset.target === 'asr' ? 'Распознавание' :
-                               preset.target === 'tts' ? 'Озвучка' :
-                               preset.target === 'translate' ? 'Перевод' :
-                               preset.target === 'clean' ? 'Очистка' :
-                               preset.target === 'chat' ? 'Чат' :
-                               preset.target === 'image' ? 'Картинки' :
-                               preset.target === 'summarize' ? 'Резюме' : preset.target}
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            Откроет вкладку "{preset.target}" с заданными настройками
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    {preset.description && (
-                      <p className="text-xs text-muted-foreground">{preset.description}</p>
-                    )}
-                    <details className="text-xs">
-                      <summary className="text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
-                        Показать параметры
-                      </summary>
-                      <pre className="mt-2 bg-muted/50 p-2 rounded border border-border/30 overflow-x-auto">
-                        {JSON.stringify(preset.payload, null, 2)}
-                      </pre>
-                    </details>
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="default" 
-                        className="flex-1 gap-1.5"
-                        onClick={() => applyPreset(preset)}
-                      >
-                        <Play className="h-3 w-3" />
-                        Применить
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="destructive" 
-                        onClick={() => deletePreset(preset.id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-            
-            <div className="border-t border-border/50 pt-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-medium">Создать свой пресет</p>
-                <HintTooltip text="Создайте собственный пресет с часто используемыми настройками. Выберите сервис и укажите параметры в формате JSON." />
-              </div>
-              <Input
-                value={presetName}
-                onChange={(e) => setPresetName(e.target.value)}
-                placeholder="Название пресета (например: Дубляж на немецкий)"
-              />
-              <Select value={presetTarget} onValueChange={setPresetTarget}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="av">Дубляж видео (AV)</SelectItem>
-                  <SelectItem value="asr">Распознавание речи (ASR)</SelectItem>
-                  <SelectItem value="tts">Синтез речи (TTS)</SelectItem>
-                  <SelectItem value="translate">Перевод текста (MT)</SelectItem>
-                  <SelectItem value="clean">Очистка видео (Clean)</SelectItem>
-                  <SelectItem value="chat">AI Чат</SelectItem>
-                  <SelectItem value="image">Генерация картинок</SelectItem>
-                  <SelectItem value="summarize">Суммаризация</SelectItem>
-                </SelectContent>
-              </Select>
-              <div>
-                <Label className="text-xs text-muted-foreground mb-1 block">
-                  Параметры (JSON формат)
-                </Label>
-                <Textarea
-                  value={presetJSON}
-                  onChange={(e) => setPresetJSON(e.target.value)}
-                  placeholder='{"src_lang": "ru", "tgt_lang": "en"}'
-                  className="font-mono text-xs h-20"
-                />
-              </div>
-              <Button onClick={addPreset} className="w-full gap-2">
-                <Plus className="h-4 w-4" />
-                Сохранить пресет
-              </Button>
-              
-              <div className="flex gap-2 pt-2 border-t border-border/30">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex-1 gap-1.5"
-                  onClick={exportPresets}
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Экспорт
-                </Button>
-                <input
-                  ref={importPresetsInputRef}
-                  type="file"
-                  accept=".json"
-                  onChange={importPresets}
-                  className="hidden"
-                />
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex-1 gap-1.5"
-                  onClick={() => importPresetsInputRef.current?.click()}
-                >
-                  <Upload className="h-3.5 w-3.5" />
-                  Импорт
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
+      <div className="grid lg:grid-cols-2 gap-6">
         {/* API Endpoints */}
         <Card className="lg:col-span-2 border-border/50 bg-card/50 backdrop-blur">
           <CardHeader className="pb-3">
@@ -1125,6 +970,16 @@ const AIHubPage = () => {
 
               {/* AI Chat Tab */}
               <TabsContent value="chat" className="space-y-4">
+                <ContextualPresets
+                  presets={presets}
+                  currentTab={activeTab}
+                  onApplyPreset={applyPreset}
+                  onDeletePreset={deletePreset}
+                  onAddPreset={addPresetForTab}
+                  onExport={exportPresets}
+                  onImport={importPresets}
+                  importInputRef={importPresetsInputRef}
+                />
                 {/* Model selector */}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border/50">
                   <div className="flex items-center gap-3">
@@ -1315,6 +1170,16 @@ const AIHubPage = () => {
 
               {/* Image Generation Tab */}
               <TabsContent value="image" className="space-y-4">
+                <ContextualPresets
+                  presets={presets}
+                  currentTab="image"
+                  onApplyPreset={applyPreset}
+                  onDeletePreset={deletePreset}
+                  onAddPreset={addPresetForTab}
+                  onExport={exportPresets}
+                  onImport={importPresets}
+                  importInputRef={importPresetsInputRef}
+                />
                 <div>
                   <Label>Промпт для генерации</Label>
                   <Textarea
@@ -1351,6 +1216,16 @@ const AIHubPage = () => {
 
               {/* Summarization Tab */}
               <TabsContent value="summarize" className="space-y-4">
+                <ContextualPresets
+                  presets={presets}
+                  currentTab="summarize"
+                  onApplyPreset={applyPreset}
+                  onDeletePreset={deletePreset}
+                  onAddPreset={addPresetForTab}
+                  onExport={exportPresets}
+                  onImport={importPresets}
+                  importInputRef={importPresetsInputRef}
+                />
                 <div>
                   <Label>Текст для суммаризации</Label>
                   <Textarea
@@ -1427,6 +1302,16 @@ const AIHubPage = () => {
               </TabsContent>
 
               <TabsContent value="asr" className="space-y-4">
+                <ContextualPresets
+                  presets={presets}
+                  currentTab="asr"
+                  onApplyPreset={applyPreset}
+                  onDeletePreset={deletePreset}
+                  onAddPreset={addPresetForTab}
+                  onExport={exportPresets}
+                  onImport={importPresets}
+                  importInputRef={importPresetsInputRef}
+                />
                 <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
                   <p className="text-sm text-muted-foreground">
                     <strong>ASR (Automatic Speech Recognition)</strong> — автоматическое распознавание речи. Преобразует аудио и видео в текст.
@@ -1516,6 +1401,16 @@ const AIHubPage = () => {
               </TabsContent>
 
               <TabsContent value="translate" className="space-y-4">
+                <ContextualPresets
+                  presets={presets}
+                  currentTab="translate"
+                  onApplyPreset={applyPreset}
+                  onDeletePreset={deletePreset}
+                  onAddPreset={addPresetForTab}
+                  onExport={exportPresets}
+                  onImport={importPresets}
+                  importInputRef={importPresetsInputRef}
+                />
                 <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
                   <p className="text-sm text-muted-foreground">
                     <strong>MT (Machine Translation)</strong> — машинный перевод текста между языками с сохранением смысла и контекста.
@@ -1573,6 +1468,16 @@ const AIHubPage = () => {
               </TabsContent>
 
               <TabsContent value="tts" className="space-y-4">
+                <ContextualPresets
+                  presets={presets}
+                  currentTab="tts"
+                  onApplyPreset={applyPreset}
+                  onDeletePreset={deletePreset}
+                  onAddPreset={addPresetForTab}
+                  onExport={exportPresets}
+                  onImport={importPresets}
+                  importInputRef={importPresetsInputRef}
+                />
                 <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
                   <p className="text-sm text-muted-foreground">
                     <strong>TTS (Text-to-Speech)</strong> — синтез речи из текста. Создаёт естественную озвучку с возможностью клонирования голоса.
@@ -1610,6 +1515,16 @@ const AIHubPage = () => {
               </TabsContent>
 
               <TabsContent value="av" className="space-y-4">
+                <ContextualPresets
+                  presets={presets}
+                  currentTab="av"
+                  onApplyPreset={applyPreset}
+                  onDeletePreset={deletePreset}
+                  onAddPreset={addPresetForTab}
+                  onExport={exportPresets}
+                  onImport={importPresets}
+                  importInputRef={importPresetsInputRef}
+                />
                 <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
                   <p className="text-sm text-muted-foreground">
                     <strong>AV (Audio-Video Pipeline)</strong> — полный конвейер автодубляжа: распознавание речи (ASR) → перевод (MT) → синтез голоса (TTS).
@@ -1721,6 +1636,16 @@ const AIHubPage = () => {
               </TabsContent>
 
               <TabsContent value="clean" className="space-y-4">
+                <ContextualPresets
+                  presets={presets}
+                  currentTab="clean"
+                  onApplyPreset={applyPreset}
+                  onDeletePreset={deletePreset}
+                  onAddPreset={addPresetForTab}
+                  onExport={exportPresets}
+                  onImport={importPresets}
+                  importInputRef={importPresetsInputRef}
+                />
                 <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
                   <p className="text-sm text-muted-foreground">
                     <strong>Clean (Video Inpainting)</strong> — удаление нежелательных объектов из видео: логотипы, водяные знаки, лица, текст с восстановлением фона.
