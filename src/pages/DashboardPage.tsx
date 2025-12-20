@@ -24,20 +24,18 @@ const DashboardPage = () => {
   
   return (
     <>
-      {/* Row 1: System Gauges + VPN Map */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-stretch">
-        <div className="xl:col-span-2 h-full">
-          <SystemGauges />
-        </div>
-        <div className="h-full">
-          <VpnMap />
-        </div>
+      {/* Row 1: System Gauges */}
+      <SystemGauges />
+      
+      {/* Row 2: Network Monitor + VPN Location */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <NetworkMonitor />
+        <VpnMap />
       </div>
       
-      {/* Row 2: Quick Actions + Network + Security */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+      {/* Row 3: Quick Actions + Security + Backup */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <QuickActions />
-        <NetworkMonitor />
         <SecurityStatus />
         <BackupStatus />
       </div>
