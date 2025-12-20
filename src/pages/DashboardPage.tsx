@@ -1,13 +1,15 @@
 import VpnMap from '@/components/dashboard/VpnMap';
-import SystemGauges from '@/components/dashboard/SystemGauges';
-import DiskStorageBar from '@/components/dashboard/DiskStorageBar';
-import ServiceCard from '@/components/dashboard/ServiceCard';
-import QuickActions from '@/components/dashboard/QuickActions';
 import NetworkMonitor from '@/components/dashboard/NetworkMonitor';
 import SecurityStatus from '@/components/dashboard/SecurityStatus';
 import BackupStatus from '@/components/dashboard/BackupStatus';
-import OnlineUsers from '@/components/dashboard/OnlineUsers';
 import ActivityLog from '@/components/dashboard/ActivityLog';
+import DiskStorageBar from '@/components/dashboard/DiskStorageBar';
+import QuickActions from '@/components/dashboard/QuickActions';
+import ServerStats from '@/components/dashboard/ServerStats';
+import PerformanceChart from '@/components/dashboard/PerformanceChart';
+import ResourceMeters from '@/components/dashboard/ResourceMeters';
+import TrafficStats from '@/components/dashboard/TrafficStats';
+import ServiceCard from '@/components/dashboard/ServiceCard';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const services = [
@@ -23,24 +25,31 @@ const DashboardPage = () => {
   const { t } = useLanguage();
   
   return (
-    <>
-      {/* Row 1: System Gauges */}
-      <SystemGauges />
-      
-      {/* Row 2: Network Monitor + VPN Location */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <NetworkMonitor />
+    <div className="space-y-6">
+      {/* Row 1: Server Info + VPN Map + Network Monitor */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <ServerStats />
         <VpnMap />
+        <NetworkMonitor />
       </div>
       
-      {/* Row 3: Quick Actions + Security + Backup */}
+      {/* Row 2: Performance Chart (full width) */}
+      <PerformanceChart />
+      
+      {/* Row 3: Resource Meters */}
+      <ResourceMeters />
+      
+      {/* Row 4: Traffic Stats */}
+      <TrafficStats />
+      
+      {/* Row 5: Quick Actions + Security + Backup */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <QuickActions />
         <SecurityStatus />
         <BackupStatus />
       </div>
       
-      {/* Row 3: Services */}
+      {/* Row 6: Services */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
           {t('services')}
@@ -52,15 +61,12 @@ const DashboardPage = () => {
         </div>
       </div>
       
-      {/* Row 4: Activity Log + Online Users */}
+      {/* Row 7: Activity Log + Disk Storage */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <ActivityLog />
-        <OnlineUsers />
+        <DiskStorageBar />
       </div>
-      
-      {/* Row 5: Disk Storage */}
-      <DiskStorageBar />
-    </>
+    </div>
   );
 };
 
