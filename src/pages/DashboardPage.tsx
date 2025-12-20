@@ -24,23 +24,20 @@ const DashboardPage = () => {
   
   return (
     <>
-      {/* Row 1: System Gauges (CPU/GPU/RAM) + Quick Actions */}
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-        <div className="xl:col-span-3">
+      {/* Row 1: System Gauges + VPN Map */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div className="xl:col-span-2">
           <SystemGauges />
         </div>
-        <QuickActions />
+        <VpnMap />
       </div>
       
-      {/* Row 2: Network Monitor + Security + Backups */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <NetworkMonitor />
-        </div>
-        <div className="space-y-6">
-          <SecurityStatus />
-          <BackupStatus />
-        </div>
+      {/* Row 2: Quick Actions + Network + Security */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <QuickActions />
+        <NetworkMonitor />
+        <SecurityStatus />
+        <BackupStatus />
       </div>
       
       {/* Row 3: Services */}
@@ -55,17 +52,14 @@ const DashboardPage = () => {
         </div>
       </div>
       
-      {/* Row 4: Map + Online Users */}
+      {/* Row 4: Activity Log + Online Users */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <VpnMap />
+        <ActivityLog />
         <OnlineUsers />
       </div>
       
-      {/* Row 5: Activity Log + Disk Storage */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ActivityLog />
-        <DiskStorageBar />
-      </div>
+      {/* Row 5: Disk Storage */}
+      <DiskStorageBar />
     </>
   );
 };
