@@ -13,42 +13,46 @@ import ServiceCard from '@/components/dashboard/ServiceCard';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const services = [
-  { name: 'Nginx', status: 'online' as const, port: 80 },
-  { name: 'PostgreSQL', status: 'online' as const, port: 5432 },
-  { name: 'Redis', status: 'online' as const, port: 6379 },
-  { name: 'Docker', status: 'online' as const, port: 2375 },
-  { name: 'SSH', status: 'online' as const, port: 22 },
-  { name: 'FTP', status: 'offline' as const, port: 21 },
+  { name: 'CreationHub', status: 'online' as const, port: 80 },
+  { name: 'Portainer', status: 'online' as const, port: 9000 },
+  { name: 'NPM', status: 'online' as const, port: 81 },
+  { name: 'n8n', status: 'online' as const, port: 5678 },
+  { name: 'FileBrowser', status: 'online' as const, port: 8082 },
+  { name: 'Glances', status: 'online' as const, port: 61208 },
 ];
 
 const DashboardPage = () => {
   const { t } = useLanguage();
-  
+
   return (
     <div className="space-y-6">
       {/* Row 1: Server Info + VPN Map + Network Monitor */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="col-span-3 bg-primary/10 p-4 rounded-lg border border-primary text-center">
+          <h2 className="text-xl font-bold text-primary">CREATION HUB: GLANCES LINKED v2.2 (FIXED)</h2>
+          <p className="text-sm opacity-80">Stats loaded from Server (192.168.1.220)</p>
+        </div>
         <ServerStats />
         <VpnMap />
         <NetworkMonitor />
       </div>
-      
+
       {/* Row 2: Performance Chart (full width) */}
       <PerformanceChart />
-      
+
       {/* Row 3: Resource Meters */}
       <ResourceMeters />
-      
+
       {/* Row 4: Traffic Stats */}
       <TrafficStats />
-      
+
       {/* Row 5: Quick Actions + Security + Backup */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <QuickActions />
         <SecurityStatus />
         <BackupStatus />
       </div>
-      
+
       {/* Row 6: Services */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
@@ -60,7 +64,7 @@ const DashboardPage = () => {
           ))}
         </div>
       </div>
-      
+
       {/* Row 7: Activity Log + Disk Storage */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <ActivityLog />

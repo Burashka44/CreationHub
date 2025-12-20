@@ -1,0 +1,34 @@
+services:
+  creationhub:
+    build: .
+    container_name: creationhub
+    ports:
+      - "7777:80"
+    restart: always
+    environment:
+      - VITE_SUPABASE_URL=http://192.168.1.220:7777/api/v1
+      - VITE_SUPABASE_ANON_KEY=my-secret-anon-key
+
+    restart: always
+
+  postgrest:
+    image: postgrest/postgrest
+    container_name: creationhub_api
+    ports:
+      - "7778:3000"
+    env_file: .env
+    environment:
+      PGRST_DB_URI: "${DATABASE_URL}"
+      PGRST_DB_SCHEMA: public
+      PGRST_DB_ANON_ROLE: postgres
+      PGRST_JWT_SECRET: "${PGRST_JWT_SECRET}"
+    restart: always
+
+  stats-recorder:
+    build: ./stats-recorder
+    container_name: creationhub_stats
+    restart: always
+    env_file: .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - GLANCES_URL=${GLANCES_URL}

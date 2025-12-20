@@ -1,6 +1,7 @@
 import { HardDrive } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useState, useEffect } from 'react';
 
 interface Disk {
   name: string;
@@ -40,10 +41,75 @@ const getTypeColor = (type: string) => {
 
 const DiskStorageBar = () => {
   const { t } = useLanguage();
-  
-  const totalStorage = mockDisks.reduce((sum, d) => sum + d.total, 0);
-  const usedStorage = mockDisks.reduce((sum, d) => sum + d.used, 0);
-  const overallPercent = (usedStorage / totalStorage) * 100;
+  const [disks, setDisks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDisks = async () => {
+      try {
+        const res = await fetch('/api/glances/fs');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // Filter: > 1 GB and unique devices to avoid bind-mount duplicates
+        const uniqueDevices = new Set();
+        const realDisks: any[] = [];
+
+        data.forEach((fs: any) => {
+          if (fs.size < 1024 * 1024 * 1024 || uniqueDevices.has(fs.device_name)) return;
+          uniqueDevices.add(fs.device_name);
+
+          realDisks.push({
+            name: fs.mnt_point === '/' ? 'System (Root)' : fs.mnt_point,
+            mountPoint: fs.mnt_point,
+            used: fs.used / 1024 / 1024 / 1024,
+            total: fs.size / 1024 / 1024 / 1024,
+            type: fs.fs_type,
+            percent: fs.percent
+          });
+        });
+
+        if (realDisks.length === 0 && data.length > 0) {
+          const fs = data[0];
+          realDisks.push({
+            name: fs.mnt_point,
+            mountPoint: fs.mnt_point,
+            used: fs.used / 1024 / 1024 / 1024,
+            total: fs.size / 1024 / 1024 / 1024,
+            type: fs.fs_type,
+            percent: fs.percent
+          });
+        }
+
+        setDisks(realDisks);
+      } catch (e) {
+        console.error("Disk fetch failed", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDisks();
+    const interval = setInterval(fetchDisks, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatSize = (gb: number) => {
+    if (gb >= 1000) return `${(gb / 1000).toFixed(1)} TB`;
+    return `${gb.toFixed(1)} GB`;
+  };
+
+  const getUsageColor = (percent: number) => {
+    if (percent < 70) return 'bg-emerald-500';
+    if (percent < 90) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
+  const totalStorage = disks.reduce((sum, d) => sum + d.total, 0);
+  const usedStorage = disks.reduce((sum, d) => sum + d.used, 0);
+  const overallPercent = totalStorage > 0 ? (usedStorage / totalStorage) * 100 : 0;
+
+  if (loading && disks.length === 0) return null;
 
   return (
     <Card className="bg-card/50 backdrop-blur-sm border-border/50">
@@ -59,10 +125,9 @@ const DiskStorageBar = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {mockDisks.map((disk) => {
-          const percent = (disk.used / disk.total) * 100;
+        {disks.map((disk) => {
           const free = disk.total - disk.used;
-          
+
           return (
             <div key={disk.mountPoint} className="space-y-2">
               <div className="flex items-center justify-between text-sm">
@@ -71,7 +136,7 @@ const DiskStorageBar = () => {
                   <code className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                     {disk.mountPoint}
                   </code>
-                  <span className={`text-xs uppercase font-medium ${getTypeColor(disk.type)}`}>
+                  <span className="text-xs uppercase font-medium text-muted-foreground">
                     {disk.type}
                   </span>
                 </div>
@@ -79,22 +144,16 @@ const DiskStorageBar = () => {
                   {formatSize(disk.used)} / {formatSize(disk.total)}
                 </span>
               </div>
-              
+
               <div className="relative h-3 bg-muted rounded-full overflow-hidden">
-                <div 
-                  className={`h-full ${getUsageColor(percent)} transition-all duration-500 rounded-full`}
-                  style={{ width: `${percent}%` }}
+                <div
+                  className={`h-full ${getUsageColor(disk.percent)} transition-all duration-500 rounded-full`}
+                  style={{ width: `${disk.percent}%` }}
                 />
-                {/* Markers */}
-                <div className="absolute inset-0 flex">
-                  <div className="w-1/4 border-r border-background/30" />
-                  <div className="w-1/4 border-r border-background/30" />
-                  <div className="w-1/4 border-r border-background/30" />
-                </div>
               </div>
-              
+
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{percent.toFixed(1)}% занято</span>
+                <span>{disk.percent.toFixed(1)}% занято</span>
                 <span>{formatSize(free)} свободно</span>
               </div>
             </div>

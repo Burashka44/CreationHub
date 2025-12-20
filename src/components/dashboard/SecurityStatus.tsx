@@ -5,7 +5,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 const SecurityStatus = () => {
   const { t } = useLanguage();
   const securityScore = 87;
-  
+
   const checks = [
     { nameKey: 'firewallActive', status: 'ok' as const },
     { nameKey: 'sslCertificate', status: 'ok' as const },
@@ -40,8 +40,8 @@ const SecurityStatus = () => {
           <Lock className="absolute -bottom-1 -right-1 h-5 w-5 text-primary bg-card rounded-full p-0.5" />
         </div>
         <div>
-          <p className="font-medium text-foreground">{t('securityScore')}</p>
-          <p className="text-sm text-muted-foreground">{t('serverProtected')}</p>
+          <p className="font-medium text-foreground">{t('securityScore')} (Simulated)</p>
+          <p className="text-sm text-muted-foreground">{t('serverProtected')} (Demo Mode)</p>
         </div>
       </div>
 

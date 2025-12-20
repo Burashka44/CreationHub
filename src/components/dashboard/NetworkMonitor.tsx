@@ -5,21 +5,47 @@ import { useState, useEffect } from 'react';
 const NetworkMonitor = () => {
   const { t } = useLanguage();
   const [stats, setStats] = useState({
-    download: 45.2,
-    upload: 12.8,
-    latency: 24,
-    packets: 1524,
+    download: 0,
+    upload: 0,
+    latency: 0,
+    packets: 0,
   });
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setStats({
-        download: Math.random() * 80 + 20,
-        upload: Math.random() * 30 + 5,
-        latency: Math.floor(Math.random() * 50) + 10,
-        packets: Math.floor(Math.random() * 3000) + 500,
-      });
-    }, 2000);
+    const fetchNet = async () => {
+      try {
+        const res = await fetch('/api/glances/network');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // Sum across all interfaces (eth0, wlan0, etc, excluding loopback usually has traffic but we can include it or filter)
+        // Glances provides 'bytes_recv_rate_per_sec'
+        let rx = 0;
+        let tx = 0;
+
+        if (Array.isArray(data)) {
+          data.forEach((iface: any) => {
+            // Optional: Filter 'lo' if we only want external traffic
+            if (iface.interface_name === 'lo') return;
+
+            rx += iface.bytes_recv_rate_per_sec || 0;
+            tx += iface.bytes_sent_rate_per_sec || 0;
+          });
+        }
+
+        setStats({
+          download: rx / 1024 / 1024, // MB/s
+          upload: tx / 1024 / 1024,   // MB/s
+          latency: 1, // Placeholder as Glances doesn't provide ping latency
+          packets: 0, // Not strictly tracking packets per sec in this view, or we could sum packets rate if available
+        });
+      } catch (e) {
+        console.error("Net fetch error", e);
+      }
+    };
+
+    fetchNet();
+    const interval = setInterval(fetchNet, 2000);
     return () => clearInterval(interval);
   }, []);
 
@@ -33,14 +59,14 @@ const NetworkMonitor = () => {
           <span className="text-xs text-muted-foreground">{t('live')}</span>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-2 gap-2">
         <div className="p-2.5 rounded-lg bg-success/10 border border-success/20">
           <div className="flex items-center gap-1.5 mb-1">
             <ArrowDown className="h-3.5 w-3.5 text-success" />
             <span className="text-[10px] text-muted-foreground">{t('download')}</span>
           </div>
-          <p className="text-lg font-bold text-success">{stats.download.toFixed(1)}</p>
+          <p className="text-lg font-bold text-success">{stats.download.toFixed(2)}</p>
           <p className="text-[10px] text-muted-foreground">MB/s</p>
         </div>
 
@@ -49,7 +75,7 @@ const NetworkMonitor = () => {
             <ArrowUp className="h-3.5 w-3.5 text-primary" />
             <span className="text-[10px] text-muted-foreground">{t('upload')}</span>
           </div>
-          <p className="text-lg font-bold text-primary">{stats.upload.toFixed(1)}</p>
+          <p className="text-lg font-bold text-primary">{stats.upload.toFixed(2)}</p>
           <p className="text-[10px] text-muted-foreground">MB/s</p>
         </div>
 
@@ -58,17 +84,17 @@ const NetworkMonitor = () => {
             <Activity className="h-3.5 w-3.5 text-warning" />
             <span className="text-[10px] text-muted-foreground">{t('latency')}</span>
           </div>
-          <p className="text-lg font-bold text-warning">{stats.latency}</p>
-          <p className="text-[10px] text-muted-foreground">ms</p>
+          <p className="text-lg font-bold text-warning">{"<1"}</p>
+          <p className="text-[10px] text-muted-foreground">ms (Local)</p>
         </div>
 
         <div className="p-2.5 rounded-lg bg-muted border border-border">
           <div className="flex items-center gap-1.5 mb-1">
             <Wifi className="h-3.5 w-3.5 text-foreground" />
-            <span className="text-[10px] text-muted-foreground">{t('packetsPerSec')}</span>
+            <span className="text-[10px] text-muted-foreground">Network</span>
           </div>
-          <p className="text-lg font-bold text-foreground">{stats.packets}</p>
-          <p className="text-[10px] text-muted-foreground">{t('total')}</p>
+          <p className="text-lg font-bold text-foreground">Active</p>
+          <p className="text-[10px] text-muted-foreground">Status</p>
         </div>
       </div>
     </div>
