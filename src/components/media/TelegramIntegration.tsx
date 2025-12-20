@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Bot, Send, RefreshCw, Plus, Trash2, Edit2, Check, X, Eye, EyeOff, MessageSquare, Users } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Bot, Send, RefreshCw, Plus, Trash2, Edit2, Check, X, Eye, EyeOff, Clock, Settings } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -34,6 +33,12 @@ interface TelegramIntegrationProps {
   onSync?: () => void;
 }
 
+interface AutoSyncSettings {
+  enabled: boolean;
+  interval: number;
+  unit: 'minutes' | 'hours';
+}
+
 const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => {
   const { toast } = useToast();
   const [bots, setBots] = useState<TelegramBot[]>([]);
@@ -44,6 +49,13 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
   const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
   const [editingBot, setEditingBot] = useState<TelegramBot | null>(null);
   const [showTokens, setShowTokens] = useState<Record<string, boolean>>({});
+  
+  const [autoSyncSettings, setAutoSyncSettings] = useState<AutoSyncSettings>({
+    enabled: false,
+    interval: 6,
+    unit: 'hours',
+  });
+  const autoSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   const [botFormData, setBotFormData] = useState({
     name: '',
@@ -63,7 +75,70 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
 
   useEffect(() => {
     fetchBots();
+    loadAutoSyncSettings();
   }, []);
+
+  // Setup auto-sync interval
+  useEffect(() => {
+    if (autoSyncIntervalRef.current) {
+      clearInterval(autoSyncIntervalRef.current);
+      autoSyncIntervalRef.current = null;
+    }
+
+    if (autoSyncSettings.enabled && channels.length > 0) {
+      const intervalMs = autoSyncSettings.unit === 'hours' 
+        ? autoSyncSettings.interval * 60 * 60 * 1000 
+        : autoSyncSettings.interval * 60 * 1000;
+      
+      autoSyncIntervalRef.current = setInterval(() => {
+        handleSyncSubscribers();
+      }, intervalMs);
+    }
+
+    return () => {
+      if (autoSyncIntervalRef.current) {
+        clearInterval(autoSyncIntervalRef.current);
+      }
+    };
+  }, [autoSyncSettings, channels.length]);
+
+  const loadAutoSyncSettings = async () => {
+    const { data } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'telegram_auto_sync')
+      .maybeSingle();
+    
+    if (data?.value) {
+      const value = data.value as unknown as AutoSyncSettings;
+      if (value.enabled !== undefined && value.interval !== undefined && value.unit !== undefined) {
+        setAutoSyncSettings(value);
+      }
+    }
+  };
+
+  const saveAutoSyncSettings = async (settings: AutoSyncSettings) => {
+    setAutoSyncSettings(settings);
+    
+    const { data: existing } = await supabase
+      .from('app_settings')
+      .select('id')
+      .eq('key', 'telegram_auto_sync')
+      .maybeSingle();
+    
+    if (existing) {
+      await supabase
+        .from('app_settings')
+        .update({ value: settings as any })
+        .eq('key', 'telegram_auto_sync');
+    } else {
+      await supabase
+        .from('app_settings')
+        .insert({ key: 'telegram_auto_sync', value: settings as any });
+    }
+    
+    toast({ title: 'Настройки сохранены' });
+  };
 
   const fetchBots = async () => {
     setIsLoading(true);
@@ -217,18 +292,19 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
     return token.slice(0, 6) + '••••••••' + token.slice(-4);
   };
 
-  const formatDate = (date: string | null) => {
-    if (!date) return 'Никогда';
-    return new Date(date).toLocaleString('ru-RU');
+  const getIntervalText = () => {
+    if (!autoSyncSettings.enabled) return 'Выключено';
+    const unit = autoSyncSettings.unit === 'hours' ? 'ч' : 'мин';
+    return `Каждые ${autoSyncSettings.interval} ${unit}`;
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header Actions */}
-      <div className="flex flex-wrap gap-3">
-        <Button onClick={handleSyncSubscribers} disabled={isSyncing} className="gap-2">
+      <div className="flex flex-wrap items-center gap-3">
+        <Button onClick={handleSyncSubscribers} disabled={isSyncing} variant="outline" className="gap-2">
           <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-          Синхронизировать подписчиков
+          Синхронизировать
         </Button>
         
         <Dialog open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen}>
@@ -323,173 +399,179 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
             </div>
           </DialogContent>
         </Dialog>
+
+        <Dialog open={isBotDialogOpen} onOpenChange={(open) => { setIsBotDialogOpen(open); if (!open) resetBotForm(); }}>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="gap-2">
+              <Bot className="h-4 w-4" />
+              Управление ботами
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{editingBot ? 'Редактировать бота' : 'Telegram Боты'}</DialogTitle>
+            </DialogHeader>
+            
+            {editingBot ? (
+              <div className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label>Название *</Label>
+                  <Input
+                    value={botFormData.name}
+                    onChange={(e) => setBotFormData({ ...botFormData, name: e.target.value })}
+                    placeholder="Notification Bot"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Token *</Label>
+                  <Input
+                    value={botFormData.token}
+                    onChange={(e) => setBotFormData({ ...botFormData, token: e.target.value })}
+                    placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Описание</Label>
+                  <Input
+                    value={botFormData.description}
+                    onChange={(e) => setBotFormData({ ...botFormData, description: e.target.value })}
+                    placeholder="Бот для уведомлений"
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <Switch
+                    checked={botFormData.is_active}
+                    onCheckedChange={(checked) => setBotFormData({ ...botFormData, is_active: checked })}
+                  />
+                  <Label>Активен</Label>
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <Button onClick={handleBotSubmit} className="flex-1">
+                    <Check className="h-4 w-4 mr-1" />
+                    Сохранить
+                  </Button>
+                  <Button variant="outline" onClick={() => resetBotForm()}>
+                    <X className="h-4 w-4 mr-1" />
+                    Отмена
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4 pt-4">
+                <div className="flex justify-end">
+                  <Button size="sm" onClick={() => setEditingBot({ id: '', name: '', token: '', description: null, is_active: true, created_at: '' })} className="gap-1">
+                    <Plus className="h-4 w-4" />
+                    Добавить бота
+                  </Button>
+                </div>
+                
+                {isLoading ? (
+                  <div className="text-center text-muted-foreground py-4">Загрузка...</div>
+                ) : bots.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    <Bot className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>Нет добавленных ботов</p>
+                    <p className="text-xs mt-1">Создайте бота через @BotFather в Telegram</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {bots.map((bot) => (
+                      <div key={bot.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-foreground">{bot.name}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${bot.is_active ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+                              {bot.is_active ? 'Активен' : 'Неактивен'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <code className="text-xs text-muted-foreground font-mono truncate">
+                              {showTokens[bot.id] ? bot.token : maskToken(bot.token)}
+                            </code>
+                            <button onClick={() => toggleShowToken(bot.id)} className="text-muted-foreground hover:text-foreground flex-shrink-0">
+                              {showTokens[bot.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <Button size="icon" variant="ghost" onClick={() => handleEditBot(bot)}>
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleDeleteBot(bot.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <Tabs defaultValue="channels" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="channels" className="gap-2">
-            <Users className="h-4 w-4" />
-            Каналы
-          </TabsTrigger>
-          <TabsTrigger value="bots" className="gap-2">
-            <Bot className="h-4 w-4" />
-            Боты
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="channels">
-          <Card className="bg-card/50 backdrop-blur-sm border-border/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <MessageSquare className="h-5 w-5 text-primary" />
-                Telegram Каналы
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="text-center text-muted-foreground py-4">Загрузка...</div>
-              ) : channels.length === 0 ? (
-                <div className="text-center text-muted-foreground py-4">
-                  Нет Telegram каналов. Добавьте каналы на вкладке "Telegram" выше.
+      {/* Auto-sync settings card */}
+      <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+        <CardHeader className="py-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-medium flex items-center gap-2">
+              <Clock className="h-4 w-4 text-primary" />
+              Автоматическая синхронизация
+            </CardTitle>
+            <span className="text-sm text-muted-foreground">{getIntervalText()}</span>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-3">
+              <Switch
+                checked={autoSyncSettings.enabled}
+                onCheckedChange={(checked) => {
+                  const newSettings = { ...autoSyncSettings, enabled: checked };
+                  saveAutoSyncSettings(newSettings);
+                }}
+              />
+              <Label className="text-sm">Включить</Label>
+            </div>
+            
+            {autoSyncSettings.enabled && (
+              <>
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm text-muted-foreground">Каждые</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={autoSyncSettings.unit === 'hours' ? 24 : 60}
+                    value={autoSyncSettings.interval}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 1;
+                      setAutoSyncSettings({ ...autoSyncSettings, interval: val });
+                    }}
+                    onBlur={() => saveAutoSyncSettings(autoSyncSettings)}
+                    className="w-16 h-8"
+                  />
+                  <Select
+                    value={autoSyncSettings.unit}
+                    onValueChange={(v: 'minutes' | 'hours') => {
+                      const newSettings = { ...autoSyncSettings, unit: v };
+                      saveAutoSyncSettings(newSettings);
+                    }}
+                  >
+                    <SelectTrigger className="w-24 h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="minutes">минут</SelectItem>
+                      <SelectItem value="hours">часов</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {channels.map((channel) => (
-                    <div key={channel.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <span className="font-medium text-foreground">{channel.name}</span>
-                          <span className="text-sm text-muted-foreground">@{channel.username}</span>
-                        </div>
-                        <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Users className="h-3 w-3" />
-                            {channel.subscribers.toLocaleString('ru-RU')} подписчиков
-                          </span>
-                          <span>Синхронизация: {formatDate(channel.last_synced_at)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="bots">
-          <Card className="bg-card/50 backdrop-blur-sm border-border/50">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <Bot className="h-5 w-5 text-primary" />
-                  Telegram Боты
-                </CardTitle>
-                <Dialog open={isBotDialogOpen} onOpenChange={(open) => { setIsBotDialogOpen(open); if (!open) resetBotForm(); }}>
-                  <DialogTrigger asChild>
-                    <Button size="sm" className="gap-1">
-                      <Plus className="h-4 w-4" />
-                      Добавить
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>{editingBot ? 'Редактировать бота' : 'Добавить бота'}</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 pt-4">
-                      <div className="space-y-2">
-                        <Label>Название *</Label>
-                        <Input
-                          value={botFormData.name}
-                          onChange={(e) => setBotFormData({ ...botFormData, name: e.target.value })}
-                          placeholder="Notification Bot"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Token *</Label>
-                        <Input
-                          value={botFormData.token}
-                          onChange={(e) => setBotFormData({ ...botFormData, token: e.target.value })}
-                          placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Получите токен у @BotFather в Telegram
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Описание</Label>
-                        <Input
-                          value={botFormData.description}
-                          onChange={(e) => setBotFormData({ ...botFormData, description: e.target.value })}
-                          placeholder="Бот для уведомлений"
-                        />
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Switch
-                          checked={botFormData.is_active}
-                          onCheckedChange={(checked) => setBotFormData({ ...botFormData, is_active: checked })}
-                        />
-                        <Label>Активен</Label>
-                      </div>
-                      <div className="flex gap-2 pt-4">
-                        <Button onClick={handleBotSubmit} className="flex-1">
-                          <Check className="h-4 w-4 mr-1" />
-                          Сохранить
-                        </Button>
-                        <Button variant="outline" onClick={() => setIsBotDialogOpen(false)}>
-                          <X className="h-4 w-4 mr-1" />
-                          Отмена
-                        </Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {isLoading ? (
-                <div className="text-center text-muted-foreground py-4">Загрузка...</div>
-              ) : bots.length === 0 ? (
-                <div className="text-center text-muted-foreground py-4">
-                  Нет добавленных ботов. Создайте бота через @BotFather в Telegram.
-                </div>
-              ) : (
-                bots.map((bot) => (
-                  <div key={bot.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-foreground">{bot.name}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${bot.is_active ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
-                          {bot.is_active ? 'Активен' : 'Неактивен'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <code className="text-xs text-muted-foreground font-mono">
-                          {showTokens[bot.id] ? bot.token : maskToken(bot.token)}
-                        </code>
-                        <button onClick={() => toggleShowToken(bot.id)} className="text-muted-foreground hover:text-foreground">
-                          {showTokens[bot.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                        </button>
-                      </div>
-                      {bot.description && (
-                        <p className="text-xs text-muted-foreground mt-1">{bot.description}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => handleEditBot(bot)}>
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleDeleteBot(bot.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
