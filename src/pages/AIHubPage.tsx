@@ -70,6 +70,9 @@ const AIHubPage = () => {
   // Console logs
   const [logs, setLogs] = useState<LogItem[]>([]);
   
+  // Active tab
+  const [activeTab, setActiveTab] = useState('asr');
+  
   // Form states
   const [asrTask, setAsrTask] = useState('transcribe');
   const [asrLang, setAsrLang] = useState('');
@@ -97,6 +100,37 @@ const AIHubPage = () => {
       error,
       timestamp: new Date()
     }, ...prev]);
+  };
+  
+  const applyPreset = (preset: Preset) => {
+    setActiveTab(preset.target);
+    const p = preset.payload;
+    
+    switch (preset.target) {
+      case 'asr':
+        if (p.task) setAsrTask(p.task);
+        if (p.lang) setAsrLang(p.lang);
+        break;
+      case 'translate':
+        if (p.text) setTrText(p.text);
+        if (p.src_lang) setTrSrc(p.src_lang);
+        if (p.tgt_lang) setTrTgt(p.tgt_lang);
+        break;
+      case 'tts':
+        if (p.text) setTtsText(p.text);
+        if (p.lang) setTtsLang(p.lang);
+        break;
+      case 'av':
+        if (p.src_lang) setAvSrcLang(p.src_lang);
+        if (p.tgt_lang) setAvTgtLang(p.tgt_lang);
+        break;
+      case 'clean':
+        if (p.method) setCleanMethod(p.method);
+        if (p.objects) setCleanObjects(p.objects);
+        break;
+    }
+    
+    pushLog(`Пресет "${preset.name}" применён`, preset.payload);
   };
   
   const checkHealth = async () => {
@@ -269,7 +303,12 @@ const AIHubPage = () => {
                       {JSON.stringify(preset.payload, null, 2)}
                     </pre>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="default" className="flex-1 gap-1.5">
+                      <Button 
+                        size="sm" 
+                        variant="default" 
+                        className="flex-1 gap-1.5"
+                        onClick={() => applyPreset(preset)}
+                      >
                         <Play className="h-3 w-3" />
                         Применить
                       </Button>
@@ -328,7 +367,7 @@ const AIHubPage = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="asr" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid grid-cols-5 mb-4">
                 <TabsTrigger value="asr" className="gap-1.5 text-xs">
                   <Mic className="h-3.5 w-3.5" />
