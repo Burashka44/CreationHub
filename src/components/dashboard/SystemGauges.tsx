@@ -30,7 +30,7 @@ const SystemGauges = () => {
   const { t } = useLanguage();
 
   return (
-    <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+    <Card className="bg-card/50 backdrop-blur-sm border-border/50 h-full flex flex-col">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg font-semibold flex items-center gap-2">
           <Activity className="h-5 w-5 text-primary" />

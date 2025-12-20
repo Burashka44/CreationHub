@@ -27,7 +27,7 @@ const VpnMap = () => {
   const osmMapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${location.lon - 10},${location.lat - 5},${location.lon + 10},${location.lat + 5}&layer=mapnik&marker=${location.lat},${location.lon}`;
 
   return (
-    <div className="dashboard-card h-[300px] lg:h-[400px] overflow-hidden">
+    <div className="dashboard-card h-full overflow-hidden flex flex-col">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-foreground flex items-center gap-2">
           <Globe className="h-5 w-5 text-primary" />
@@ -39,7 +39,7 @@ const VpnMap = () => {
         </div>
       </div>
       
-      <div className="h-[calc(100%-40px)] rounded-lg overflow-hidden relative bg-muted">
+      <div className="flex-1 min-h-[200px] rounded-lg overflow-hidden relative bg-muted">
         {/* Map iframe */}
         <iframe
           src={osmMapUrl}
@@ -49,21 +49,21 @@ const VpnMap = () => {
         />
         
         {/* Overlay with location info */}
-        <div className="absolute bottom-4 left-4 right-4 bg-card/90 backdrop-blur-sm rounded-lg p-3 border border-border">
+        <div className="absolute bottom-3 left-3 right-3 bg-card/90 backdrop-blur-sm rounded-lg p-2.5 border border-border">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <MapPin className="h-5 w-5 text-primary" />
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                <MapPin className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <p className="font-semibold text-foreground">{location.city}, {location.country}</p>
+                <p className="font-semibold text-sm text-foreground">{location.city}, {location.country}</p>
                 <p className="text-xs text-muted-foreground">{location.org}</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="font-mono text-sm text-foreground">{location.ip}</p>
-              <p className="text-xs text-muted-foreground">
-                {location.lat.toFixed(4)}, {location.lon.toFixed(4)}
+              <p className="font-mono text-xs text-foreground">{location.ip}</p>
+              <p className="text-[10px] text-muted-foreground">
+                {location.lat.toFixed(2)}, {location.lon.toFixed(2)}
               </p>
             </div>
           </div>
