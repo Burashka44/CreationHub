@@ -5,7 +5,7 @@ import {
   Play, ExternalLink, Trash2, DollarSign, Clock, ThumbsUp, MessageSquare,
   Share2, MousePointer, Target, Calendar, Link2, Copy, Check, Settings,
   AlertTriangle, CheckCircle, Percent, Timer, PlayCircle, TrendingDown,
-  Megaphone, BarChart, PieChart, Tv2
+  Megaphone, BarChart, PieChart, Tv2, RefreshCw
 } from 'lucide-react';
 import { ApiSettingsDialog } from '@/components/media/ApiSettingsDialog';
 import { YouTubeAnalytics, TwitchAnalytics, VKVideoAnalytics, RuTubeAnalytics, TikTokAnalytics, TelegramAnalytics } from '@/components/media/PlatformAnalytics';
@@ -154,6 +154,7 @@ const MediaAnalyticsPage = () => {
   const [activeTab, setActiveTab] = useState('video');
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [syncingChannelId, setSyncingChannelId] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -313,6 +314,43 @@ const MediaAnalyticsPage = () => {
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(null), 2000);
     toast({ title: 'Ссылка скопирована' });
+  };
+
+  const handleSyncTelegramChannel = async (channelId: string) => {
+    setSyncingChannelId(channelId);
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-telegram-stats', {
+        body: { channel_id: channelId }
+      });
+      
+      if (error) throw error;
+      
+      if (data.configured === false) {
+        toast({ 
+          title: 'Бот не настроен', 
+          description: data.message || 'Добавьте активный Telegram бот для синхронизации',
+          variant: 'destructive'
+        });
+      } else if (data.success) {
+        const result = data.results?.[0];
+        if (result?.success) {
+          toast({ 
+            title: 'Синхронизация завершена', 
+            description: `${result.channel}: ${result.subscribers?.toLocaleString('ru-RU')} подписчиков (${result.diff >= 0 ? '+' : ''}${result.diff})`
+          });
+          fetchChannels();
+        } else {
+          toast({ 
+            title: 'Ошибка синхронизации', 
+            description: result?.error || 'Не удалось получить статистику',
+            variant: 'destructive'
+          });
+        }
+      }
+    } catch (error: any) {
+      toast({ title: 'Ошибка', description: error.message, variant: 'destructive' });
+    }
+    setSyncingChannelId(null);
   };
 
   const videoChannels = channels.filter(ch => Object.keys(videoPlatforms).includes(ch.platform));
@@ -1067,6 +1105,16 @@ const MediaAnalyticsPage = () => {
                                   Монетизация
                                 </Badge>
                               )}
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="text-sky-500 hover:text-sky-400"
+                                onClick={(e) => { e.stopPropagation(); handleSyncTelegramChannel(channel.id); }}
+                                disabled={syncingChannelId === channel.id}
+                                title="Синхронизировать статистику"
+                              >
+                                <RefreshCw className={`h-4 w-4 ${syncingChannelId === channel.id ? 'animate-spin' : ''}`} />
+                              </Button>
                               {channel.channel_url && (
                                 <Button variant="ghost" size="icon" asChild onClick={(e) => e.stopPropagation()}>
                                   <a href={channel.channel_url} target="_blank" rel="noopener noreferrer">
