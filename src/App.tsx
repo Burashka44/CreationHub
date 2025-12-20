@@ -15,6 +15,7 @@ import SettingsPage from "./pages/SettingsPage";
 import AdminsPage from "./pages/AdminsPage";
 import MediaAnalyticsPage from "./pages/MediaAnalyticsPage";
 import AIHubPage from "./pages/AIHubPage";
+import ServicesPage from "./pages/ServicesPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
         <Routes>
           <Route element={<DashboardLayout />}>
             <Route path="/" element={<DashboardPage />} />
+            <Route path="/services" element={<ServicesPage />} />
             <Route path="/media" element={<MediaAnalyticsPage />} />
             <Route path="/channels" element={<ChannelsPage />} />
             <Route path="/admins" element={<AdminsPage />} />
