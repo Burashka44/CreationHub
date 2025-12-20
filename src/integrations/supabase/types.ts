@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_clicks: {
+        Row: {
+          ad_id: string | null
+          clicked_at: string
+          id: string
+          ip_hash: string | null
+          referrer: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          ad_id?: string | null
+          clicked_at?: string
+          id?: string
+          ip_hash?: string | null
+          referrer?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          ad_id?: string | null
+          clicked_at?: string
+          id?: string
+          ip_hash?: string | null
+          referrer?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_clicks_ad_id_fkey"
+            columns: ["ad_id"]
+            isOneToOne: false
+            referencedRelation: "telegram_ads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admins: {
         Row: {
           created_at: string
@@ -55,57 +90,146 @@ export type Database = {
       }
       media_channels: {
         Row: {
+          avg_view_duration: number | null
           channel_id: string | null
           channel_url: string | null
+          comments: number | null
           created_at: string
+          ctr: number | null
           engagement: number | null
           growth: number | null
           id: string
           is_active: boolean
+          is_monetized: boolean | null
           last_synced_at: string | null
+          likes: number | null
           name: string
           platform: string
+          revenue: number | null
+          shares: number | null
           subscribers: number | null
           updated_at: string
           username: string | null
           videos_count: number | null
           views: number | null
+          watch_hours: number | null
         }
         Insert: {
+          avg_view_duration?: number | null
           channel_id?: string | null
           channel_url?: string | null
+          comments?: number | null
           created_at?: string
+          ctr?: number | null
           engagement?: number | null
           growth?: number | null
           id?: string
           is_active?: boolean
+          is_monetized?: boolean | null
           last_synced_at?: string | null
+          likes?: number | null
           name: string
           platform: string
+          revenue?: number | null
+          shares?: number | null
           subscribers?: number | null
           updated_at?: string
           username?: string | null
           videos_count?: number | null
           views?: number | null
+          watch_hours?: number | null
         }
         Update: {
+          avg_view_duration?: number | null
           channel_id?: string | null
           channel_url?: string | null
+          comments?: number | null
           created_at?: string
+          ctr?: number | null
           engagement?: number | null
           growth?: number | null
           id?: string
           is_active?: boolean
+          is_monetized?: boolean | null
           last_synced_at?: string | null
+          likes?: number | null
           name?: string
           platform?: string
+          revenue?: number | null
+          shares?: number | null
           subscribers?: number | null
           updated_at?: string
           username?: string | null
           videos_count?: number | null
           views?: number | null
+          watch_hours?: number | null
         }
         Relationships: []
+      }
+      telegram_ads: {
+        Row: {
+          ad_link: string | null
+          ad_text: string | null
+          budget: number | null
+          channel_id: string | null
+          clicks: number | null
+          created_at: string
+          end_date: string | null
+          id: string
+          impressions: number | null
+          is_active: boolean | null
+          name: string
+          spent: number | null
+          start_date: string | null
+          status: string | null
+          tracking_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          ad_link?: string | null
+          ad_text?: string | null
+          budget?: number | null
+          channel_id?: string | null
+          clicks?: number | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          impressions?: number | null
+          is_active?: boolean | null
+          name: string
+          spent?: number | null
+          start_date?: string | null
+          status?: string | null
+          tracking_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ad_link?: string | null
+          ad_text?: string | null
+          budget?: number | null
+          channel_id?: string | null
+          clicks?: number | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          impressions?: number | null
+          is_active?: boolean | null
+          name?: string
+          spent?: number | null
+          start_date?: string | null
+          status?: string | null
+          tracking_code?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_ads_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "media_channels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       telegram_bots: {
         Row: {
