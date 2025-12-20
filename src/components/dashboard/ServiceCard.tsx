@@ -1,32 +1,32 @@
 import React from 'react';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Server, Database, HardDrive, Container, Terminal, FolderClosed } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ServiceCardProps {
   name: string;
-  description: string;
-  url: string;
   port: number;
-  icon: React.ReactNode;
-  isOnline?: boolean;
+  status: 'online' | 'offline';
 }
 
-const ServiceCard = ({ name, description, url, port, icon, isOnline = true }: ServiceCardProps) => {
-  const { t } = useLanguage();
+const serviceIcons: Record<string, React.ReactNode> = {
+  Nginx: <Server className="h-5 w-5" />,
+  PostgreSQL: <Database className="h-5 w-5" />,
+  Redis: <HardDrive className="h-5 w-5" />,
+  Docker: <Container className="h-5 w-5" />,
+  SSH: <Terminal className="h-5 w-5" />,
+  FTP: <FolderClosed className="h-5 w-5" />,
+};
 
-  const handleClick = () => {
-    window.open(url, '_blank');
-  };
+const ServiceCard = ({ name, port, status }: ServiceCardProps) => {
+  const { t } = useLanguage();
+  const isOnline = status === 'online';
 
   return (
-    <div 
-      className="service-card group"
-      onClick={handleClick}
-    >
+    <div className="service-card group cursor-pointer">
       <div className="flex items-start justify-between mb-3">
         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-          {icon}
+          {serviceIcons[name] || <Server className="h-5 w-5" />}
         </div>
         <div className="flex items-center gap-2">
           <span className={cn(
@@ -36,7 +36,8 @@ const ServiceCard = ({ name, description, url, port, icon, isOnline = true }: Se
             {isOnline ? t('online') : t('offline')}
           </span>
           <div className={cn(
-            isOnline ? "status-online" : "status-offline"
+            "w-2 h-2 rounded-full",
+            isOnline ? "bg-success animate-pulse" : "bg-destructive"
           )} />
         </div>
       </div>
@@ -44,9 +45,6 @@ const ServiceCard = ({ name, description, url, port, icon, isOnline = true }: Se
       <h3 className="font-semibold text-foreground mb-1 group-hover:text-primary transition-colors">
         {name}
       </h3>
-      <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
-        {description}
-      </p>
       
       <div className="flex items-center justify-between text-xs">
         <span className="font-mono text-muted-foreground">:{port}</span>

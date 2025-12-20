@@ -3,17 +3,16 @@ import { Clock, HardDrive, MapPin, Wifi } from 'lucide-react';
 import Gauge from './Gauge';
 import { useLanguage } from '@/contexts/LanguageContext';
 
-interface StatsBarProps {
-  cpuUsage: number;
-  memoryUsage: number;
-  diskUsage: number;
-  uptime: { days: number; hours: number };
-  ipLocation: { city: string; country: string; ip: string };
-}
-
-const StatsBar = ({ cpuUsage, memoryUsage, diskUsage, uptime, ipLocation }: StatsBarProps) => {
+const StatsBar = () => {
   const { t } = useLanguage();
   const [currentTime, setCurrentTime] = React.useState(new Date());
+
+  // Default/mock data
+  const cpuUsage = 45;
+  const memoryUsage = 62;
+  const diskUsage = 38;
+  const uptime = { days: 127, hours: 14 };
+  const ipLocation = { city: 'Amsterdam', country: 'NL', ip: '185.x.x.x' };
 
   React.useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -26,7 +25,7 @@ const StatsBar = ({ cpuUsage, memoryUsage, diskUsage, uptime, ipLocation }: Stat
   };
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
       <Gauge value={cpuUsage} label={t('cpuUsage')} size={80} strokeWidth={6} />
       <Gauge value={memoryUsage} label={t('memoryUsage')} size={80} strokeWidth={6} />
       
