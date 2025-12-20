@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.track-ad-click]
 verify_jwt = false
+
+[functions.publish-telegram-post]
+verify_jwt = false
