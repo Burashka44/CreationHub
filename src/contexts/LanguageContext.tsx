@@ -25,6 +25,8 @@ const translations: Translations = {
   adminsDescription: { ru: 'Управление администраторами и уведомлениями', en: 'Manage administrators and notifications' },
   mediaAnalytics: { ru: 'Медиа аналитика', en: 'Media Analytics' },
   mediaAnalyticsDescription: { ru: 'Статистика по каналам и подписчикам', en: 'Channel and subscriber statistics' },
+  aiHub: { ru: 'AI Hub', en: 'AI Hub' },
+  aiHubDescription: { ru: 'Управление AI сервисами', en: 'AI services management' },
   
   // Stats
   cpuUsage: { ru: 'Загрузка CPU', en: 'CPU Usage' },

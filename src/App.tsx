@@ -14,6 +14,7 @@ import ActivityPage from "./pages/ActivityPage";
 import SettingsPage from "./pages/SettingsPage";
 import AdminsPage from "./pages/AdminsPage";
 import MediaAnalyticsPage from "./pages/MediaAnalyticsPage";
+import AIHubPage from "./pages/AIHubPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/security" element={<SecurityPage />} />
             <Route path="/backups" element={<BackupsPage />} />
             <Route path="/activity" element={<ActivityPage />} />
+            <Route path="/ai-hub" element={<AIHubPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
