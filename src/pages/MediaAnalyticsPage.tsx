@@ -995,6 +995,18 @@ const MediaAnalyticsPage = () => {
 
         {/* Telegram Tab */}
         <TabsContent value="telegram" className="space-y-6 mt-6">
+          {/* Telegram Integration - Bots & Publishing */}
+          <TelegramIntegration 
+            channels={telegramChannels.map(c => ({ 
+              id: c.id, 
+              name: c.name, 
+              username: c.username, 
+              subscribers: c.subscribers, 
+              last_synced_at: c.last_synced_at 
+            }))} 
+            onSync={fetchChannels} 
+          />
+          
           {/* Summary Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="bg-card/50 backdrop-blur-sm border-border/50">
