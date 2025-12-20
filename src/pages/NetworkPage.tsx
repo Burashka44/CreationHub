@@ -4,7 +4,7 @@ import VpnMap from '@/components/dashboard/VpnMap';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { 
   Network, Globe, Wifi, Router, Shield, Plus, 
-  Trash2, Play, Settings, Upload, Download, Server,
+  Trash2, Play, Settings, Upload, Download,
   FileCode, Eye, EyeOff, Copy, Check
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -81,7 +81,7 @@ const NetworkPage = () => {
   ]);
   
   // DNS Configurations
-  const [dnsConfigs, setDnsConfigs] = useState<DnsConfig[]>([
+  const [dnsConfigs] = useState<DnsConfig[]>([
     { id: '1', name: 'Cloudflare', primary: '1.1.1.1', secondary: '1.0.0.1', type: 'cloudflare' },
     { id: '2', name: 'Google DNS', primary: '8.8.8.8', secondary: '8.8.4.4', type: 'google' },
     { id: '3', name: 'AdGuard', primary: '94.140.14.14', secondary: '94.140.15.15', type: 'adguard' },
@@ -163,7 +163,6 @@ const NetworkPage = () => {
     } else if (preset.type === 'dns') {
       setActiveTab('dns');
     }
-    // Apply preset config logic would go here
   };
   
   const addPreset = () => {
@@ -240,15 +239,19 @@ const NetworkPage = () => {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-foreground">{t('network')}</h1>
-          <p className="text-muted-foreground">WireGuard VPN, DNS и сетевые настройки</p>
+          <p className="text-muted-foreground">{t('networkDescription')}</p>
         </div>
       </div>
       
-      {/* Monitors Row */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <NetworkMonitor />
-        <VpnMap />
-      </div>
+      {/* Combined Monitors Row - Network + VPN together */}
+      <Card className="border-border/50 bg-card/50 backdrop-blur">
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <NetworkMonitor />
+            <VpnMap />
+          </div>
+        </CardContent>
+      </Card>
       
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Network Presets */}
@@ -256,10 +259,10 @@ const NetworkPage = () => {
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <Settings className="h-4 w-4 text-primary" />
-              <CardTitle className="text-base">Пресеты</CardTitle>
+              <CardTitle className="text-base">{t('presets')}</CardTitle>
             </div>
             <CardDescription>
-              Быстрые конфигурации сети
+              {t('quickNetworkConfigs')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -290,7 +293,7 @@ const NetworkPage = () => {
                         onClick={() => applyPreset(preset)}
                       >
                         <Play className="h-3 w-3" />
-                        Применить
+                        {t('apply')}
                       </Button>
                       <Button 
                         size="sm" 
@@ -306,11 +309,11 @@ const NetworkPage = () => {
             </ScrollArea>
             
             <div className="border-t border-border/50 pt-4 space-y-3">
-              <p className="text-sm font-medium">Новый пресет</p>
+              <p className="text-sm font-medium">{t('newPreset')}</p>
               <Input
                 value={newPresetName}
                 onChange={(e) => setNewPresetName(e.target.value)}
-                placeholder="Название"
+                placeholder={t('title')}
               />
               <Select value={newPresetType} onValueChange={(v: 'vpn' | 'dns' | 'firewall') => setNewPresetType(v)}>
                 <SelectTrigger>
@@ -330,7 +333,7 @@ const NetworkPage = () => {
               />
               <Button onClick={addPreset} className="w-full gap-2">
                 <Plus className="h-4 w-4" />
-                Добавить
+                {t('add')}
               </Button>
             </div>
           </CardContent>
@@ -341,7 +344,7 @@ const NetworkPage = () => {
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-primary" />
-              <CardTitle className="text-base">Конфигурация</CardTitle>
+              <CardTitle className="text-base">{t('configuration')}</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -357,7 +360,7 @@ const NetworkPage = () => {
                 </TabsTrigger>
                 <TabsTrigger value="import" className="gap-1.5 text-xs">
                   <Upload className="h-3.5 w-3.5" />
-                  Импорт .conf
+                  {t('importConf')}
                 </TabsTrigger>
               </TabsList>
 
@@ -500,39 +503,39 @@ const NetworkPage = () => {
                       
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Primary</span>
+                          <span className="text-muted-foreground">{t('primaryDns')}</span>
                           <code className="font-mono">{dns.primary}</code>
                         </div>
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Secondary</span>
+                          <span className="text-muted-foreground">{t('secondaryDns')}</span>
                           <code className="font-mono">{dns.secondary}</code>
                         </div>
                       </div>
                       
                       <Button variant="outline" size="sm" className="w-full">
-                        Применить
+                        {t('apply')}
                       </Button>
                     </div>
                   ))}
                 </div>
                 
                 <div className="border-t border-border/50 pt-4 space-y-3">
-                  <p className="text-sm font-medium">Добавить DNS</p>
+                  <p className="text-sm font-medium">{t('addDns')}</p>
                   <div className="grid sm:grid-cols-3 gap-3">
-                    <Input placeholder="Название" />
-                    <Input placeholder="Primary DNS" />
-                    <Input placeholder="Secondary DNS" />
+                    <Input placeholder={t('title')} />
+                    <Input placeholder={t('primaryDns')} />
+                    <Input placeholder={t('secondaryDns')} />
                   </div>
                   <Button className="gap-2">
                     <Plus className="h-4 w-4" />
-                    Добавить DNS
+                    {t('addDns')}
                   </Button>
                 </div>
               </TabsContent>
 
               <TabsContent value="import" className="space-y-4">
                 <div className="space-y-3">
-                  <Label>Импорт WireGuard .conf файла</Label>
+                  <Label>{t('importWireGuard')}</Label>
                   <Textarea
                     value={importConfig}
                     onChange={(e) => setImportConfig(e.target.value)}
@@ -550,11 +553,11 @@ AllowedIPs = 0.0.0.0/0`}
                   <div className="flex gap-3">
                     <Button onClick={importWireGuardConfig} className="gap-2">
                       <Download className="h-4 w-4" />
-                      Импортировать
+                      {t('import')}
                     </Button>
                     <Button variant="outline" className="gap-2">
                       <FileCode className="h-4 w-4" />
-                      Загрузить файл
+                      {t('uploadFile')}
                     </Button>
                   </div>
                 </div>
@@ -569,7 +572,7 @@ AllowedIPs = 0.0.0.0/0`}
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Router className="h-5 w-5 text-primary" />
-            Сетевые интерфейсы
+            {t('networkInterfaces')}
           </CardTitle>
         </CardHeader>
         <CardContent>
