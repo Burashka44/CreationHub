@@ -1,22 +1,25 @@
 import { HardDrive, Cloud, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface BackupItem {
   id: string;
-  name: string;
+  nameKey: string;
   size: string;
-  date: string;
+  dateKey: string;
   status: 'completed' | 'in-progress' | 'failed';
   type: 'local' | 'cloud';
 }
 
 const BackupStatus = () => {
+  const { t } = useLanguage();
+  
   const backups: BackupItem[] = [
-    { id: '1', name: 'Full System Backup', size: '12.4 GB', date: 'Today, 03:00', status: 'completed', type: 'local' },
-    { id: '2', name: 'Database Backup', size: '2.1 GB', date: 'Today, 06:00', status: 'completed', type: 'cloud' },
-    { id: '3', name: 'Media Files', size: '8.7 GB', date: 'In progress...', status: 'in-progress', type: 'cloud' },
-    { id: '4', name: 'Config Backup', size: '156 MB', date: 'Yesterday, 12:00', status: 'completed', type: 'local' },
+    { id: '1', nameKey: 'fullSystemBackup', size: '12.4 GB', dateKey: 'today', status: 'completed', type: 'local' },
+    { id: '2', nameKey: 'databaseBackup', size: '2.1 GB', dateKey: 'today', status: 'completed', type: 'cloud' },
+    { id: '3', nameKey: 'mediaFiles', size: '8.7 GB', dateKey: 'inProgress', status: 'in-progress', type: 'cloud' },
+    { id: '4', nameKey: 'configBackup', size: '156 MB', dateKey: 'yesterday', status: 'completed', type: 'local' },
   ];
 
   const totalSpace = 100;
@@ -34,19 +37,17 @@ const BackupStatus = () => {
     <div className="dashboard-card">
       <div className="flex items-center gap-2 mb-4">
         <HardDrive className="h-5 w-5 text-primary" />
-        <h3 className="font-semibold text-foreground">Backup Status</h3>
+        <h3 className="font-semibold text-foreground">{t('backupStatus')}</h3>
       </div>
 
-      {/* Storage Overview */}
       <div className="p-3 rounded-lg bg-muted/50 border border-border mb-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-muted-foreground">Storage Used</span>
+          <span className="text-sm text-muted-foreground">{t('storageUsed')}</span>
           <span className="text-sm font-medium text-foreground">{usedSpace} GB / {totalSpace} GB</span>
         </div>
         <Progress value={(usedSpace / totalSpace) * 100} className="h-2" />
       </div>
 
-      {/* Backup List */}
       <div className="space-y-2">
         {backups.map((backup) => (
           <div
@@ -64,8 +65,8 @@ const BackupStatus = () => {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">{backup.name}</p>
-              <p className="text-xs text-muted-foreground">{backup.size} • {backup.date}</p>
+              <p className="text-sm font-medium text-foreground truncate">{t(backup.nameKey)}</p>
+              <p className="text-xs text-muted-foreground">{backup.size} • {t(backup.dateKey)}</p>
             </div>
             {getStatusIcon(backup.status)}
           </div>

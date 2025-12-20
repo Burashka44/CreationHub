@@ -40,15 +40,15 @@ const SystemCharts = () => {
   return (
     <div className="dashboard-card">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-foreground">System Performance (24h)</h3>
+        <h3 className="font-semibold text-foreground">{t('systemPerformance')}</h3>
         <div className="flex items-center gap-4 text-xs">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-primary" />
-            <span className="text-muted-foreground">CPU</span>
+            <span className="text-muted-foreground">{t('cpu')}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-success" />
-            <span className="text-muted-foreground">Memory</span>
+            <span className="text-muted-foreground">{t('memory')}</span>
           </div>
         </div>
       </div>
@@ -82,7 +82,7 @@ const SystemCharts = () => {
               stroke="hsl(217, 91%, 60%)" 
               fillOpacity={1}
               fill="url(#colorCpu)"
-              name="CPU"
+              name={t('cpu')}
             />
             <Area 
               type="monotone" 
@@ -90,7 +90,7 @@ const SystemCharts = () => {
               stroke="hsl(142, 76%, 36%)" 
               fillOpacity={1}
               fill="url(#colorMemory)"
-              name="Memory"
+              name={t('memory')}
             />
           </AreaChart>
         </ResponsiveContainer>

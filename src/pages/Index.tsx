@@ -1,6 +1,6 @@
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
-import Sidebar from '@/components/dashboard/Sidebar';
+import Sidebar, { SidebarProvider, useSidebar } from '@/components/dashboard/Sidebar';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import StatsBar from '@/components/dashboard/StatsBar';
 import VpnMap from '@/components/dashboard/VpnMap';
@@ -14,6 +14,7 @@ import ActivityLog from '@/components/dashboard/ActivityLog';
 import BackupStatus from '@/components/dashboard/BackupStatus';
 import SecurityStatus from '@/components/dashboard/SecurityStatus';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { cn } from '@/lib/utils';
 
 const services = [
   { name: 'Nginx', status: 'online' as const, port: 80 },
@@ -26,15 +27,19 @@ const services = [
 
 const DashboardContent = () => {
   const { t } = useLanguage();
+  const { isOpen } = useSidebar();
   
   return (
     <div className="min-h-screen bg-background flex w-full">
       <Sidebar />
       
-      <div className="flex-1 flex flex-col ml-16 lg:ml-64 transition-all duration-300">
+      <div className={cn(
+        "flex-1 flex flex-col transition-all duration-300",
+        isOpen ? "ml-64" : "ml-16"
+      )}>
         <DashboardHeader />
         
-        <main className="flex-1 p-4 lg:p-6 space-y-6 overflow-auto">
+        <main className="flex-1 p-4 lg:p-6 space-y-6 overflow-auto scrollbar-thin">
           {/* Stats Bar */}
           <StatsBar />
           
@@ -84,7 +89,9 @@ const Index = () => {
   return (
     <ThemeProvider>
       <LanguageProvider>
-        <DashboardContent />
+        <SidebarProvider>
+          <DashboardContent />
+        </SidebarProvider>
       </LanguageProvider>
     </ThemeProvider>
   );

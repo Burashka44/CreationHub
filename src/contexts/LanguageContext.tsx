@@ -17,13 +17,17 @@ const translations: Translations = {
   admin: { ru: 'Админ', en: 'Admin' },
   channels: { ru: 'Каналы', en: 'Channels' },
   settings: { ru: 'Настройки', en: 'Settings' },
+  network: { ru: 'Сеть', en: 'Network' },
+  security: { ru: 'Безопасность', en: 'Security' },
+  backups: { ru: 'Бэкапы', en: 'Backups' },
+  activity: { ru: 'Активность', en: 'Activity' },
   
   // Stats
   cpuUsage: { ru: 'Загрузка CPU', en: 'CPU Usage' },
-  memoryUsage: { ru: 'Память', en: 'Memory Usage' },
-  diskUsage: { ru: 'Диск', en: 'Disk Usage' },
+  memoryUsage: { ru: 'Память', en: 'Memory' },
+  diskUsage: { ru: 'Диск', en: 'Disk' },
   uptime: { ru: 'Аптайм', en: 'Uptime' },
-  currentTime: { ru: 'Время', en: 'Current Time' },
+  currentTime: { ru: 'Время', en: 'Time' },
   
   // VPN/Location
   vpnLocation: { ru: 'VPN Локация', en: 'VPN Location' },
@@ -41,9 +45,67 @@ const translations: Translations = {
   addChannel: { ru: 'Добавить канал', en: 'Add Channel' },
   channelName: { ru: 'Название канала', en: 'Channel Name' },
   platform: { ru: 'Платформа', en: 'Platform' },
-  credentials: { ru: 'Учетные данные', en: 'Credentials' },
+  credentials: { ru: 'Учётные данные', en: 'Credentials' },
   connectGoogle: { ru: 'Войти через Google', en: 'Connect with Google' },
   apiKey: { ru: 'API Ключ', en: 'API Key' },
+  noChannels: { ru: 'Нет подключённых каналов', en: 'No connected channels' },
+  
+  // Quick Actions
+  quickActions: { ru: 'Быстрые действия', en: 'Quick Actions' },
+  restartServer: { ru: 'Перезапуск сервера', en: 'Restart Server' },
+  clearCache: { ru: 'Очистить кэш', en: 'Clear Cache' },
+  backupNow: { ru: 'Создать бэкап', en: 'Backup Now' },
+  checkUpdates: { ru: 'Проверить обновления', en: 'Check Updates' },
+  securityScan: { ru: 'Сканирование', en: 'Security Scan' },
+  openTerminal: { ru: 'Терминал', en: 'Terminal' },
+  
+  // Network
+  networkMonitor: { ru: 'Мониторинг сети', en: 'Network Monitor' },
+  download: { ru: 'Загрузка', en: 'Download' },
+  upload: { ru: 'Выгрузка', en: 'Upload' },
+  latency: { ru: 'Задержка', en: 'Latency' },
+  packetsPerSec: { ru: 'Пакетов/с', en: 'Packets/s' },
+  live: { ru: 'Живой', en: 'Live' },
+  
+  // Notifications
+  notifications: { ru: 'Уведомления', en: 'Notifications' },
+  markAllRead: { ru: 'Прочитать все', en: 'Mark all read' },
+  noNotifications: { ru: 'Нет уведомлений', en: 'No notifications' },
+  
+  // Activity Log
+  activityLog: { ru: 'Журнал активности', en: 'Activity Log' },
+  loggedIn: { ru: 'Вход выполнен', en: 'Logged in' },
+  restarted: { ru: 'Перезапущен', en: 'Restarted' },
+  backupCreated: { ru: 'Бэкап создан', en: 'Backup created' },
+  firewallRuleAdded: { ru: 'Правило файрволла добавлено', en: 'Firewall rule added' },
+  configUpdated: { ru: 'Конфигурация обновлена', en: 'Config updated' },
+  cacheCleared: { ru: 'Кэш очищен', en: 'Cache cleared' },
+  
+  // Backup Status
+  backupStatus: { ru: 'Статус бэкапов', en: 'Backup Status' },
+  storageUsed: { ru: 'Использовано', en: 'Storage Used' },
+  fullSystemBackup: { ru: 'Полный бэкап системы', en: 'Full System Backup' },
+  databaseBackup: { ru: 'Бэкап БД', en: 'Database Backup' },
+  mediaFiles: { ru: 'Медиа файлы', en: 'Media Files' },
+  configBackup: { ru: 'Бэкап конфига', en: 'Config Backup' },
+  inProgress: { ru: 'Выполняется...', en: 'In progress...' },
+  completed: { ru: 'Завершено', en: 'Completed' },
+  
+  // Security
+  securityStatus: { ru: 'Статус безопасности', en: 'Security Status' },
+  securityScore: { ru: 'Уровень защиты', en: 'Security Score' },
+  serverProtected: { ru: 'Ваш сервер хорошо защищён', en: 'Your server is well protected' },
+  firewallActive: { ru: 'Файрволл активен', en: 'Firewall Active' },
+  sslCertificate: { ru: 'SSL Сертификат', en: 'SSL Certificate' },
+  ddosProtection: { ru: 'DDoS Защита', en: 'DDoS Protection' },
+  malwareScan: { ru: 'Сканирование на вирусы', en: 'Malware Scan' },
+  failedLoginAttempts: { ru: 'Неудачные попытки входа', en: 'Failed Login Attempts' },
+  twoFactorAuth: { ru: '2FA Включена', en: '2FA Enabled' },
+  
+  // System Charts
+  systemPerformance: { ru: 'Производительность системы (24ч)', en: 'System Performance (24h)' },
+  cpu: { ru: 'CPU', en: 'CPU' },
+  memory: { ru: 'Память', en: 'Memory' },
   
   // General
   save: { ru: 'Сохранить', en: 'Save' },
@@ -55,11 +117,20 @@ const translations: Translations = {
   language: { ru: 'Язык', en: 'Language' },
   dark: { ru: 'Тёмная', en: 'Dark' },
   light: { ru: 'Светлая', en: 'Light' },
+  today: { ru: 'Сегодня', en: 'Today' },
+  yesterday: { ru: 'Вчера', en: 'Yesterday' },
   
-  // Days
+  // Time
   days: { ru: 'дней', en: 'days' },
   hours: { ru: 'часов', en: 'hours' },
   minutes: { ru: 'минут', en: 'minutes' },
+  ago: { ru: 'назад', en: 'ago' },
+  
+  // Misc
+  by: { ru: 'от', en: 'by' },
+  total: { ru: 'всего', en: 'total' },
+  pending: { ru: 'Ожидание', en: 'Pending' },
+  error: { ru: 'Ошибка', en: 'Error' },
 };
 
 interface LanguageContextType {
