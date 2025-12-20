@@ -2,3 +2,9 @@ project_id = "wpwexenbvzpcxdrcuequ"
 
 [functions.send-telegram-notification]
 verify_jwt = false
+
+[functions.fetch-youtube-stats]
+verify_jwt = false
+
+[functions.fetch-telegram-stats]
+verify_jwt = false
