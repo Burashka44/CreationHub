@@ -68,24 +68,24 @@ const AIHubPage = () => {
   const [presets, setPresets] = useState<Preset[]>([
     {
       id: '1',
-      name: 'Дубляж на английский',
+      name: 'Дубляж видео (EN)',
       target: 'av',
       payload: { src_lang: 'auto', tgt_lang: 'en' },
-      description: 'Автоматический перевод и озвучка видео на английский язык',
+      description: 'Перевод и озвучка видео на английский. Язык можно изменить в настройках.',
     },
     {
       id: '2',
-      name: 'Дубляж на французский',
+      name: 'Дубляж видео (FR)',
       target: 'av',
       payload: { src_lang: 'auto', tgt_lang: 'fr' },
-      description: 'Автоматический перевод и озвучка видео на французский язык',
+      description: 'Перевод и озвучка видео на французский. Язык можно изменить в настройках.',
     },
     {
       id: '3',
-      name: 'Удалить логотипы и лица',
+      name: 'Очистка видео',
       target: 'clean',
       payload: { method: 'propainter', objects: 'logo,face' },
-      description: 'Очистка видео от логотипов и размытие лиц',
+      description: 'Удаление логотипов/водяных знаков и размытие лиц из видео.',
     },
   ]);
   
