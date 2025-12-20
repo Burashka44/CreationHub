@@ -67,26 +67,130 @@ const AIHubPage = () => {
   
   // Presets
   const [presets, setPresets] = useState<Preset[]>([
+    // Chat presets - роли
     {
-      id: '1',
-      name: 'Дубляж видео (EN)',
+      id: 'chat-1',
+      name: 'Программист',
+      target: 'chat',
+      payload: { system_prompt: 'Ты опытный программист. Помогай с кодом, объясняй концепции, предлагай лучшие практики.' },
+      description: 'AI-ассистент для помощи с программированием',
+    },
+    {
+      id: 'chat-2',
+      name: 'Переводчик',
+      target: 'chat',
+      payload: { system_prompt: 'Ты профессиональный переводчик. Переводи тексты качественно, сохраняя смысл и стиль.' },
+      description: 'Переводит тексты между языками',
+    },
+    {
+      id: 'chat-3',
+      name: 'Копирайтер',
+      target: 'chat',
+      payload: { system_prompt: 'Ты креативный копирайтер. Пиши продающие тексты, заголовки, посты для соцсетей.' },
+      description: 'Создаёт маркетинговые тексты и контент',
+    },
+    {
+      id: 'chat-4',
+      name: 'Редактор',
+      target: 'chat',
+      payload: { system_prompt: 'Ты редактор текстов. Исправляй ошибки, улучшай стиль, делай текст читабельнее.' },
+      description: 'Редактирует и улучшает тексты',
+    },
+    // Image presets
+    {
+      id: 'img-1',
+      name: 'Фотореализм',
+      target: 'image',
+      payload: { style: 'photorealistic, 8k, ultra detailed, professional photography' },
+      description: 'Генерация фотореалистичных изображений',
+    },
+    {
+      id: 'img-2',
+      name: 'Аниме стиль',
+      target: 'image',
+      payload: { style: 'anime style, vibrant colors, detailed, studio ghibli inspired' },
+      description: 'Изображения в стиле аниме',
+    },
+    {
+      id: 'img-3',
+      name: 'Логотип',
+      target: 'image',
+      payload: { style: 'minimalist logo design, vector style, clean lines, professional' },
+      description: 'Минималистичные логотипы',
+    },
+    {
+      id: 'img-4',
+      name: 'Иллюстрация',
+      target: 'image',
+      payload: { style: 'digital illustration, colorful, artistic, detailed artwork' },
+      description: 'Художественные иллюстрации',
+    },
+    {
+      id: 'img-5',
+      name: 'Концепт-арт',
+      target: 'image',
+      payload: { style: 'concept art, cinematic, dramatic lighting, epic scene' },
+      description: 'Концептуальное искусство для игр/фильмов',
+    },
+    // AV presets
+    {
+      id: 'av-1',
+      name: 'Дубляж → EN',
       target: 'av',
       payload: { src_lang: 'auto', tgt_lang: 'en' },
-      description: 'Перевод и озвучка видео на английский. Язык можно изменить в настройках.',
+      description: 'Перевод и озвучка видео на английский',
     },
     {
-      id: '2',
-      name: 'Дубляж видео (FR)',
+      id: 'av-2',
+      name: 'Дубляж → RU',
       target: 'av',
-      payload: { src_lang: 'auto', tgt_lang: 'fr' },
-      description: 'Перевод и озвучка видео на французский. Язык можно изменить в настройках.',
+      payload: { src_lang: 'auto', tgt_lang: 'ru' },
+      description: 'Перевод и озвучка видео на русский',
+    },
+    // Clean presets
+    {
+      id: 'clean-1',
+      name: 'Убрать логотипы',
+      target: 'clean',
+      payload: { method: 'propainter', objects: 'logo,watermark' },
+      description: 'Удаление логотипов и водяных знаков из видео',
     },
     {
-      id: '3',
-      name: 'Очистка видео',
+      id: 'clean-2',
+      name: 'Размыть лица',
       target: 'clean',
-      payload: { method: 'propainter', objects: 'logo,face' },
-      description: 'Удаление логотипов/водяных знаков и размытие лиц из видео.',
+      payload: { method: 'propainter', objects: 'face' },
+      description: 'Размытие/удаление лиц из видео',
+    },
+    // ASR presets
+    {
+      id: 'asr-1',
+      name: 'Расшифровка RU',
+      target: 'asr',
+      payload: { task: 'transcribe', language: 'ru' },
+      description: 'Транскрибация русской речи',
+    },
+    {
+      id: 'asr-2',
+      name: 'Перевод → EN',
+      target: 'asr',
+      payload: { task: 'translate', language: 'en' },
+      description: 'Распознавание + перевод на английский',
+    },
+    // TTS presets
+    {
+      id: 'tts-1',
+      name: 'Озвучка RU',
+      target: 'tts',
+      payload: { language: 'ru', voice: 'default' },
+      description: 'Синтез русской речи',
+    },
+    {
+      id: 'tts-2',
+      name: 'Озвучка EN',
+      target: 'tts',
+      payload: { language: 'en', voice: 'default' },
+      description: 'Синтез английской речи',
     },
   ]);
   
