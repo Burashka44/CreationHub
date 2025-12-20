@@ -7,6 +7,12 @@ import VpnMap from '@/components/dashboard/VpnMap';
 import SystemCharts from '@/components/dashboard/SystemCharts';
 import ServiceCard from '@/components/dashboard/ServiceCard';
 import ChannelManager from '@/components/dashboard/ChannelManager';
+import QuickActions from '@/components/dashboard/QuickActions';
+import NotificationsPanel from '@/components/dashboard/NotificationsPanel';
+import NetworkMonitor from '@/components/dashboard/NetworkMonitor';
+import ActivityLog from '@/components/dashboard/ActivityLog';
+import BackupStatus from '@/components/dashboard/BackupStatus';
+import SecurityStatus from '@/components/dashboard/SecurityStatus';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const services = [
@@ -25,25 +31,29 @@ const DashboardContent = () => {
     <div className="min-h-screen bg-background flex w-full">
       <Sidebar />
       
-      <div className="flex-1 flex flex-col ml-64">
+      <div className="flex-1 flex flex-col ml-16 lg:ml-64 transition-all duration-300">
         <DashboardHeader />
         
         <main className="flex-1 p-4 lg:p-6 space-y-6 overflow-auto">
           {/* Stats Bar */}
           <StatsBar />
           
-          {/* Main Grid */}
+          {/* Quick Actions Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <QuickActions />
+            <div className="lg:col-span-2">
+              <NetworkMonitor />
+            </div>
+          </div>
+          
+          {/* Main Grid - Map & Charts */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {/* VPN Map */}
             <VpnMap />
-            
-            {/* System Charts */}
             <SystemCharts />
           </div>
           
-          {/* Services & Channels Grid */}
+          {/* Services & Channels */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {/* Services */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
                 {t('services')}
@@ -54,9 +64,15 @@ const DashboardContent = () => {
                 ))}
               </div>
             </div>
-            
-            {/* Channel Manager */}
             <ChannelManager />
+          </div>
+          
+          {/* Security, Backups, Notifications & Activity */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            <SecurityStatus />
+            <BackupStatus />
+            <NotificationsPanel />
+            <ActivityLog />
           </div>
         </main>
       </div>
