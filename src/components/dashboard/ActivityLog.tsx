@@ -1,9 +1,10 @@
 import { History, User, Server, Database, Shield, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ActivityItem {
   id: string;
-  action: string;
+  actionKey: string;
   target: string;
   user: string;
   time: string;
@@ -11,13 +12,15 @@ interface ActivityItem {
 }
 
 const ActivityLog = () => {
+  const { t } = useLanguage();
+  
   const activities: ActivityItem[] = [
-    { id: '1', action: 'Logged in', target: 'Dashboard', user: 'admin', time: '2m ago', type: 'user' },
-    { id: '2', action: 'Restarted', target: 'Nginx', user: 'system', time: '15m ago', type: 'server' },
-    { id: '3', action: 'Backup created', target: 'PostgreSQL', user: 'cron', time: '1h ago', type: 'database' },
-    { id: '4', action: 'Firewall rule added', target: 'Port 8080', user: 'admin', time: '2h ago', type: 'security' },
-    { id: '5', action: 'Config updated', target: 'SSL Certificate', user: 'admin', time: '3h ago', type: 'settings' },
-    { id: '6', action: 'Cache cleared', target: 'Redis', user: 'admin', time: '5h ago', type: 'database' },
+    { id: '1', actionKey: 'loggedIn', target: t('dashboard'), user: 'admin', time: '2m', type: 'user' },
+    { id: '2', actionKey: 'restarted', target: 'Nginx', user: 'system', time: '15m', type: 'server' },
+    { id: '3', actionKey: 'backupCreated', target: 'PostgreSQL', user: 'cron', time: '1h', type: 'database' },
+    { id: '4', actionKey: 'firewallRuleAdded', target: 'Port 8080', user: 'admin', time: '2h', type: 'security' },
+    { id: '5', actionKey: 'configUpdated', target: 'SSL', user: 'admin', time: '3h', type: 'settings' },
+    { id: '6', actionKey: 'cacheCleared', target: 'Redis', user: 'admin', time: '5h', type: 'database' },
   ];
 
   const getIcon = (type: ActivityItem['type']) => {
@@ -44,10 +47,10 @@ const ActivityLog = () => {
     <div className="dashboard-card max-h-[400px] overflow-hidden flex flex-col">
       <div className="flex items-center gap-2 mb-4">
         <History className="h-5 w-5 text-primary" />
-        <h3 className="font-semibold text-foreground">Activity Log</h3>
+        <h3 className="font-semibold text-foreground">{t('activityLog')}</h3>
       </div>
       
-      <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+      <div className="space-y-3 overflow-y-auto flex-1 pr-1 scrollbar-thin">
         {activities.map((activity, index) => (
           <div
             key={activity.id}
@@ -59,14 +62,14 @@ const ActivityLog = () => {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm text-foreground">
-                <span className="font-medium">{activity.action}</span>
+                <span className="font-medium">{t(activity.actionKey)}</span>
                 {' '}
                 <span className="text-muted-foreground">{activity.target}</span>
               </p>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs text-muted-foreground">by {activity.user}</span>
+                <span className="text-xs text-muted-foreground">{t('by')} {activity.user}</span>
                 <span className="text-xs text-muted-foreground">•</span>
-                <span className="text-xs text-muted-foreground">{activity.time}</span>
+                <span className="text-xs text-muted-foreground">{activity.time} {t('ago')}</span>
               </div>
             </div>
           </div>

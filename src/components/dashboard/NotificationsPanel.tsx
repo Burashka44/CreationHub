@@ -3,22 +3,24 @@ import { Bell, X, CheckCircle, AlertTriangle, Info, XCircle } from 'lucide-react
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Notification {
   id: string;
   type: 'success' | 'warning' | 'error' | 'info';
-  title: string;
-  message: string;
+  titleKey: string;
+  messageKey: string;
   time: string;
   read: boolean;
 }
 
 const NotificationsPanel = () => {
+  const { t } = useLanguage();
   const [notifications, setNotifications] = useState<Notification[]>([
-    { id: '1', type: 'success', title: 'Backup Complete', message: 'Daily backup finished successfully', time: '5m ago', read: false },
-    { id: '2', type: 'warning', title: 'High CPU Usage', message: 'CPU usage exceeded 80% for 10 minutes', time: '15m ago', read: false },
-    { id: '3', type: 'info', title: 'System Update', message: 'New security patches available', time: '1h ago', read: true },
-    { id: '4', type: 'error', title: 'Connection Failed', message: 'Redis connection timeout', time: '2h ago', read: true },
+    { id: '1', type: 'success', titleKey: 'backupCreated', messageKey: 'databaseBackup', time: '5m', read: false },
+    { id: '2', type: 'warning', titleKey: 'cpuUsage', messageKey: 'cpuUsage', time: '15m', read: false },
+    { id: '3', type: 'info', titleKey: 'checkUpdates', messageKey: 'checkUpdates', time: '1h', read: true },
+    { id: '4', type: 'error', titleKey: 'error', messageKey: 'error', time: '2h', read: true },
   ]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -45,7 +47,7 @@ const NotificationsPanel = () => {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Bell className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold text-foreground">Notifications</h3>
+          <h3 className="font-semibold text-foreground">{t('notifications')}</h3>
           {unreadCount > 0 && (
             <Badge className="bg-destructive/20 text-destructive border-destructive/30 text-xs">
               {unreadCount}
@@ -53,13 +55,13 @@ const NotificationsPanel = () => {
           )}
         </div>
         <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">
-          Mark all read
+          {t('markAllRead')}
         </Button>
       </div>
       
-      <div className="space-y-2 overflow-y-auto flex-1 pr-1">
+      <div className="space-y-2 overflow-y-auto flex-1 pr-1 scrollbar-thin">
         {notifications.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">No notifications</p>
+          <p className="text-center text-muted-foreground py-8">{t('noNotifications')}</p>
         ) : (
           notifications.map((notification) => (
             <div
@@ -76,10 +78,10 @@ const NotificationsPanel = () => {
                 {getIcon(notification.type)}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium text-sm text-foreground truncate">{notification.title}</p>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">{notification.time}</span>
+                    <p className="font-medium text-sm text-foreground truncate">{t(notification.titleKey)}</p>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">{notification.time} {t('ago')}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{notification.message}</p>
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{t(notification.messageKey)}</p>
                 </div>
                 <Button
                   variant="ghost"

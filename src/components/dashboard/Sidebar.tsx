@@ -1,26 +1,50 @@
-import React, { useState } from 'react';
+import React, { useState, createContext, useContext } from 'react';
 import { 
-  LayoutDashboard, Briefcase, Database, Shield, 
+  LayoutDashboard, Database, Shield, 
   Youtube, Settings, ChevronLeft, ChevronRight,
-  Activity, Bell, HardDrive, Network, History
+  Activity, HardDrive, Network, History
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 
+interface SidebarContextType {
+  isOpen: boolean;
+  setIsOpen: (open: boolean) => void;
+}
+
+const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
+
+export const useSidebar = () => {
+  const context = useContext(SidebarContext);
+  if (!context) {
+    return { isOpen: true, setIsOpen: () => {} };
+  }
+  return context;
+};
+
+export const SidebarProvider = ({ children }: { children: React.ReactNode }) => {
+  const [isOpen, setIsOpen] = useState(true);
+  return (
+    <SidebarContext.Provider value={{ isOpen, setIsOpen }}>
+      {children}
+    </SidebarContext.Provider>
+  );
+};
+
 const Sidebar = () => {
   const { t } = useLanguage();
-  const [isOpen, setIsOpen] = useState(true);
+  const { isOpen, setIsOpen } = useSidebar();
   const [activeTab, setActiveTab] = useState('dashboard');
 
   const menuItems = [
-    { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard') },
-    { id: 'channels', icon: Youtube, label: t('channels') },
-    { id: 'data', icon: Database, label: t('data') },
-    { id: 'network', icon: Network, label: 'Network' },
-    { id: 'security', icon: Shield, label: 'Security' },
-    { id: 'backups', icon: HardDrive, label: 'Backups' },
-    { id: 'activity', icon: History, label: 'Activity' },
-    { id: 'settings', icon: Settings, label: t('settings') },
+    { id: 'dashboard', icon: LayoutDashboard, labelKey: 'dashboard' },
+    { id: 'channels', icon: Youtube, labelKey: 'channels' },
+    { id: 'data', icon: Database, labelKey: 'data' },
+    { id: 'network', icon: Network, labelKey: 'network' },
+    { id: 'security', icon: Shield, labelKey: 'security' },
+    { id: 'backups', icon: HardDrive, labelKey: 'backups' },
+    { id: 'activity', icon: History, labelKey: 'activity' },
+    { id: 'settings', icon: Settings, labelKey: 'settings' },
   ];
 
   return (
@@ -29,44 +53,46 @@ const Sidebar = () => {
       isOpen ? "w-64" : "w-16"
     )}>
       {/* Logo */}
-      <div className="h-16 flex items-center justify-center border-b border-sidebar-border px-4">
+      <div className="h-16 flex items-center border-b border-sidebar-border px-4">
         <div className={cn(
           "flex items-center gap-3 transition-all duration-300",
-          !isOpen && "justify-center"
+          !isOpen && "justify-center w-full"
         )}>
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
             <Activity className="h-4 w-4 text-primary-foreground" />
           </div>
           <span className={cn(
-            "font-bold text-foreground transition-all duration-300 whitespace-nowrap",
-            isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"
+            "font-bold text-foreground transition-all duration-300 whitespace-nowrap overflow-hidden",
+            isOpen ? "opacity-100 w-auto" : "opacity-0 w-0"
           )}>
             CreationHub
           </span>
         </div>
       </div>
 
-      <div className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto scrollbar-thin">
         {menuItems.map((item) => (
           <button
             key={item.id}
             onClick={() => setActiveTab(item.id)}
             className={cn(
-              "sidebar-item w-full group relative",
-              activeTab === item.id && "active"
+              "flex items-center gap-3 w-full px-3 py-3 rounded-lg text-muted-foreground transition-all duration-200",
+              "hover:text-foreground hover:bg-secondary/50",
+              activeTab === item.id && "text-primary bg-primary/10 hover:bg-primary/15",
+              !isOpen && "justify-center px-2"
             )}
-            title={!isOpen ? item.label : undefined}
+            title={!isOpen ? t(item.labelKey) : undefined}
           >
-            <item.icon className="h-5 w-5 flex-shrink-0" />
+            <item.icon className="h-5 w-5 shrink-0" />
             <span className={cn(
-              "whitespace-nowrap transition-all duration-200",
-              isOpen ? "opacity-100 ml-0" : "opacity-0 w-0 overflow-hidden absolute left-14 bg-popover px-2 py-1 rounded-md shadow-lg border border-border group-hover:opacity-100 group-hover:w-auto"
+              "whitespace-nowrap transition-all duration-200 overflow-hidden",
+              isOpen ? "opacity-100 w-auto" : "opacity-0 w-0"
             )}>
-              {item.label}
+              {t(item.labelKey)}
             </span>
           </button>
         ))}
-      </div>
+      </nav>
 
       {/* User section */}
       <div className={cn(
@@ -75,14 +101,14 @@ const Sidebar = () => {
       )}>
         <div className={cn(
           "flex items-center gap-3 p-2 rounded-lg bg-muted/50 transition-all",
-          !isOpen && "p-2 bg-transparent"
+          !isOpen && "p-2 bg-transparent justify-center"
         )}>
           <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
             <span className="text-sm font-medium text-primary">A</span>
           </div>
           <div className={cn(
-            "transition-all duration-200",
-            isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"
+            "transition-all duration-200 overflow-hidden",
+            isOpen ? "opacity-100 w-auto" : "opacity-0 w-0"
           )}>
             <p className="text-sm font-medium text-foreground">Admin</p>
             <p className="text-xs text-muted-foreground">admin@server.com</p>
