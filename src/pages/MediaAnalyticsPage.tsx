@@ -8,7 +8,7 @@ import {
   Megaphone, BarChart, PieChart, Tv2
 } from 'lucide-react';
 import { ApiSettingsDialog } from '@/components/media/ApiSettingsDialog';
-import { YouTubeAnalytics, TwitchAnalytics, VKVideoAnalytics, RuTubeAnalytics } from '@/components/media/PlatformAnalytics';
+import { YouTubeAnalytics, TwitchAnalytics, VKVideoAnalytics, RuTubeAnalytics, TikTokAnalytics } from '@/components/media/PlatformAnalytics';
 import { AdRevenueManager } from '@/components/media/AdRevenueManager';
 import TelegramIntegration from '@/components/media/TelegramIntegration';
 import AdAnalytics from '@/components/media/AdAnalytics';
@@ -937,7 +937,7 @@ const MediaAnalyticsPage = () => {
                                     {platformKey === 'twitch' && <TwitchAnalytics channel={channel} />}
                                     {platformKey === 'vk_video' && <VKVideoAnalytics channel={channel} />}
                                     {platformKey === 'rutube' && <RuTubeAnalytics channel={channel} />}
-                                    {platformKey === 'tiktok' && <YouTubeAnalytics channel={channel} />}
+                                    {platformKey === 'tiktok' && <TikTokAnalytics channel={channel} />}
                                   </div>
                                 </CollapsibleContent>
                               </div>
