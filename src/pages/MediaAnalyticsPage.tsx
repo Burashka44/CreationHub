@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { ApiSettingsDialog } from '@/components/media/ApiSettingsDialog';
 import { YouTubeAnalytics, TwitchAnalytics, VKVideoAnalytics, RuTubeAnalytics } from '@/components/media/PlatformAnalytics';
+import { AdRevenueManager } from '@/components/media/AdRevenueManager';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -748,7 +749,7 @@ const MediaAnalyticsPage = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 max-w-lg">
+        <TabsList className="grid w-full grid-cols-4 max-w-xl">
           <TabsTrigger value="video" className="gap-2">
             <Play className="h-4 w-4" />
             Видео
@@ -760,6 +761,10 @@ const MediaAnalyticsPage = () => {
           <TabsTrigger value="ads" className="gap-2">
             <Megaphone className="h-4 w-4" />
             Реклама
+          </TabsTrigger>
+          <TabsTrigger value="revenue" className="gap-2">
+            <DollarSign className="h-4 w-4" />
+            Доходы
           </TabsTrigger>
         </TabsList>
 
@@ -1282,6 +1287,11 @@ const MediaAnalyticsPage = () => {
               })}
             </div>
           )}
+        </TabsContent>
+
+        {/* Revenue Tab */}
+        <TabsContent value="revenue" className="space-y-6 mt-6">
+          <AdRevenueManager channels={channels as any} />
         </TabsContent>
       </Tabs>
     </div>

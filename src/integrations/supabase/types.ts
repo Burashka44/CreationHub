@@ -49,6 +49,161 @@ export type Database = {
           },
         ]
       }
+      ad_purchases: {
+        Row: {
+          ad_link: string | null
+          clicks: number | null
+          cost: number
+          created_at: string
+          currency: string | null
+          end_date: string | null
+          id: string
+          name: string
+          new_subscribers: number | null
+          notes: string | null
+          our_channel_id: string | null
+          start_date: string | null
+          status: string | null
+          subscribers_after: number | null
+          subscribers_before: number | null
+          target_channel: string
+          target_subscribers: number | null
+          tracking_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          ad_link?: string | null
+          clicks?: number | null
+          cost?: number
+          created_at?: string
+          currency?: string | null
+          end_date?: string | null
+          id?: string
+          name: string
+          new_subscribers?: number | null
+          notes?: string | null
+          our_channel_id?: string | null
+          start_date?: string | null
+          status?: string | null
+          subscribers_after?: number | null
+          subscribers_before?: number | null
+          target_channel: string
+          target_subscribers?: number | null
+          tracking_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ad_link?: string | null
+          clicks?: number | null
+          cost?: number
+          created_at?: string
+          currency?: string | null
+          end_date?: string | null
+          id?: string
+          name?: string
+          new_subscribers?: number | null
+          notes?: string | null
+          our_channel_id?: string | null
+          start_date?: string | null
+          status?: string | null
+          subscribers_after?: number | null
+          subscribers_before?: number | null
+          target_channel?: string
+          target_subscribers?: number | null
+          tracking_code?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_purchases_our_channel_id_fkey"
+            columns: ["our_channel_id"]
+            isOneToOne: false
+            referencedRelation: "media_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_sales: {
+        Row: {
+          ad_link: string | null
+          channel_id: string
+          clicks: number | null
+          client_contact: string | null
+          client_name: string
+          created_at: string
+          currency: string | null
+          end_date: string | null
+          id: string
+          impressions: number | null
+          is_paid: boolean | null
+          notes: string | null
+          payment_date: string | null
+          price: number
+          publish_date: string | null
+          rate_id: string | null
+          status: string | null
+          tracking_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          ad_link?: string | null
+          channel_id: string
+          clicks?: number | null
+          client_contact?: string | null
+          client_name: string
+          created_at?: string
+          currency?: string | null
+          end_date?: string | null
+          id?: string
+          impressions?: number | null
+          is_paid?: boolean | null
+          notes?: string | null
+          payment_date?: string | null
+          price?: number
+          publish_date?: string | null
+          rate_id?: string | null
+          status?: string | null
+          tracking_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ad_link?: string | null
+          channel_id?: string
+          clicks?: number | null
+          client_contact?: string | null
+          client_name?: string
+          created_at?: string
+          currency?: string | null
+          end_date?: string | null
+          id?: string
+          impressions?: number | null
+          is_paid?: boolean | null
+          notes?: string | null
+          payment_date?: string | null
+          price?: number
+          publish_date?: string | null
+          rate_id?: string | null
+          status?: string | null
+          tracking_code?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_sales_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "media_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_sales_rate_id_fkey"
+            columns: ["rate_id"]
+            isOneToOne: false
+            referencedRelation: "channel_ad_rates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admins: {
         Row: {
           created_at: string
@@ -87,6 +242,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      channel_ad_rates: {
+        Row: {
+          channel_id: string
+          created_at: string
+          currency: string
+          description: string | null
+          duration_hours: number | null
+          format: string
+          id: string
+          is_active: boolean | null
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          duration_hours?: number | null
+          format?: string
+          id?: string
+          is_active?: boolean | null
+          price?: number
+          updated_at?: string
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          duration_hours?: number | null
+          format?: string
+          id?: string
+          is_active?: boolean | null
+          price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_ad_rates_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "media_channels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       media_channels: {
         Row: {
