@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.fetch-telegram-stats]
 verify_jwt = false
+
+[functions.track-ad-click]
+verify_jwt = false

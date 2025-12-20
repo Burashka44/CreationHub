@@ -5,8 +5,10 @@ import {
   Play, ExternalLink, Trash2, DollarSign, Clock, ThumbsUp, MessageSquare,
   Share2, MousePointer, Target, Calendar, Link2, Copy, Check, Settings,
   AlertTriangle, CheckCircle, Percent, Timer, PlayCircle, TrendingDown,
-  Megaphone, BarChart, PieChart
+  Megaphone, BarChart, PieChart, Tv2
 } from 'lucide-react';
+import { ApiSettingsDialog } from '@/components/media/ApiSettingsDialog';
+import { YouTubeAnalytics, TwitchAnalytics, VKVideoAnalytics, RuTubeAnalytics } from '@/components/media/PlatformAnalytics';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -30,9 +32,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 // Platform configurations
 const videoPlatforms = {
   youtube: { icon: Youtube, color: '#FF0000', name: 'YouTube', gradient: 'from-red-500/20 to-red-600/10' },
+  twitch: { icon: Tv2, color: '#9146FF', name: 'Twitch', gradient: 'from-purple-500/20 to-purple-600/10' },
   vk_video: { icon: Play, color: '#0077FF', name: 'VK Видео', gradient: 'from-blue-500/20 to-blue-600/10' },
-  tiktok: { icon: Video, color: '#ff0050', name: 'TikTok', gradient: 'from-pink-500/20 to-pink-600/10' },
   rutube: { icon: Video, color: '#FF6B00', name: 'RuTube', gradient: 'from-orange-500/20 to-orange-600/10' },
+  tiktok: { icon: Video, color: '#ff0050', name: 'TikTok', gradient: 'from-pink-500/20 to-pink-600/10' },
 };
 
 const messagingPlatforms = {
@@ -613,13 +616,15 @@ const MediaAnalyticsPage = () => {
           </div>
         </div>
         
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Добавить канал
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2">
+          <ApiSettingsDialog />
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Добавить канал
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Добавить канал</DialogTitle>
@@ -737,7 +742,8 @@ const MediaAnalyticsPage = () => {
               </Button>
             </div>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -920,21 +926,11 @@ const MediaAnalyticsPage = () => {
                                 
                                 <CollapsibleContent>
                                   <div className="px-4 pb-4">
-                                    {platformKey === 'youtube' ? (
-                                      <YouTubeDetailedStats channel={channel} />
-                                    ) : (
-                                      <div className="h-[150px]">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                          <AreaChart data={generateChannelViewsData()}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                                            <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
-                                            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={formatNumber} tickLine={false} axisLine={false} />
-                                            <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
-                                            <Area type="monotone" dataKey="views" stroke={platform.color} strokeWidth={2} fill={`${platform.color}30`} />
-                                          </AreaChart>
-                                        </ResponsiveContainer>
-                                      </div>
-                                    )}
+                                    {platformKey === 'youtube' && <YouTubeAnalytics channel={channel} />}
+                                    {platformKey === 'twitch' && <TwitchAnalytics channel={channel} />}
+                                    {platformKey === 'vk_video' && <VKVideoAnalytics channel={channel} />}
+                                    {platformKey === 'rutube' && <RuTubeAnalytics channel={channel} />}
+                                    {platformKey === 'tiktok' && <YouTubeAnalytics channel={channel} />}
                                   </div>
                                 </CollapsibleContent>
                               </div>
