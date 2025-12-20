@@ -5,13 +5,22 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const AVAILABLE_MODELS = {
+  'gemini-flash': 'google/gemini-2.5-flash',
+  'gemini-pro': 'google/gemini-2.5-pro',
+  'gemini-lite': 'google/gemini-2.5-flash-lite',
+  'gpt-5': 'openai/gpt-5',
+  'gpt-5-mini': 'openai/gpt-5-mini',
+  'gpt-5-nano': 'openai/gpt-5-nano',
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { messages, type } = await req.json();
+    const { messages, type, model: requestedModel } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
@@ -19,7 +28,7 @@ serve(async (req) => {
     }
 
     let systemPrompt = "Ты полезный AI ассистент. Отвечай четко и по делу.";
-    let model = "google/gemini-2.5-flash";
+    const model = AVAILABLE_MODELS[requestedModel as keyof typeof AVAILABLE_MODELS] || AVAILABLE_MODELS['gemini-flash'];
 
     if (type === 'summarize') {
       systemPrompt = "Ты эксперт по суммаризации текста. Твоя задача - сократить текст до ключевых тезисов, сохраняя основной смысл. Выдели главные идеи и представь их в структурированном виде.";
@@ -27,7 +36,7 @@ serve(async (req) => {
       systemPrompt = "Ты умный AI ассистент. Помогай пользователю с любыми вопросами. Будь дружелюбным и полезным.";
     }
 
-    console.log('AI Chat request:', { type, messagesCount: messages.length });
+    console.log('AI Chat request:', { type, model, messagesCount: messages.length });
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
