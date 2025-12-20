@@ -29,10 +29,14 @@ interface TelegramChannel {
   last_synced_at: string | null;
 }
 
-const TelegramIntegration = () => {
+interface TelegramIntegrationProps {
+  channels: TelegramChannel[];
+  onSync?: () => void;
+}
+
+const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => {
   const { toast } = useToast();
   const [bots, setBots] = useState<TelegramBot[]>([]);
-  const [channels, setChannels] = useState<TelegramChannel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -58,21 +62,13 @@ const TelegramIntegration = () => {
   });
 
   useEffect(() => {
-    fetchData();
+    fetchBots();
   }, []);
 
-  const fetchData = async () => {
+  const fetchBots = async () => {
     setIsLoading(true);
-    
-    const [botsResult, channelsResult] = await Promise.all([
-      supabase.from('telegram_bots').select('*').order('created_at', { ascending: false }),
-      supabase.from('media_channels').select('id, name, username, subscribers, last_synced_at')
-        .eq('platform', 'telegram').eq('is_active', true)
-    ]);
-
-    if (botsResult.data) setBots(botsResult.data);
-    if (channelsResult.data) setChannels(channelsResult.data);
-    
+    const { data } = await supabase.from('telegram_bots').select('*').order('created_at', { ascending: false });
+    if (data) setBots(data);
     setIsLoading(false);
   };
 
@@ -94,7 +90,7 @@ const TelegramIntegration = () => {
           title: 'Синхронизация завершена', 
           description: `Обновлено каналов: ${data.results?.filter((r: any) => r.success).length || 0}`
         });
-        fetchData();
+        onSync?.();
       }
     } catch (error: any) {
       toast({ title: 'Ошибка синхронизации', description: error.message, variant: 'destructive' });
@@ -167,7 +163,7 @@ const TelegramIntegration = () => {
         toast({ title: 'Ошибка', description: error.message, variant: 'destructive' });
       } else {
         toast({ title: 'Бот обновлён' });
-        fetchData();
+        fetchBots();
       }
     } else {
       const { error } = await supabase
@@ -178,7 +174,7 @@ const TelegramIntegration = () => {
         toast({ title: 'Ошибка', description: error.message, variant: 'destructive' });
       } else {
         toast({ title: 'Бот добавлен' });
-        fetchData();
+        fetchBots();
       }
     }
 
@@ -192,7 +188,7 @@ const TelegramIntegration = () => {
       toast({ title: 'Ошибка', description: error.message, variant: 'destructive' });
     } else {
       toast({ title: 'Бот удалён' });
-      fetchData();
+      fetchBots();
     }
   };
 
