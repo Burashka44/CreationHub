@@ -24,7 +24,7 @@ import { Badge } from '@/components/ui/badge';
 interface Channel {
   id: string;
   name: string;
-  platform: 'youtube' | 'tiktok' | 'telegram' | 'rutube';
+  platform: 'youtube' | 'tiktok' | 'rutube' | 'max' | 'telegram';
   url?: string;
   status: 'connected' | 'pending' | 'error';
   authType: 'google' | 'api_key' | 'manual';
@@ -47,20 +47,28 @@ const platformConfig = {
     name: 'TikTok',
     supportsGoogle: false,
   },
-  telegram: {
-    icon: MessageCircle,
-    color: 'text-blue-400',
-    bgColor: 'bg-blue-400/10',
-    borderColor: 'border-blue-400/30',
-    name: 'Telegram',
-    supportsGoogle: false,
-  },
   rutube: {
     icon: Video,
     color: 'text-orange-500',
     bgColor: 'bg-orange-500/10',
     borderColor: 'border-orange-500/30',
     name: 'RuTube',
+    supportsGoogle: false,
+  },
+  max: {
+    icon: MessageCircle,
+    color: 'text-violet-500',
+    bgColor: 'bg-violet-500/10',
+    borderColor: 'border-violet-500/30',
+    name: 'Max',
+    supportsGoogle: false,
+  },
+  telegram: {
+    icon: MessageCircle,
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-400/10',
+    borderColor: 'border-blue-400/30',
+    name: 'Telegram',
     supportsGoogle: false,
   },
 };
