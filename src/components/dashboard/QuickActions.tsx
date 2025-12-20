@@ -39,12 +39,12 @@ const QuickActions = () => {
             key={action.id}
             variant="outline"
             size="sm"
-            className="h-auto py-3 flex flex-col items-center gap-2 border-border hover:bg-muted/50 transition-all hover:scale-105"
+            className="h-auto py-3 px-2 flex flex-col items-center gap-2 border-border hover:bg-muted/50 transition-all hover:scale-105 min-w-0 overflow-hidden"
             onClick={() => handleAction(action.id, action.labelKey)}
             disabled={loading === action.id}
           >
-            <action.icon className={`h-5 w-5 ${action.color} ${loading === action.id ? 'animate-spin' : ''}`} />
-            <span className="text-xs text-muted-foreground text-center">{t(action.labelKey)}</span>
+            <action.icon className={`h-5 w-5 shrink-0 ${action.color} ${loading === action.id ? 'animate-spin' : ''}`} />
+            <span className="text-[10px] leading-tight text-muted-foreground text-center truncate w-full">{t(action.labelKey)}</span>
           </Button>
         ))}
       </div>
