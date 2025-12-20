@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
-  LineChart, Line, AreaChart, Area, BarChart, Bar,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+  AreaChart, Area,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -12,10 +12,25 @@ const generateMockData = () => {
       time: `${i}:00`,
       cpu: Math.floor(Math.random() * 40) + 10,
       memory: Math.floor(Math.random() * 30) + 40,
-      network: Math.floor(Math.random() * 100) + 50,
     });
   }
   return data;
+};
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+        <p className="text-sm text-foreground font-medium mb-1">{label}</p>
+        {payload.map((entry: any, index: number) => (
+          <p key={index} className="text-sm" style={{ color: entry.color }}>
+            {entry.name}: {entry.value}%
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
 };
 
 const SystemCharts = () => {
@@ -24,7 +39,19 @@ const SystemCharts = () => {
 
   return (
     <div className="dashboard-card">
-      <h3 className="font-semibold text-foreground mb-4">System Performance (24h)</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-foreground">System Performance (24h)</h3>
+        <div className="flex items-center gap-4 text-xs">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-primary" />
+            <span className="text-muted-foreground">CPU</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-success" />
+            <span className="text-muted-foreground">Memory</span>
+          </div>
+        </div>
+      </div>
       <div className="h-[250px]">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data}>
@@ -48,22 +75,14 @@ const SystemCharts = () => {
               stroke="hsl(var(--muted-foreground))"
               tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
             />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: 'hsl(var(--card))', 
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px',
-                color: 'hsl(var(--foreground))'
-              }}
-            />
-            <Legend />
+            <Tooltip content={<CustomTooltip />} />
             <Area 
               type="monotone" 
               dataKey="cpu" 
               stroke="hsl(217, 91%, 60%)" 
               fillOpacity={1}
               fill="url(#colorCpu)"
-              name="CPU %"
+              name="CPU"
             />
             <Area 
               type="monotone" 
@@ -71,7 +90,7 @@ const SystemCharts = () => {
               stroke="hsl(142, 76%, 36%)" 
               fillOpacity={1}
               fill="url(#colorMemory)"
-              name="Memory %"
+              name="Memory"
             />
           </AreaChart>
         </ResponsiveContainer>
