@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Settings, Server, Activity, Mic, Languages, Volume2, 
-  Video, Sparkles, Play, Trash2, Plus, RefreshCw, 
+  Video, Sparkles, Play, Trash2, Plus, RefreshCw, ArrowLeftRight,
   Check, AlertCircle, HelpCircle, FileAudio, Upload,
   MessageSquare, Image, FileText, History, Send, Loader2, Download, Paperclip, X
 } from 'lucide-react';
@@ -534,7 +534,7 @@ const AIHubPage = () => {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">AI Hub</h1>
-            <p className="text-sm text-muted-foreground">Управление AI сервисами</p>
+            <p className="text-sm text-muted-foreground">Единый центр управления AI-сервисами: чат, генерация изображений, перевод, озвучка и обработка видео</p>
           </div>
         </div>
         <Badge 
@@ -703,42 +703,105 @@ const AIHubPage = () => {
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid grid-cols-9 mb-4">
-                <TabsTrigger value="chat" className="gap-1 text-xs">
-                  <MessageSquare className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Chat</span>
-                </TabsTrigger>
-                <TabsTrigger value="image" className="gap-1 text-xs">
-                  <Image className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Image</span>
-                </TabsTrigger>
-                <TabsTrigger value="summarize" className="gap-1 text-xs">
-                  <FileText className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Summary</span>
-                </TabsTrigger>
-                <TabsTrigger value="history" className="gap-1 text-xs">
-                  <History className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">History</span>
-                </TabsTrigger>
-                <TabsTrigger value="asr" className="gap-1 text-xs">
-                  <Mic className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">ASR</span>
-                </TabsTrigger>
-                <TabsTrigger value="translate" className="gap-1 text-xs">
-                  <Languages className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">MT</span>
-                </TabsTrigger>
-                <TabsTrigger value="tts" className="gap-1 text-xs">
-                  <Volume2 className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">TTS</span>
-                </TabsTrigger>
-                <TabsTrigger value="av" className="gap-1 text-xs">
-                  <Video className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">AV</span>
-                </TabsTrigger>
-                <TabsTrigger value="clean" className="gap-1 text-xs">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Clean</span>
-                </TabsTrigger>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="chat" className="gap-1 text-xs">
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Chat</span>
+                      </TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>Чат с AI-ассистентом</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="image" className="gap-1 text-xs">
+                        <Image className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Image</span>
+                      </TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>Генерация изображений по описанию</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="summarize" className="gap-1 text-xs">
+                        <FileText className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Summary</span>
+                      </TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>Суммаризация текста</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="history" className="gap-1 text-xs">
+                        <History className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">History</span>
+                      </TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>История AI-запросов</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="asr" className="gap-1 text-xs">
+                        <Mic className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">ASR</span>
+                      </TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>ASR — Автоматическое распознавание речи (Speech-to-Text)</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="translate" className="gap-1 text-xs">
+                        <Languages className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">MT</span>
+                      </TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>MT — Машинный перевод текста (Machine Translation)</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="tts" className="gap-1 text-xs">
+                        <Volume2 className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">TTS</span>
+                      </TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>TTS — Синтез речи из текста (Text-to-Speech)</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="av" className="gap-1 text-xs">
+                        <Video className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">AV</span>
+                      </TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>AV — Автодубляж видео (ASR→MT→TTS)</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="clean" className="gap-1 text-xs">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Clean</span>
+                      </TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>Clean — Удаление объектов из видео (логотипы, лица, текст)</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </TabsList>
 
               {/* AI Chat Tab */}
@@ -1041,6 +1104,11 @@ const AIHubPage = () => {
               </TabsContent>
 
               <TabsContent value="asr" className="space-y-4">
+                <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>ASR (Automatic Speech Recognition)</strong> — автоматическое распознавание речи. Преобразует аудио и видео в текст.
+                  </p>
+                </div>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Задача</Label>
@@ -1049,8 +1117,8 @@ const AIHubPage = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="transcribe">Transcribe</SelectItem>
-                        <SelectItem value="translate">Translate</SelectItem>
+                        <SelectItem value="transcribe">Transcribe (транскрипция)</SelectItem>
+                        <SelectItem value="translate">Translate (перевод на EN)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1079,14 +1147,19 @@ const AIHubPage = () => {
               </TabsContent>
 
               <TabsContent value="translate" className="space-y-4">
+                <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>MT (Machine Translation)</strong> — машинный перевод текста между языками с сохранением смысла и контекста.
+                  </p>
+                </div>
                 <Textarea
                   value={trText}
                   onChange={(e) => setTrText(e.target.value)}
                   placeholder="Текст для перевода"
                   className="h-24"
                 />
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
                     <Label>Исходный язык</Label>
                     <Select value={trSrc} onValueChange={setTrSrc}>
                       <SelectTrigger className="mt-1.5">
@@ -1100,7 +1173,19 @@ const AIHubPage = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    className="shrink-0 mb-0"
+                    onClick={() => {
+                      const temp = trSrc;
+                      setTrSrc(trTgt);
+                      setTrTgt(temp);
+                    }}
+                  >
+                    <ArrowLeftRight className="h-4 w-4" />
+                  </Button>
+                  <div className="flex-1">
                     <Label>Целевой язык</Label>
                     <Select value={trTgt} onValueChange={setTrTgt}>
                       <SelectTrigger className="mt-1.5">
@@ -1119,6 +1204,11 @@ const AIHubPage = () => {
               </TabsContent>
 
               <TabsContent value="tts" className="space-y-4">
+                <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>TTS (Text-to-Speech)</strong> — синтез речи из текста. Создаёт естественную озвучку с возможностью клонирования голоса.
+                  </p>
+                </div>
                 <Textarea
                   value={ttsText}
                   onChange={(e) => setTtsText(e.target.value)}
@@ -1143,7 +1233,7 @@ const AIHubPage = () => {
                   <div className="flex items-end">
                     <Button variant="outline" className="gap-2 w-full">
                       <Upload className="h-4 w-4" />
-                      Speaker WAV
+                      Speaker WAV (клонирование голоса)
                     </Button>
                   </div>
                 </div>
@@ -1151,22 +1241,42 @@ const AIHubPage = () => {
               </TabsContent>
 
               <TabsContent value="av" className="space-y-4">
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
+                <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>AV (Audio-Video Pipeline)</strong> — полный конвейер автодубляжа: распознавание речи (ASR) → перевод (MT) → синтез голоса (TTS).
+                  </p>
+                </div>
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
                     <Label>Исходный язык</Label>
                     <Select value={avSrcLang} onValueChange={setAvSrcLang}>
                       <SelectTrigger className="mt-1.5">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="auto">Auto</SelectItem>
+                        <SelectItem value="auto">Auto (автоопределение)</SelectItem>
                         <SelectItem value="ru">Русский</SelectItem>
                         <SelectItem value="en">English</SelectItem>
                         <SelectItem value="de">Deutsch</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    className="shrink-0 mb-0"
+                    onClick={() => {
+                      if (avSrcLang !== 'auto') {
+                        const temp = avSrcLang;
+                        setAvSrcLang(avTgtLang);
+                        setAvTgtLang(temp);
+                      }
+                    }}
+                    disabled={avSrcLang === 'auto'}
+                  >
+                    <ArrowLeftRight className="h-4 w-4" />
+                  </Button>
+                  <div className="flex-1">
                     <Label>Целевой язык</Label>
                     <Select value={avTgtLang} onValueChange={setAvTgtLang}>
                       <SelectTrigger className="mt-1.5">
@@ -1196,6 +1306,11 @@ const AIHubPage = () => {
               </TabsContent>
 
               <TabsContent value="clean" className="space-y-4">
+                <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Clean (Video Inpainting)</strong> — удаление нежелательных объектов из видео: логотипы, водяные знаки, лица, текст с восстановлением фона.
+                  </p>
+                </div>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Метод</Label>
@@ -1204,8 +1319,8 @@ const AIHubPage = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="propainter">ProPainter</SelectItem>
-                        <SelectItem value="lama">LaMa</SelectItem>
+                        <SelectItem value="propainter">ProPainter (точный, медленный)</SelectItem>
+                        <SelectItem value="lama">LaMa (быстрый)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
