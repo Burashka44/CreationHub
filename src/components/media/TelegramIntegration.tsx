@@ -519,10 +519,21 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
               <Clock className="h-4 w-4 text-primary" />
               Автоматическая синхронизация
             </CardTitle>
-            <span className="text-sm text-muted-foreground">{getIntervalText()}</span>
           </div>
         </CardHeader>
-        <CardContent className="pt-0">
+        <CardContent className="pt-0 space-y-4">
+          {/* Server-side cron job info */}
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+            <div className="p-2 rounded-full bg-emerald-500/20">
+              <Check className="h-4 w-4 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-emerald-500">Серверная синхронизация активна</p>
+              <p className="text-xs text-muted-foreground">Автоматически каждые 6 часов, даже когда страница закрыта</p>
+            </div>
+          </div>
+          
+          {/* Client-side sync settings */}
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-3">
               <Switch
@@ -532,42 +543,40 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
                   saveAutoSyncSettings(newSettings);
                 }}
               />
-              <Label className="text-sm">Включить</Label>
+              <Label className="text-sm">Дополнительная синхронизация в браузере</Label>
             </div>
             
             {autoSyncSettings.enabled && (
-              <>
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm text-muted-foreground">Каждые</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={autoSyncSettings.unit === 'hours' ? 24 : 60}
-                    value={autoSyncSettings.interval}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value) || 1;
-                      setAutoSyncSettings({ ...autoSyncSettings, interval: val });
-                    }}
-                    onBlur={() => saveAutoSyncSettings(autoSyncSettings)}
-                    className="w-16 h-8"
-                  />
-                  <Select
-                    value={autoSyncSettings.unit}
-                    onValueChange={(v: 'minutes' | 'hours') => {
-                      const newSettings = { ...autoSyncSettings, unit: v };
-                      saveAutoSyncSettings(newSettings);
-                    }}
-                  >
-                    <SelectTrigger className="w-24 h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="minutes">минут</SelectItem>
-                      <SelectItem value="hours">часов</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
+              <div className="flex items-center gap-2">
+                <Label className="text-sm text-muted-foreground">Каждые</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={autoSyncSettings.unit === 'hours' ? 24 : 60}
+                  value={autoSyncSettings.interval}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value) || 1;
+                    setAutoSyncSettings({ ...autoSyncSettings, interval: val });
+                  }}
+                  onBlur={() => saveAutoSyncSettings(autoSyncSettings)}
+                  className="w-16 h-8"
+                />
+                <Select
+                  value={autoSyncSettings.unit}
+                  onValueChange={(v: 'minutes' | 'hours') => {
+                    const newSettings = { ...autoSyncSettings, unit: v };
+                    saveAutoSyncSettings(newSettings);
+                  }}
+                >
+                  <SelectTrigger className="w-24 h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="minutes">минут</SelectItem>
+                    <SelectItem value="hours">часов</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             )}
           </div>
         </CardContent>
