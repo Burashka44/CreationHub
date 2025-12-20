@@ -68,24 +68,24 @@ const AIHubPage = () => {
   const [presets, setPresets] = useState<Preset[]>([
     {
       id: '1',
-      name: 'Dubbing → English',
+      name: 'Дубляж на английский',
       target: 'av',
       payload: { src_lang: 'auto', tgt_lang: 'en' },
-      description: 'ASR→MT→TTS с авто-определением языка, выход EN',
+      description: 'Автоматический перевод и озвучка видео на английский язык',
     },
     {
       id: '2',
-      name: 'Dubbing → French',
+      name: 'Дубляж на французский',
       target: 'av',
       payload: { src_lang: 'auto', tgt_lang: 'fr' },
-      description: 'ASR→MT→TTS, выход FR',
+      description: 'Автоматический перевод и озвучка видео на французский язык',
     },
     {
       id: '3',
-      name: 'Clean: logo+face',
+      name: 'Удалить логотипы и лица',
       target: 'clean',
       payload: { method: 'propainter', objects: 'logo,face' },
-      description: 'Инпейнт логотипов и лиц',
+      description: 'Очистка видео от логотипов и размытие лиц',
     },
   ]);
   
@@ -740,10 +740,11 @@ const AIHubPage = () => {
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <Settings className="h-4 w-4 text-primary" />
-              <CardTitle className="text-base">Пресеты</CardTitle>
+              <CardTitle className="text-base">Быстрые пресеты</CardTitle>
+              <HintTooltip text="Пресеты — это сохранённые настройки для быстрого запуска задач. Нажмите 'Применить' чтобы заполнить параметры автоматически." />
             </div>
             <CardDescription>
-              Создавай и применяй наборы параметров
+              Готовые шаблоны настроек для частых задач
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -756,16 +757,37 @@ const AIHubPage = () => {
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-medium text-sm">{preset.name}</span>
-                      <Badge variant="outline" className={cn("text-xs", getTargetBadgeColor(preset.target))}>
-                        {preset.target}
-                      </Badge>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="outline" className={cn("text-xs cursor-help", getTargetBadgeColor(preset.target))}>
+                              {preset.target === 'av' ? 'Дубляж' : 
+                               preset.target === 'asr' ? 'Распознавание' :
+                               preset.target === 'tts' ? 'Озвучка' :
+                               preset.target === 'translate' ? 'Перевод' :
+                               preset.target === 'clean' ? 'Очистка' :
+                               preset.target === 'chat' ? 'Чат' :
+                               preset.target === 'image' ? 'Картинки' :
+                               preset.target === 'summarize' ? 'Резюме' : preset.target}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Откроет вкладку "{preset.target}" с заданными настройками
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                     {preset.description && (
                       <p className="text-xs text-muted-foreground">{preset.description}</p>
                     )}
-                    <pre className="text-xs bg-muted/50 p-2 rounded border border-border/30 overflow-x-auto">
-                      {JSON.stringify(preset.payload, null, 2)}
-                    </pre>
+                    <details className="text-xs">
+                      <summary className="text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                        Показать параметры
+                      </summary>
+                      <pre className="mt-2 bg-muted/50 p-2 rounded border border-border/30 overflow-x-auto">
+                        {JSON.stringify(preset.payload, null, 2)}
+                      </pre>
+                    </details>
                     <div className="flex gap-2">
                       <Button 
                         size="sm" 
@@ -790,36 +812,44 @@ const AIHubPage = () => {
             </ScrollArea>
             
             <div className="border-t border-border/50 pt-4 space-y-3">
-              <p className="text-sm font-medium">Новый пресет</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium">Создать свой пресет</p>
+                <HintTooltip text="Создайте собственный пресет с часто используемыми настройками. Выберите сервис и укажите параметры в формате JSON." />
+              </div>
               <Input
                 value={presetName}
                 onChange={(e) => setPresetName(e.target.value)}
-                placeholder="Название"
+                placeholder="Название пресета (например: Дубляж на немецкий)"
               />
               <Select value={presetTarget} onValueChange={setPresetTarget}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="av">AV Pipeline</SelectItem>
-                  <SelectItem value="asr">ASR</SelectItem>
-                  <SelectItem value="tts">TTS</SelectItem>
-                  <SelectItem value="translate">Translate</SelectItem>
-                  <SelectItem value="clean">Video Clean</SelectItem>
-                  <SelectItem value="chat">AI Chat</SelectItem>
-                  <SelectItem value="image">Image Gen</SelectItem>
-                  <SelectItem value="summarize">Summarize</SelectItem>
+                  <SelectItem value="av">Дубляж видео (AV)</SelectItem>
+                  <SelectItem value="asr">Распознавание речи (ASR)</SelectItem>
+                  <SelectItem value="tts">Синтез речи (TTS)</SelectItem>
+                  <SelectItem value="translate">Перевод текста (MT)</SelectItem>
+                  <SelectItem value="clean">Очистка видео (Clean)</SelectItem>
+                  <SelectItem value="chat">AI Чат</SelectItem>
+                  <SelectItem value="image">Генерация картинок</SelectItem>
+                  <SelectItem value="summarize">Суммаризация</SelectItem>
                 </SelectContent>
               </Select>
-              <Textarea
-                value={presetJSON}
-                onChange={(e) => setPresetJSON(e.target.value)}
-                placeholder="JSON payload"
-                className="font-mono text-xs h-20"
-              />
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">
+                  Параметры (JSON формат)
+                </Label>
+                <Textarea
+                  value={presetJSON}
+                  onChange={(e) => setPresetJSON(e.target.value)}
+                  placeholder='{"src_lang": "ru", "tgt_lang": "en"}'
+                  className="font-mono text-xs h-20"
+                />
+              </div>
               <Button onClick={addPreset} className="w-full gap-2">
                 <Plus className="h-4 w-4" />
-                Добавить пресет
+                Сохранить пресет
               </Button>
             </div>
           </CardContent>
