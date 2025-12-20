@@ -11,6 +11,7 @@ import { ApiSettingsDialog } from '@/components/media/ApiSettingsDialog';
 import { YouTubeAnalytics, TwitchAnalytics, VKVideoAnalytics, RuTubeAnalytics } from '@/components/media/PlatformAnalytics';
 import { AdRevenueManager } from '@/components/media/AdRevenueManager';
 import TelegramIntegration from '@/components/media/TelegramIntegration';
+import AdAnalytics from '@/components/media/AdAnalytics';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -1131,6 +1132,9 @@ const MediaAnalyticsPage = () => {
 
         {/* Ads Tab */}
         <TabsContent value="ads" className="space-y-6 mt-6">
+          {/* Ad Analytics Component */}
+          <AdAnalytics />
+          
           {/* Summary Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="bg-card/50 backdrop-blur-sm border-border/50">
