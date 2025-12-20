@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Settings, Server, Activity, Mic, Languages, Volume2, 
   Video, Sparkles, Play, Trash2, Plus, RefreshCw, ArrowLeftRight,
@@ -19,6 +19,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface Preset {
   id: string;
@@ -135,6 +137,17 @@ const AIHubPage = () => {
   // History state
   const [aiHistory, setAiHistory] = useState<AIRequest[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+
+  // Drag-and-drop state for file uploads
+  const [asrDragActive, setAsrDragActive] = useState(false);
+  const [avDragActive, setAvDragActive] = useState(false);
+  const [cleanDragActive, setCleanDragActive] = useState(false);
+  const [asrFile, setAsrFile] = useState<File | null>(null);
+  const [avFile, setAvFile] = useState<File | null>(null);
+  const [cleanFile, setCleanFile] = useState<File | null>(null);
+  const asrInputRef = useRef<HTMLInputElement>(null);
+  const avInputRef = useRef<HTMLInputElement>(null);
+  const cleanInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -330,6 +343,107 @@ const AIHubPage = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  // Drag and drop handlers for media files
+  const handleDragOver = useCallback((e: React.DragEvent, setActive: (v: boolean) => void) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActive(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent, setActive: (v: boolean) => void) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActive(false);
+  }, []);
+
+  const handleDropFile = useCallback((
+    e: React.DragEvent, 
+    setActive: (v: boolean) => void, 
+    setFile: (f: File | null) => void,
+    acceptedTypes: string[]
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActive(false);
+    
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    
+    const isValidType = acceptedTypes.some(type => 
+      file.type.includes(type) || file.name.toLowerCase().endsWith(type)
+    );
+    
+    if (!isValidType) {
+      toast.error(`Неподдерживаемый формат. Используйте: ${acceptedTypes.join(', ')}`);
+      return;
+    }
+    
+    setFile(file);
+    toast.success(`Файл ${file.name} загружен`);
+  }, []);
+
+  const handleInputFileChange = useCallback((
+    e: React.ChangeEvent<HTMLInputElement>,
+    setFile: (f: File | null) => void
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFile(file);
+      toast.success(`Файл ${file.name} загружен`);
+    }
+  }, []);
+
+  // Parse markdown code blocks for syntax highlighting
+  const renderMessageContent = (content: string) => {
+    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+    let keyIndex = 0;
+
+    while ((match = codeBlockRegex.exec(content)) !== null) {
+      // Add text before code block
+      if (match.index > lastIndex) {
+        parts.push(
+          <span key={keyIndex++} className="whitespace-pre-wrap">
+            {content.slice(lastIndex, match.index)}
+          </span>
+        );
+      }
+
+      const language = match[1] || 'text';
+      const code = match[2].trim();
+
+      parts.push(
+        <div key={keyIndex++} className="my-2 rounded-md overflow-hidden">
+          <div className="flex items-center justify-between bg-zinc-800 px-3 py-1 text-xs text-zinc-400">
+            <span>{language}</span>
+          </div>
+          <SyntaxHighlighter
+            language={language}
+            style={oneDark}
+            customStyle={{ margin: 0, fontSize: '0.75rem', padding: '0.75rem' }}
+          >
+            {code}
+          </SyntaxHighlighter>
+        </div>
+      );
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    if (lastIndex < content.length) {
+      parts.push(
+        <span key={keyIndex++} className="whitespace-pre-wrap">
+          {content.slice(lastIndex)}
+        </span>
+      );
+    }
+
+    return parts.length > 0 ? parts : <span className="whitespace-pre-wrap">{content}</span>;
   };
 
   // AI Chat handler with streaming
@@ -925,12 +1039,16 @@ const AIHubPage = () => {
                             msg.role === 'user' ? 'justify-end' : 'justify-start'
                           )}>
                             <div className={cn(
-                              "max-w-[80%] p-3 rounded-lg text-sm",
+                              "max-w-[85%] p-3 rounded-lg text-sm overflow-hidden",
                               msg.role === 'user' 
                                 ? 'bg-primary text-primary-foreground' 
                                 : 'bg-muted'
                             )}>
-                              <div className="whitespace-pre-wrap">{msg.content || (chatLoading && idx === chatMessages.length - 1 ? <Loader2 className="h-4 w-4 animate-spin" /> : '')}</div>
+                              {msg.content ? (
+                                renderMessageContent(msg.content)
+                              ) : (
+                                chatLoading && idx === chatMessages.length - 1 ? <Loader2 className="h-4 w-4 animate-spin" /> : ''
+                              )}
                             </div>
                           </div>
                         ))}
@@ -1132,18 +1250,54 @@ const AIHubPage = () => {
                     />
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-4 border border-dashed border-border/50 rounded-lg">
-                  <FileAudio className="h-8 w-8 text-muted-foreground" />
+                <input
+                  type="file"
+                  ref={asrInputRef}
+                  className="hidden"
+                  accept=".mp3,.wav,.mp4,.webm,audio/*,video/*"
+                  onChange={(e) => handleInputFileChange(e, setAsrFile)}
+                />
+                <div 
+                  className={cn(
+                    "flex items-center gap-3 p-4 border-2 border-dashed rounded-lg transition-colors cursor-pointer",
+                    asrDragActive 
+                      ? "border-primary bg-primary/10" 
+                      : asrFile 
+                        ? "border-emerald-500/50 bg-emerald-500/10" 
+                        : "border-border/50 hover:border-primary/50"
+                  )}
+                  onDragOver={(e) => handleDragOver(e, setAsrDragActive)}
+                  onDragLeave={(e) => handleDragLeave(e, setAsrDragActive)}
+                  onDrop={(e) => handleDropFile(e, setAsrDragActive, setAsrFile, ['mp3', 'wav', 'mp4', 'webm', 'audio', 'video'])}
+                  onClick={() => asrInputRef.current?.click()}
+                >
+                  <FileAudio className={cn("h-8 w-8", asrFile ? "text-emerald-500" : "text-muted-foreground")} />
                   <div className="flex-1">
-                    <p className="text-sm font-medium">Загрузить аудио/видео</p>
-                    <p className="text-xs text-muted-foreground">MP3, WAV, MP4, WebM</p>
+                    {asrFile ? (
+                      <>
+                        <p className="text-sm font-medium text-emerald-500">{asrFile.name}</p>
+                        <p className="text-xs text-muted-foreground">{(asrFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-medium">Перетащите файл или нажмите</p>
+                        <p className="text-xs text-muted-foreground">MP3, WAV, MP4, WebM</p>
+                      </>
+                    )}
                   </div>
-                  <Button variant="outline" className="gap-2">
-                    <Upload className="h-4 w-4" />
-                    Выбрать
-                  </Button>
+                  {asrFile ? (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={(e) => { e.stopPropagation(); setAsrFile(null); }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Upload className="h-5 w-5 text-muted-foreground" />
+                  )}
                 </div>
-                <Button className="w-full">Запустить ASR</Button>
+                <Button className="w-full" disabled={!asrFile}>Запустить ASR</Button>
               </TabsContent>
 
               <TabsContent value="translate" className="space-y-4">
@@ -1291,18 +1445,54 @@ const AIHubPage = () => {
                     </Select>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-4 border border-dashed border-border/50 rounded-lg">
-                  <Video className="h-8 w-8 text-muted-foreground" />
+                <input
+                  type="file"
+                  ref={avInputRef}
+                  className="hidden"
+                  accept=".mp4,.webm,.mkv,video/*"
+                  onChange={(e) => handleInputFileChange(e, setAvFile)}
+                />
+                <div 
+                  className={cn(
+                    "flex items-center gap-3 p-4 border-2 border-dashed rounded-lg transition-colors cursor-pointer",
+                    avDragActive 
+                      ? "border-primary bg-primary/10" 
+                      : avFile 
+                        ? "border-emerald-500/50 bg-emerald-500/10" 
+                        : "border-border/50 hover:border-primary/50"
+                  )}
+                  onDragOver={(e) => handleDragOver(e, setAvDragActive)}
+                  onDragLeave={(e) => handleDragLeave(e, setAvDragActive)}
+                  onDrop={(e) => handleDropFile(e, setAvDragActive, setAvFile, ['mp4', 'webm', 'mkv', 'video'])}
+                  onClick={() => avInputRef.current?.click()}
+                >
+                  <Video className={cn("h-8 w-8", avFile ? "text-emerald-500" : "text-muted-foreground")} />
                   <div className="flex-1">
-                    <p className="text-sm font-medium">Загрузить видео</p>
-                    <p className="text-xs text-muted-foreground">MP4, WebM, MKV</p>
+                    {avFile ? (
+                      <>
+                        <p className="text-sm font-medium text-emerald-500">{avFile.name}</p>
+                        <p className="text-xs text-muted-foreground">{(avFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-medium">Перетащите видео или нажмите</p>
+                        <p className="text-xs text-muted-foreground">MP4, WebM, MKV</p>
+                      </>
+                    )}
                   </div>
-                  <Button variant="outline" className="gap-2">
-                    <Upload className="h-4 w-4" />
-                    Выбрать
-                  </Button>
+                  {avFile ? (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={(e) => { e.stopPropagation(); setAvFile(null); }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Upload className="h-5 w-5 text-muted-foreground" />
+                  )}
                 </div>
-                <Button className="w-full">Запустить дубляж</Button>
+                <Button className="w-full" disabled={!avFile}>Запустить дубляж</Button>
               </TabsContent>
 
               <TabsContent value="clean" className="space-y-4">
@@ -1334,18 +1524,54 @@ const AIHubPage = () => {
                     />
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-4 border border-dashed border-border/50 rounded-lg">
-                  <Video className="h-8 w-8 text-muted-foreground" />
+                <input
+                  type="file"
+                  ref={cleanInputRef}
+                  className="hidden"
+                  accept=".mp4,.webm,video/*"
+                  onChange={(e) => handleInputFileChange(e, setCleanFile)}
+                />
+                <div 
+                  className={cn(
+                    "flex items-center gap-3 p-4 border-2 border-dashed rounded-lg transition-colors cursor-pointer",
+                    cleanDragActive 
+                      ? "border-primary bg-primary/10" 
+                      : cleanFile 
+                        ? "border-emerald-500/50 bg-emerald-500/10" 
+                        : "border-border/50 hover:border-primary/50"
+                  )}
+                  onDragOver={(e) => handleDragOver(e, setCleanDragActive)}
+                  onDragLeave={(e) => handleDragLeave(e, setCleanDragActive)}
+                  onDrop={(e) => handleDropFile(e, setCleanDragActive, setCleanFile, ['mp4', 'webm', 'video'])}
+                  onClick={() => cleanInputRef.current?.click()}
+                >
+                  <Video className={cn("h-8 w-8", cleanFile ? "text-emerald-500" : "text-muted-foreground")} />
                   <div className="flex-1">
-                    <p className="text-sm font-medium">Загрузить видео</p>
-                    <p className="text-xs text-muted-foreground">MP4, WebM</p>
+                    {cleanFile ? (
+                      <>
+                        <p className="text-sm font-medium text-emerald-500">{cleanFile.name}</p>
+                        <p className="text-xs text-muted-foreground">{(cleanFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-medium">Перетащите видео или нажмите</p>
+                        <p className="text-xs text-muted-foreground">MP4, WebM</p>
+                      </>
+                    )}
                   </div>
-                  <Button variant="outline" className="gap-2">
-                    <Upload className="h-4 w-4" />
-                    Выбрать
-                  </Button>
+                  {cleanFile ? (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={(e) => { e.stopPropagation(); setCleanFile(null); }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Upload className="h-5 w-5 text-muted-foreground" />
+                  )}
                 </div>
-                <Button className="w-full">Запустить очистку</Button>
+                <Button className="w-full" disabled={!cleanFile}>Запустить очистку</Button>
               </TabsContent>
             </Tabs>
           </CardContent>
