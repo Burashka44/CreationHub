@@ -225,6 +225,24 @@ const translations: Translations = {
   neuralTranslation: { ru: 'Нейронный машинный перевод', en: 'Neural Machine Translation' },
   videoDubbing: { ru: 'Конвейер дубляжа видео', en: 'Video Dubbing Pipeline' },
   videoInpainting: { ru: 'Удаление объектов (ProPainter/LaMa)', en: 'Object Removal (ProPainter/LaMa)' },
+  
+  // New Dashboard translations
+  serverInfo: { ru: 'Информация о сервере', en: 'Server Info' },
+  cpuModel: { ru: 'Процессор', en: 'CPU Model' },
+  temperature: { ru: 'Температура', en: 'Temperature' },
+  normal: { ru: 'Норма', en: 'Normal' },
+  powerConsumption: { ru: 'Энергия', en: 'Power' },
+  serverTime: { ru: 'Время сервера', en: 'Server Time' },
+  performanceMonitor: { ru: 'Мониторинг производительности', en: 'Performance Monitor' },
+  resourceMeters: { ru: 'Ресурсы системы', en: 'System Resources' },
+  trafficStats: { ru: 'Статистика трафика', en: 'Traffic Stats' },
+  totalRequests: { ru: 'Всего запросов', en: 'Total Requests' },
+  requestsPerSec: { ru: 'Запросов/сек', en: 'Requests/sec' },
+  bandwidth: { ru: 'Трафик', en: 'Bandwidth' },
+  activeConnections: { ru: 'Активные соединения', en: 'Active Connections' },
+  thisMonth: { ru: 'В этом месяце', en: 'This month' },
+  now: { ru: 'Сейчас', en: 'Now' },
+  processes: { ru: 'Процессы', en: 'Processes' },
 };
 
 interface LanguageContextType {
