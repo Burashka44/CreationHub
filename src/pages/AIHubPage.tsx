@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Settings, Server, Activity, Mic, Languages, Volume2, 
   Video, Sparkles, Play, Trash2, Plus, RefreshCw, 
-  Check, AlertCircle, HelpCircle, FileAudio, Upload
+  Check, AlertCircle, HelpCircle, FileAudio, Upload,
+  MessageSquare, Image, FileText, History, Send, Loader2, Download
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface Preset {
   id: string;
@@ -32,6 +35,23 @@ interface LogItem {
   downloadUrl?: string;
   error?: string;
   timestamp: Date;
+}
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+interface AIRequest {
+  id: string;
+  request_type: string;
+  input_data: unknown;
+  output_data: unknown;
+  model: string | null;
+  status: string;
+  error_message: string | null;
+  created_at: string;
+  completed_at: string | null;
 }
 
 const AIHubPage = () => {
@@ -71,7 +91,7 @@ const AIHubPage = () => {
   const [logs, setLogs] = useState<LogItem[]>([]);
   
   // Active tab
-  const [activeTab, setActiveTab] = useState('asr');
+  const [activeTab, setActiveTab] = useState('chat');
   
   // Form states
   const [asrTask, setAsrTask] = useState('transcribe');
@@ -91,6 +111,36 @@ const AIHubPage = () => {
   const [presetTarget, setPresetTarget] = useState('av');
   const [presetJSON, setPresetJSON] = useState('{\n  "src_lang": "auto",\n  "tgt_lang": "en"\n}');
   
+  // AI Chat state
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  
+  // Image generation state
+  const [imagePrompt, setImagePrompt] = useState('');
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(false);
+  
+  // Summarization state
+  const [summarizeText, setSummarizeText] = useState('');
+  const [summarizeResult, setSummarizeResult] = useState('');
+  const [summarizeLoading, setSummarizeLoading] = useState(false);
+  
+  // History state
+  const [aiHistory, setAiHistory] = useState<AIRequest[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
+
+  useEffect(() => {
+    if (activeTab === 'history') {
+      loadHistory();
+    }
+  }, [activeTab]);
+  
   const pushLog = (title: string, body?: unknown, downloadUrl?: string, error?: string) => {
     setLogs(prev => [{ 
       id: Math.random().toString(36).slice(2), 
@@ -100,6 +150,48 @@ const AIHubPage = () => {
       error,
       timestamp: new Date()
     }, ...prev]);
+  };
+
+  const saveToHistory = async (
+    type: string, 
+    input: Record<string, unknown>, 
+    output: Record<string, unknown> | null, 
+    model: string | null,
+    status: string,
+    error?: string
+  ) => {
+    try {
+      await supabase.from('ai_requests').insert([{
+        request_type: type,
+        input_data: input as unknown as Record<string, never>,
+        output_data: output as unknown as Record<string, never>,
+        model,
+        status,
+        error_message: error || null,
+        completed_at: status === 'completed' || status === 'error' ? new Date().toISOString() : null
+      }]);
+    } catch (e) {
+      console.error('Failed to save to history:', e);
+    }
+  };
+
+  const loadHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('ai_requests')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (error) throw error;
+      setAiHistory(data || []);
+    } catch (e) {
+      console.error('Failed to load history:', e);
+      toast.error('Не удалось загрузить историю');
+    } finally {
+      setHistoryLoading(false);
+    }
   };
   
   const applyPreset = (preset: Preset) => {
@@ -175,6 +267,9 @@ const AIHubPage = () => {
       case 'tts': return 'bg-green-500/20 text-green-400 border-green-500/30';
       case 'translate': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
       case 'clean': return 'bg-red-500/20 text-red-400 border-red-500/30';
+      case 'chat': return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30';
+      case 'image': return 'bg-pink-500/20 text-pink-400 border-pink-500/30';
+      case 'summarize': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
       default: return 'bg-muted text-muted-foreground';
     }
   };
@@ -192,6 +287,125 @@ const AIHubPage = () => {
       </Tooltip>
     </TooltipProvider>
   );
+
+  // AI Chat handler
+  const handleSendChat = async () => {
+    if (!chatInput.trim() || chatLoading) return;
+
+    const userMessage: ChatMessage = { role: 'user', content: chatInput.trim() };
+    setChatMessages(prev => [...prev, userMessage]);
+    setChatInput('');
+    setChatLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-chat', {
+        body: { 
+          messages: [...chatMessages, userMessage],
+          type: 'chat'
+        }
+      });
+
+      if (error) throw error;
+
+      const assistantMessage: ChatMessage = { role: 'assistant', content: data.content };
+      setChatMessages(prev => [...prev, assistantMessage]);
+      
+      await saveToHistory('chat', { messages: [...chatMessages, userMessage] }, { response: data.content }, data.model, 'completed');
+      pushLog('AI Chat', { response: data.content.substring(0, 100) + '...' });
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      toast.error('Ошибка AI: ' + errorMessage);
+      pushLog('AI Chat error', undefined, undefined, errorMessage);
+      await saveToHistory('chat', { messages: [...chatMessages, userMessage] }, null, null, 'error', errorMessage);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  // Image generation handler
+  const handleGenerateImage = async () => {
+    if (!imagePrompt.trim() || imageLoading) return;
+
+    setImageLoading(true);
+    setGeneratedImage(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-image', {
+        body: { prompt: imagePrompt.trim() }
+      });
+
+      if (error) throw error;
+
+      if (data.imageUrl) {
+        setGeneratedImage(data.imageUrl);
+        await saveToHistory('image', { prompt: imagePrompt }, { imageUrl: data.imageUrl }, data.model, 'completed');
+        pushLog('Image generated', { prompt: imagePrompt.substring(0, 50) });
+        toast.success('Изображение сгенерировано!');
+      } else {
+        throw new Error('No image returned');
+      }
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      toast.error('Ошибка генерации: ' + errorMessage);
+      pushLog('Image generation error', undefined, undefined, errorMessage);
+      await saveToHistory('image', { prompt: imagePrompt }, null, null, 'error', errorMessage);
+    } finally {
+      setImageLoading(false);
+    }
+  };
+
+  // Summarization handler
+  const handleSummarize = async () => {
+    if (!summarizeText.trim() || summarizeLoading) return;
+
+    setSummarizeLoading(true);
+    setSummarizeResult('');
+
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-chat', {
+        body: { 
+          messages: [{ role: 'user', content: `Пожалуйста, суммаризируй следующий текст:\n\n${summarizeText}` }],
+          type: 'summarize'
+        }
+      });
+
+      if (error) throw error;
+
+      setSummarizeResult(data.content);
+      await saveToHistory('summarize', { text: summarizeText }, { summary: data.content }, data.model, 'completed');
+      pushLog('Text summarized', { inputLength: summarizeText.length, outputLength: data.content.length });
+      toast.success('Текст суммаризирован!');
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      toast.error('Ошибка суммаризации: ' + errorMessage);
+      pushLog('Summarization error', undefined, undefined, errorMessage);
+      await saveToHistory('summarize', { text: summarizeText }, null, null, 'error', errorMessage);
+    } finally {
+      setSummarizeLoading(false);
+    }
+  };
+
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case 'chat': return 'Чат';
+      case 'image': return 'Изображение';
+      case 'summarize': return 'Суммаризация';
+      default: return type;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30">Готово</Badge>;
+      case 'error':
+        return <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">Ошибка</Badge>;
+      case 'pending':
+        return <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/30">В процессе</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -342,6 +556,9 @@ const AIHubPage = () => {
                   <SelectItem value="tts">TTS</SelectItem>
                   <SelectItem value="translate">Translate</SelectItem>
                   <SelectItem value="clean">Video Clean</SelectItem>
+                  <SelectItem value="chat">AI Chat</SelectItem>
+                  <SelectItem value="image">Image Gen</SelectItem>
+                  <SelectItem value="summarize">Summarize</SelectItem>
                 </SelectContent>
               </Select>
               <Textarea
@@ -368,28 +585,211 @@ const AIHubPage = () => {
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid grid-cols-5 mb-4">
-                <TabsTrigger value="asr" className="gap-1.5 text-xs">
+              <TabsList className="grid grid-cols-9 mb-4">
+                <TabsTrigger value="chat" className="gap-1 text-xs">
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Chat</span>
+                </TabsTrigger>
+                <TabsTrigger value="image" className="gap-1 text-xs">
+                  <Image className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Image</span>
+                </TabsTrigger>
+                <TabsTrigger value="summarize" className="gap-1 text-xs">
+                  <FileText className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Summary</span>
+                </TabsTrigger>
+                <TabsTrigger value="history" className="gap-1 text-xs">
+                  <History className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">History</span>
+                </TabsTrigger>
+                <TabsTrigger value="asr" className="gap-1 text-xs">
                   <Mic className="h-3.5 w-3.5" />
-                  ASR
+                  <span className="hidden sm:inline">ASR</span>
                 </TabsTrigger>
-                <TabsTrigger value="translate" className="gap-1.5 text-xs">
+                <TabsTrigger value="translate" className="gap-1 text-xs">
                   <Languages className="h-3.5 w-3.5" />
-                  Translate
+                  <span className="hidden sm:inline">MT</span>
                 </TabsTrigger>
-                <TabsTrigger value="tts" className="gap-1.5 text-xs">
+                <TabsTrigger value="tts" className="gap-1 text-xs">
                   <Volume2 className="h-3.5 w-3.5" />
-                  TTS
+                  <span className="hidden sm:inline">TTS</span>
                 </TabsTrigger>
-                <TabsTrigger value="av" className="gap-1.5 text-xs">
+                <TabsTrigger value="av" className="gap-1 text-xs">
                   <Video className="h-3.5 w-3.5" />
-                  AV Pipeline
+                  <span className="hidden sm:inline">AV</span>
                 </TabsTrigger>
-                <TabsTrigger value="clean" className="gap-1.5 text-xs">
+                <TabsTrigger value="clean" className="gap-1 text-xs">
                   <Sparkles className="h-3.5 w-3.5" />
-                  Clean
+                  <span className="hidden sm:inline">Clean</span>
                 </TabsTrigger>
               </TabsList>
+
+              {/* AI Chat Tab */}
+              <TabsContent value="chat" className="space-y-4">
+                <div className="border border-border/50 rounded-lg h-[300px] flex flex-col">
+                  <ScrollArea className="flex-1 p-4">
+                    {chatMessages.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        Начните диалог с AI ассистентом
+                      </p>
+                    ) : (
+                      <div className="space-y-4">
+                        {chatMessages.map((msg, idx) => (
+                          <div key={idx} className={cn(
+                            "flex",
+                            msg.role === 'user' ? 'justify-end' : 'justify-start'
+                          )}>
+                            <div className={cn(
+                              "max-w-[80%] p-3 rounded-lg text-sm",
+                              msg.role === 'user' 
+                                ? 'bg-primary text-primary-foreground' 
+                                : 'bg-muted'
+                            )}>
+                              {msg.content}
+                            </div>
+                          </div>
+                        ))}
+                        {chatLoading && (
+                          <div className="flex justify-start">
+                            <div className="bg-muted p-3 rounded-lg">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            </div>
+                          </div>
+                        )}
+                        <div ref={chatEndRef} />
+                      </div>
+                    )}
+                  </ScrollArea>
+                  <div className="p-3 border-t border-border/50 flex gap-2">
+                    <Input
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      placeholder="Введите сообщение..."
+                      onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendChat()}
+                      disabled={chatLoading}
+                    />
+                    <Button onClick={handleSendChat} disabled={chatLoading || !chatInput.trim()}>
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <Button variant="outline" onClick={() => setChatMessages([])} className="w-full">
+                  Очистить чат
+                </Button>
+              </TabsContent>
+
+              {/* Image Generation Tab */}
+              <TabsContent value="image" className="space-y-4">
+                <div>
+                  <Label>Промпт для генерации</Label>
+                  <Textarea
+                    value={imagePrompt}
+                    onChange={(e) => setImagePrompt(e.target.value)}
+                    placeholder="Опишите изображение, которое хотите сгенерировать..."
+                    className="mt-1.5 h-24"
+                  />
+                </div>
+                <Button 
+                  onClick={handleGenerateImage} 
+                  disabled={imageLoading || !imagePrompt.trim()}
+                  className="w-full gap-2"
+                >
+                  {imageLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Image className="h-4 w-4" />}
+                  {imageLoading ? 'Генерация...' : 'Сгенерировать изображение'}
+                </Button>
+                {generatedImage && (
+                  <div className="border border-border/50 rounded-lg p-4 space-y-3">
+                    <img 
+                      src={generatedImage} 
+                      alt="Generated" 
+                      className="w-full max-h-[300px] object-contain rounded-lg"
+                    />
+                    <Button variant="outline" asChild className="w-full gap-2">
+                      <a href={generatedImage} download="generated-image.png">
+                        <Download className="h-4 w-4" />
+                        Скачать
+                      </a>
+                    </Button>
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* Summarization Tab */}
+              <TabsContent value="summarize" className="space-y-4">
+                <div>
+                  <Label>Текст для суммаризации</Label>
+                  <Textarea
+                    value={summarizeText}
+                    onChange={(e) => setSummarizeText(e.target.value)}
+                    placeholder="Вставьте текст, который нужно сократить..."
+                    className="mt-1.5 h-32"
+                  />
+                </div>
+                <Button 
+                  onClick={handleSummarize} 
+                  disabled={summarizeLoading || !summarizeText.trim()}
+                  className="w-full gap-2"
+                >
+                  {summarizeLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                  {summarizeLoading ? 'Обработка...' : 'Суммаризировать'}
+                </Button>
+                {summarizeResult && (
+                  <div className="border border-border/50 rounded-lg p-4 space-y-2">
+                    <Label>Результат:</Label>
+                    <div className="bg-muted/50 p-3 rounded-lg text-sm whitespace-pre-wrap">
+                      {summarizeResult}
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* History Tab */}
+              <TabsContent value="history" className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">Последние 50 запросов</p>
+                  <Button variant="outline" size="sm" onClick={loadHistory} disabled={historyLoading}>
+                    <RefreshCw className={cn("h-4 w-4", historyLoading && "animate-spin")} />
+                  </Button>
+                </div>
+                <ScrollArea className="h-[350px]">
+                  {historyLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : aiHistory.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      История пуста
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {aiHistory.map((item) => (
+                        <div 
+                          key={item.id}
+                          className="p-3 rounded-lg border border-border/50 bg-background/50 space-y-2"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className={getTargetBadgeColor(item.request_type)}>
+                                {getTypeLabel(item.request_type)}
+                              </Badge>
+                              {getStatusBadge(item.status)}
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(item.created_at).toLocaleString()}
+                            </span>
+                          </div>
+                          {item.model && (
+                            <p className="text-xs text-muted-foreground">Model: {item.model}</p>
+                          )}
+                          {item.error_message && (
+                            <p className="text-xs text-destructive">{item.error_message}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              </TabsContent>
 
               <TabsContent value="asr" className="space-y-4">
                 <div className="grid sm:grid-cols-2 gap-4">

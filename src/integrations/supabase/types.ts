@@ -243,6 +243,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          input_data: Json
+          model: string | null
+          output_data: Json | null
+          request_type: string
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          input_data?: Json
+          model?: string | null
+          output_data?: Json | null
+          request_type: string
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          input_data?: Json
+          model?: string | null
+          output_data?: Json | null
+          request_type?: string
+          status?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           created_at: string
