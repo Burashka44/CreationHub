@@ -1,4 +1,3 @@
-import StatsBar from '@/components/dashboard/StatsBar';
 import VpnMap from '@/components/dashboard/VpnMap';
 import SystemGauges from '@/components/dashboard/SystemGauges';
 import DiskStorageBar from '@/components/dashboard/DiskStorageBar';
@@ -25,27 +24,26 @@ const DashboardPage = () => {
   
   return (
     <>
-      {/* System Gauges (CPU/GPU temps like Zabbix) */}
-      <SystemGauges />
-      
-      {/* Disk Storage */}
-      <DiskStorageBar />
-      
-      {/* Quick Actions & Network */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Row 1: System Gauges (CPU/GPU/RAM) + Quick Actions */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        <div className="xl:col-span-3">
+          <SystemGauges />
+        </div>
         <QuickActions />
+      </div>
+      
+      {/* Row 2: Network Monitor + Security + Backups */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <NetworkMonitor />
         </div>
+        <div className="space-y-6">
+          <SecurityStatus />
+          <BackupStatus />
+        </div>
       </div>
       
-      {/* Map & Online Users */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <VpnMap />
-        <OnlineUsers />
-      </div>
-      
-      {/* Services */}
+      {/* Row 3: Services */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
           {t('services')}
@@ -57,11 +55,16 @@ const DashboardPage = () => {
         </div>
       </div>
       
-      {/* Security, Backups & Activity */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <SecurityStatus />
-        <BackupStatus />
+      {/* Row 4: Map + Online Users */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <VpnMap />
+        <OnlineUsers />
+      </div>
+      
+      {/* Row 5: Activity Log + Disk Storage */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ActivityLog />
+        <DiskStorageBar />
       </div>
     </>
   );

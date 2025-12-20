@@ -55,44 +55,53 @@ export type Database = {
       }
       media_channels: {
         Row: {
+          channel_id: string | null
           channel_url: string | null
           created_at: string
           engagement: number | null
           growth: number | null
           id: string
           is_active: boolean
+          last_synced_at: string | null
           name: string
           platform: string
           subscribers: number | null
           updated_at: string
+          username: string | null
           videos_count: number | null
           views: number | null
         }
         Insert: {
+          channel_id?: string | null
           channel_url?: string | null
           created_at?: string
           engagement?: number | null
           growth?: number | null
           id?: string
           is_active?: boolean
+          last_synced_at?: string | null
           name: string
           platform: string
           subscribers?: number | null
           updated_at?: string
+          username?: string | null
           videos_count?: number | null
           views?: number | null
         }
         Update: {
+          channel_id?: string | null
           channel_url?: string | null
           created_at?: string
           engagement?: number | null
           growth?: number | null
           id?: string
           is_active?: boolean
+          last_synced_at?: string | null
           name?: string
           platform?: string
           subscribers?: number | null
           updated_at?: string
+          username?: string | null
           videos_count?: number | null
           views?: number | null
         }
