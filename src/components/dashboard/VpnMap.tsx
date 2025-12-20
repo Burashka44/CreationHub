@@ -42,19 +42,19 @@ const MapUpdater = ({ center }: MapUpdaterProps) => {
   return null;
 };
 
-interface VpnMapProps {
-  location: {
-    lat: number;
-    lon: number;
-    city: string;
-    country: string;
-    ip: string;
-    org?: string;
-  };
-}
-
-const VpnMap = ({ location }: VpnMapProps) => {
+const VpnMap = () => {
   const { t } = useLanguage();
+  
+  // Default/mock VPN location data
+  const location = {
+    lat: 52.3676,
+    lon: 4.9041,
+    city: 'Amsterdam',
+    country: 'NL',
+    ip: '185.x.x.x',
+    org: 'NordVPN',
+  };
+
   const position: [number, number] = [location.lat, location.lon];
 
   const countryFlags: Record<string, string> = {

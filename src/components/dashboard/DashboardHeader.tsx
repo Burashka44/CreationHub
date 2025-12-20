@@ -1,8 +1,5 @@
 import React from 'react';
-import { 
-  Cpu, HardDrive, Clock, MapPin, Search, Moon, Sun, 
-  Globe, Settings, Menu, X
-} from 'lucide-react';
+import { Cpu, Search, Moon, Sun, Globe, Settings, Menu } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
@@ -13,27 +10,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-interface DashboardHeaderProps {
-  sidebarOpen: boolean;
-  setSidebarOpen: (open: boolean) => void;
-}
-
-const DashboardHeader = ({ sidebarOpen, setSidebarOpen }: DashboardHeaderProps) => {
+const DashboardHeader = () => {
   const { language, setLanguage, t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
 
   return (
     <header className="h-16 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between px-4 lg:px-6">
       <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="lg:hidden"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-        >
-          {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </Button>
-        
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
             <Cpu className="h-5 w-5 text-primary-foreground" />
@@ -64,7 +47,7 @@ const DashboardHeader = ({ sidebarOpen, setSidebarOpen }: DashboardHeaderProps) 
               <Globe className="h-5 w-5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="bg-popover border-border">
             <DropdownMenuItem onClick={() => setLanguage('ru')} className={language === 'ru' ? 'bg-primary/10' : ''}>
               🇷🇺 Русский
             </DropdownMenuItem>
