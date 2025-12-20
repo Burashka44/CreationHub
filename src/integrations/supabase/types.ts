@@ -53,6 +53,81 @@ export type Database = {
         }
         Relationships: []
       }
+      media_channels: {
+        Row: {
+          channel_url: string | null
+          created_at: string
+          engagement: number | null
+          growth: number | null
+          id: string
+          is_active: boolean
+          name: string
+          platform: string
+          subscribers: number | null
+          updated_at: string
+          videos_count: number | null
+          views: number | null
+        }
+        Insert: {
+          channel_url?: string | null
+          created_at?: string
+          engagement?: number | null
+          growth?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          platform: string
+          subscribers?: number | null
+          updated_at?: string
+          videos_count?: number | null
+          views?: number | null
+        }
+        Update: {
+          channel_url?: string | null
+          created_at?: string
+          engagement?: number | null
+          growth?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          platform?: string
+          subscribers?: number | null
+          updated_at?: string
+          videos_count?: number | null
+          views?: number | null
+        }
+        Relationships: []
+      }
+      telegram_bots: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
