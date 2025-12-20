@@ -12,12 +12,12 @@ const QuickActions = () => {
   const [loading, setLoading] = useState<string | null>(null);
 
   const actions = [
-    { id: 'restart', icon: RotateCcw, labelKey: 'restartServer', color: 'text-warning' },
-    { id: 'cache', icon: Trash2, labelKey: 'clearCache', color: 'text-destructive' },
-    { id: 'backup', icon: Download, labelKey: 'backupNow', color: 'text-success' },
-    { id: 'update', icon: Upload, labelKey: 'checkUpdates', color: 'text-primary' },
-    { id: 'scan', icon: Shield, labelKey: 'securityScan', color: 'text-purple-500' },
-    { id: 'terminal', icon: Terminal, labelKey: 'openTerminal', color: 'text-foreground' },
+    { id: 'restart', icon: RotateCcw, labelKey: 'restartServer', shortLabel: 'Рестарт', color: 'text-warning' },
+    { id: 'cache', icon: Trash2, labelKey: 'clearCache', shortLabel: 'Кэш', color: 'text-destructive' },
+    { id: 'backup', icon: Download, labelKey: 'backupNow', shortLabel: 'Бэкап', color: 'text-success' },
+    { id: 'update', icon: Upload, labelKey: 'checkUpdates', shortLabel: 'Апдейт', color: 'text-primary' },
+    { id: 'scan', icon: Shield, labelKey: 'securityScan', shortLabel: 'Скан', color: 'text-purple-500' },
+    { id: 'terminal', icon: Terminal, labelKey: 'openTerminal', shortLabel: 'CLI', color: 'text-foreground' },
   ];
 
   const handleAction = async (id: string, labelKey: string) => {
@@ -39,12 +39,13 @@ const QuickActions = () => {
             key={action.id}
             variant="outline"
             size="sm"
-            className="h-auto py-2.5 px-1.5 flex flex-col items-center gap-1.5 border-border hover:bg-muted/50 transition-all hover:scale-105"
+            className="h-auto py-3 px-2 flex flex-col items-center gap-2 border-border hover:bg-muted/50 transition-all hover:scale-105"
             onClick={() => handleAction(action.id, action.labelKey)}
             disabled={loading === action.id}
+            title={t(action.labelKey)}
           >
-            <action.icon className={`h-4 w-4 shrink-0 ${action.color} ${loading === action.id ? 'animate-spin' : ''}`} />
-            <span className="text-[9px] leading-tight text-muted-foreground text-center line-clamp-2">{t(action.labelKey)}</span>
+            <action.icon className={`h-5 w-5 shrink-0 ${action.color} ${loading === action.id ? 'animate-spin' : ''}`} />
+            <span className="text-xs text-muted-foreground">{action.shortLabel}</span>
           </Button>
         ))}
       </div>
