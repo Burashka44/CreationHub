@@ -2,12 +2,12 @@ import StatsBar from '@/components/dashboard/StatsBar';
 import VpnMap from '@/components/dashboard/VpnMap';
 import SystemCharts from '@/components/dashboard/SystemCharts';
 import ServiceCard from '@/components/dashboard/ServiceCard';
-import ChannelManager from '@/components/dashboard/ChannelManager';
 import QuickActions from '@/components/dashboard/QuickActions';
 import NetworkMonitor from '@/components/dashboard/NetworkMonitor';
 import SecurityStatus from '@/components/dashboard/SecurityStatus';
 import BackupStatus from '@/components/dashboard/BackupStatus';
-import NotificationsPanel from '@/components/dashboard/NotificationsPanel';
+import GpuMonitor from '@/components/dashboard/GpuMonitor';
+import OnlineUsers from '@/components/dashboard/OnlineUsers';
 import ActivityLog from '@/components/dashboard/ActivityLog';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -28,7 +28,7 @@ const DashboardPage = () => {
       {/* Stats Bar */}
       <StatsBar />
       
-      {/* Quick Actions Row */}
+      {/* Quick Actions & Network */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <QuickActions />
         <div className="lg:col-span-2">
@@ -36,13 +36,14 @@ const DashboardPage = () => {
         </div>
       </div>
       
-      {/* Main Grid - Map & Charts */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      {/* Map, Charts & GPU */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <VpnMap />
         <SystemCharts />
+        <GpuMonitor />
       </div>
       
-      {/* Services & Channels */}
+      {/* Services & Online Users */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
@@ -54,14 +55,13 @@ const DashboardPage = () => {
             ))}
           </div>
         </div>
-        <ChannelManager />
+        <OnlineUsers />
       </div>
       
-      {/* Security, Backups, Notifications & Activity */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+      {/* Security, Backups & Activity */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <SecurityStatus />
         <BackupStatus />
-        <NotificationsPanel />
         <ActivityLog />
       </div>
     </>

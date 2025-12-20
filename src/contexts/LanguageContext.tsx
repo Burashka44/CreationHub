@@ -21,6 +21,10 @@ const translations: Translations = {
   security: { ru: 'Безопасность', en: 'Security' },
   backups: { ru: 'Бэкапы', en: 'Backups' },
   activity: { ru: 'Активность', en: 'Activity' },
+  admins: { ru: 'Администраторы', en: 'Administrators' },
+  adminsDescription: { ru: 'Управление администраторами и уведомлениями', en: 'Manage administrators and notifications' },
+  mediaAnalytics: { ru: 'Медиа аналитика', en: 'Media Analytics' },
+  mediaAnalyticsDescription: { ru: 'Статистика по каналам и подписчикам', en: 'Channel and subscriber statistics' },
   
   // Stats
   cpuUsage: { ru: 'Загрузка CPU', en: 'CPU Usage' },
@@ -28,6 +32,10 @@ const translations: Translations = {
   diskUsage: { ru: 'Диск', en: 'Disk' },
   uptime: { ru: 'Аптайм', en: 'Uptime' },
   currentTime: { ru: 'Время', en: 'Time' },
+  gpuMonitor: { ru: 'GPU Монитор', en: 'GPU Monitor' },
+  gpuUsage: { ru: 'Загрузка GPU', en: 'GPU Usage' },
+  fanSpeed: { ru: 'Скорость вентилятора', en: 'Fan Speed' },
+  power: { ru: 'Мощность', en: 'Power' },
   
   // VPN/Location
   vpnLocation: { ru: 'VPN Локация', en: 'VPN Location' },
@@ -106,6 +114,37 @@ const translations: Translations = {
   systemPerformance: { ru: 'Производительность системы (24ч)', en: 'System Performance (24h)' },
   cpu: { ru: 'CPU', en: 'CPU' },
   memory: { ru: 'Память', en: 'Memory' },
+  
+  // Admin Management
+  addAdmin: { ru: 'Добавить админа', en: 'Add Admin' },
+  editAdmin: { ru: 'Редактировать админа', en: 'Edit Admin' },
+  noAdmins: { ru: 'Нет администраторов', en: 'No administrators' },
+  name: { ru: 'Имя', en: 'Name' },
+  email: { ru: 'Email', en: 'Email' },
+  phone: { ru: 'Телефон', en: 'Phone' },
+  contacts: { ru: 'Контакты', en: 'Contacts' },
+  status: { ru: 'Статус', en: 'Status' },
+  actions: { ru: 'Действия', en: 'Actions' },
+  active: { ru: 'Активен', en: 'Active' },
+  inactive: { ru: 'Неактивен', en: 'Inactive' },
+  receiveNotifications: { ru: 'Получать уведомления', en: 'Receive Notifications' },
+  
+  // Media Analytics
+  totalSubscribers: { ru: 'Всего подписчиков', en: 'Total Subscribers' },
+  totalViews: { ru: 'Всего просмотров', en: 'Total Views' },
+  avgEngagement: { ru: 'Средний ER', en: 'Avg Engagement' },
+  monthlyGrowth: { ru: 'Рост за месяц', en: 'Monthly Growth' },
+  viewsDynamics: { ru: 'Динамика просмотров', en: 'Views Dynamics' },
+  subscribersDistribution: { ru: 'Распределение подписчиков', en: 'Subscribers Distribution' },
+  subscriberGrowth: { ru: 'Рост подписчиков', en: 'Subscriber Growth' },
+  subscribers: { ru: 'Подписчики', en: 'Subscribers' },
+  views: { ru: 'Просмотры', en: 'Views' },
+  engagement: { ru: 'Вовлечённость', en: 'Engagement' },
+  
+  // Online Users
+  onlineUsers: { ru: 'Пользователи онлайн', en: 'Online Users' },
+  adminsOnline: { ru: 'Админы', en: 'Admins' },
+  usersOnline: { ru: 'Пользователи', en: 'Users' },
   
   // General
   save: { ru: 'Сохранить', en: 'Save' },

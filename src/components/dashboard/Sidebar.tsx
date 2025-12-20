@@ -2,7 +2,7 @@ import React, { useState, createContext, useContext } from 'react';
 import { 
   LayoutDashboard, Database, Shield, 
   Youtube, Settings, ChevronLeft, ChevronRight,
-  Activity, HardDrive, Network, History
+  Activity, HardDrive, Network, History, Users, BarChart3
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -39,8 +39,9 @@ const Sidebar = () => {
 
   const menuItems = [
     { path: '/', icon: LayoutDashboard, labelKey: 'dashboard' },
+    { path: '/media', icon: BarChart3, labelKey: 'mediaAnalytics' },
     { path: '/channels', icon: Youtube, labelKey: 'channels' },
-    { path: '/data', icon: Database, labelKey: 'data' },
+    { path: '/admins', icon: Users, labelKey: 'admins' },
     { path: '/network', icon: Network, labelKey: 'network' },
     { path: '/security', icon: Shield, labelKey: 'security' },
     { path: '/backups', icon: HardDrive, labelKey: 'backups' },
