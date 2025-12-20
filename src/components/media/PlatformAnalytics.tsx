@@ -381,6 +381,107 @@ export const RuTubeAnalytics = ({ channel }: { channel: MediaChannel }) => {
   );
 };
 
+// ============== TikTok Analytics ==============
+export const TikTokAnalytics = ({ channel }: { channel: MediaChannel }) => {
+  const viewsData = generateViewsData(channel.views / 30);
+
+  // TikTok Creativity Program requirements (updated 2024)
+  // 10K followers, 100K video views in 30 days, 18+ years, active in eligible region
+  const requirements = {
+    followers: { current: channel.subscribers, required: 10000 },
+    views30Days: { current: Math.floor(channel.views * 0.3), required: 100000 },
+  };
+
+  const followersProgress = Math.min((requirements.followers.current / requirements.followers.required) * 100, 100);
+  const viewsProgress = Math.min((requirements.views30Days.current / requirements.views30Days.required) * 100, 100);
+  const isEligible = followersProgress >= 100 && viewsProgress >= 100;
+
+  return (
+    <div className="space-y-6">
+      {/* TikTok Creativity Program */}
+      <div className="p-4 rounded-xl bg-background/50 border border-border/50">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <DollarSign className={`h-5 w-5 ${channel.is_monetized ? 'text-pink-500' : 'text-muted-foreground'}`} />
+            <span className="font-medium">TikTok Creativity Program</span>
+          </div>
+          {channel.is_monetized ? (
+            <Badge className="bg-pink-500/20 text-pink-400 border-pink-500/30">Активна</Badge>
+          ) : isEligible ? (
+            <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">Доступна</Badge>
+          ) : (
+            <Badge variant="outline">Недоступна</Badge>
+          )}
+        </div>
+
+        {!channel.is_monetized && (
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Подписчиков</span>
+                <span className={followersProgress >= 100 ? 'text-emerald-500' : 'text-foreground'}>
+                  {formatNumber(requirements.followers.current)} / 10K
+                </span>
+              </div>
+              <Progress value={followersProgress} className="h-2" />
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Просмотров за 30 дней</span>
+                <span className={viewsProgress >= 100 ? 'text-emerald-500' : 'text-foreground'}>
+                  {formatNumber(requirements.views30Days.current)} / 100K
+                </span>
+              </div>
+              <Progress value={viewsProgress} className="h-2" />
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Также требуется: возраст 18+, оригинальный контент от 1 мин.
+            </p>
+          </div>
+        )}
+
+        {channel.is_monetized && (
+          <div className="grid grid-cols-3 gap-3">
+            <div className="p-3 rounded-lg bg-pink-500/10 border border-pink-500/20">
+              <p className="text-xs text-muted-foreground">Доход</p>
+              <p className="text-lg font-bold text-pink-500">{formatCurrency(channel.revenue)}</p>
+            </div>
+            <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+              <p className="text-xs text-muted-foreground">RPM</p>
+              <p className="text-lg font-bold text-primary">
+                {formatCurrency((channel.revenue / Math.max(channel.views, 1)) * 1000)}
+              </p>
+            </div>
+            <div className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
+              <p className="text-xs text-muted-foreground">За видео (ср.)</p>
+              <p className="text-lg font-bold text-cyan-500">
+                {formatCurrency(channel.revenue / Math.max(channel.videos_count || 1, 1))}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Key Metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <MetricCard icon={Eye} label="Просмотры" value={formatNumber(channel.views)} trend="+18%" positive />
+        <MetricCard icon={Users} label="Подписчики" value={formatNumber(channel.subscribers)} trend="+12%" positive />
+        <MetricCard icon={Video} label="Видео" value={formatNumber(channel.videos_count)} trend="+5" positive />
+        <MetricCard icon={Activity} label="Вовлечённость" value={(channel.engagement || 8.5).toFixed(1) + '%'} trend="+2.3%" positive />
+      </div>
+
+      {/* Engagement */}
+      <div className="grid grid-cols-3 gap-3">
+        <EngagementCard icon={ThumbsUp} label="Лайки" value={formatNumber(channel.likes)} color="pink" />
+        <EngagementCard icon={MessageSquare} label="Комментарии" value={formatNumber(channel.comments)} color="cyan" />
+        <EngagementCard icon={Share2} label="Репосты" value={formatNumber(channel.shares)} color="purple" />
+      </div>
+
+      <ViewsChart data={viewsData} color="#ff0050" title="Динамика просмотров" />
+    </div>
+  );
+};
+
 // ============== Helper Components ==============
 
 const MetricCard = ({ icon: Icon, label, value, trend, positive }: { 
