@@ -4,19 +4,19 @@ import {
   Server, ExternalLink, Settings, Shield, Database, 
   Container, Terminal, Key, Activity, Workflow, Youtube,
   Mic, Chrome, Rss, Languages, BarChart3, Cloud, FolderOpen,
-  Users, FileText, HardDrive, Bell, Eye, Search, Filter
+  Users, FileText, HardDrive, Bell, Eye, Search
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
 interface Service {
   id: string;
   name: string;
-  description: string;
+  descriptionKey: string;
   category: 'admin' | 'work' | 'data' | 'ai';
   port: number | string;
   status: 'online' | 'offline' | 'unknown';
@@ -34,7 +34,7 @@ const ServicesPage = () => {
     {
       id: 'portainer',
       name: 'Portainer',
-      description: 'Docker Container Management',
+      descriptionKey: 'dockerManagement',
       category: 'admin',
       port: 9000,
       status: 'online',
@@ -43,7 +43,7 @@ const ServicesPage = () => {
     {
       id: 'npm',
       name: 'Nginx Proxy Manager',
-      description: 'Reverse Proxy & SSL Management',
+      descriptionKey: 'reverseProxy',
       category: 'admin',
       port: 81,
       status: 'online',
@@ -52,7 +52,7 @@ const ServicesPage = () => {
     {
       id: 'glances',
       name: 'Glances',
-      description: 'Real-time System Monitor',
+      descriptionKey: 'systemMonitor',
       category: 'admin',
       port: 61208,
       status: 'online',
@@ -61,7 +61,7 @@ const ServicesPage = () => {
     {
       id: 'wireguard',
       name: 'WireGuard',
-      description: 'VPN Server',
+      descriptionKey: 'vpnServer',
       category: 'admin',
       port: '51820 (UDP)',
       status: 'online',
@@ -70,7 +70,7 @@ const ServicesPage = () => {
     {
       id: 'adminer',
       name: 'Adminer',
-      description: 'Database Management',
+      descriptionKey: 'dbManagement',
       category: 'admin',
       port: 8080,
       status: 'online',
@@ -79,7 +79,7 @@ const ServicesPage = () => {
     {
       id: 'healthchecks',
       name: 'Healthchecks',
-      description: 'Uptime Monitoring',
+      descriptionKey: 'uptimeMonitoring',
       category: 'admin',
       port: 8000,
       status: 'online',
@@ -88,7 +88,7 @@ const ServicesPage = () => {
     {
       id: 'dozzle',
       name: 'Dozzle',
-      description: 'Container Log Viewer',
+      descriptionKey: 'logViewer',
       category: 'admin',
       port: 8081,
       status: 'online',
@@ -99,7 +99,7 @@ const ServicesPage = () => {
     {
       id: 'n8n',
       name: 'n8n',
-      description: 'Workflow Automation',
+      descriptionKey: 'workflowAutomation',
       category: 'work',
       port: 5678,
       status: 'online',
@@ -108,7 +108,7 @@ const ServicesPage = () => {
     {
       id: 'ytdlp',
       name: 'yt-dlp',
-      description: 'Video Downloader',
+      descriptionKey: 'videoDownloader',
       category: 'work',
       port: 8080,
       status: 'online',
@@ -117,7 +117,7 @@ const ServicesPage = () => {
     {
       id: 'whisper',
       name: 'Whisper',
-      description: 'Speech-to-Text Server',
+      descriptionKey: 'speechToText',
       category: 'work',
       port: 9000,
       status: 'online',
@@ -126,7 +126,7 @@ const ServicesPage = () => {
     {
       id: 'browserless',
       name: 'Browserless',
-      description: 'Headless Chrome',
+      descriptionKey: 'headlessChrome',
       category: 'work',
       port: 3000,
       status: 'online',
@@ -135,7 +135,7 @@ const ServicesPage = () => {
     {
       id: 'rsshub',
       name: 'RSSHub',
-      description: 'RSS Feed Generator',
+      descriptionKey: 'rssGenerator',
       category: 'work',
       port: 1200,
       status: 'online',
@@ -144,7 +144,7 @@ const ServicesPage = () => {
     {
       id: 'translate',
       name: 'LibreTranslate',
-      description: 'Translation API',
+      descriptionKey: 'translationApi',
       category: 'work',
       port: 5000,
       status: 'online',
@@ -155,7 +155,7 @@ const ServicesPage = () => {
     {
       id: 'grafana',
       name: 'Grafana',
-      description: 'Analytics & Dashboards',
+      descriptionKey: 'analytics',
       category: 'data',
       port: 3000,
       status: 'online',
@@ -164,7 +164,7 @@ const ServicesPage = () => {
     {
       id: 'nextcloud',
       name: 'Nextcloud',
-      description: 'Cloud Storage',
+      descriptionKey: 'cloudStorage',
       category: 'data',
       port: 8083,
       status: 'online',
@@ -173,7 +173,7 @@ const ServicesPage = () => {
     {
       id: 'filebrowser',
       name: 'File Browser',
-      description: 'Web File Manager',
+      descriptionKey: 'fileManager',
       category: 'data',
       port: 8082,
       status: 'online',
@@ -182,7 +182,7 @@ const ServicesPage = () => {
     {
       id: 'channels',
       name: 'Account Manager',
-      description: 'Channel & Account Management',
+      descriptionKey: 'accountManager',
       category: 'data',
       port: 8084,
       status: 'online',
@@ -193,7 +193,7 @@ const ServicesPage = () => {
     {
       id: 'aihub-asr',
       name: 'ASR API',
-      description: 'Speech Recognition (Whisper)',
+      descriptionKey: 'asrApi',
       category: 'ai',
       port: 8088,
       status: 'online',
@@ -202,7 +202,7 @@ const ServicesPage = () => {
     {
       id: 'aihub-tts',
       name: 'TTS API',
-      description: 'Text-to-Speech',
+      descriptionKey: 'ttsApi',
       category: 'ai',
       port: 8088,
       status: 'online',
@@ -211,7 +211,7 @@ const ServicesPage = () => {
     {
       id: 'aihub-translate',
       name: 'Translation API',
-      description: 'Neural Machine Translation',
+      descriptionKey: 'neuralTranslation',
       category: 'ai',
       port: 8088,
       status: 'online',
@@ -220,7 +220,7 @@ const ServicesPage = () => {
     {
       id: 'aihub-av',
       name: 'AV Pipeline',
-      description: 'Video Dubbing Pipeline',
+      descriptionKey: 'videoDubbing',
       category: 'ai',
       port: 8088,
       status: 'online',
@@ -229,7 +229,7 @@ const ServicesPage = () => {
     {
       id: 'aihub-clean',
       name: 'Video Inpainting',
-      description: 'Object Removal (ProPainter/LaMa)',
+      descriptionKey: 'videoInpainting',
       category: 'ai',
       port: 8088,
       status: 'online',
@@ -238,18 +238,19 @@ const ServicesPage = () => {
   ];
   
   const categories = [
-    { id: 'all', label: 'Все', icon: <Server className="h-4 w-4" /> },
-    { id: 'admin', label: 'Admin', icon: <Settings className="h-4 w-4" /> },
-    { id: 'work', label: 'Work', icon: <Workflow className="h-4 w-4" /> },
-    { id: 'data', label: 'Data', icon: <Database className="h-4 w-4" /> },
-    { id: 'ai', label: 'AI Studio', icon: <Activity className="h-4 w-4" /> },
+    { id: 'all', labelKey: 'allServices', icon: <Server className="h-4 w-4" /> },
+    { id: 'admin', labelKey: 'adminServices', icon: <Settings className="h-4 w-4" /> },
+    { id: 'work', labelKey: 'workServices', icon: <Workflow className="h-4 w-4" /> },
+    { id: 'data', labelKey: 'dataServices', icon: <Database className="h-4 w-4" /> },
+    { id: 'ai', labelKey: 'aiStudio', icon: <Activity className="h-4 w-4" /> },
   ];
   
   const [activeCategory, setActiveCategory] = useState('all');
   
   const filteredServices = services.filter(service => {
+    const description = t(service.descriptionKey);
     const matchesSearch = service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         service.description.toLowerCase().includes(searchQuery.toLowerCase());
+                         description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = activeCategory === 'all' || service.category === activeCategory;
     return matchesSearch && matchesCategory;
   });
@@ -261,6 +262,16 @@ const ServicesPage = () => {
       case 'data': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
       case 'ai': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
       default: return 'bg-muted text-muted-foreground';
+    }
+  };
+  
+  const getCategoryLabel = (category: string) => {
+    switch (category) {
+      case 'admin': return t('adminServices');
+      case 'work': return t('workServices');
+      case 'data': return t('dataServices');
+      case 'ai': return t('aiStudio');
+      default: return category;
     }
   };
   
@@ -282,18 +293,18 @@ const ServicesPage = () => {
             <Server className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Сервисы</h1>
-            <p className="text-muted-foreground">Каталог всех сервисов сервера</p>
+            <h1 className="text-2xl font-bold text-foreground">{t('services')}</h1>
+            <p className="text-muted-foreground">{t('servicesDescription')}</p>
           </div>
         </div>
         
         <div className="flex items-center gap-3">
           <Badge variant="outline" className="bg-success/10 text-success border-success/30">
-            {onlineCount} онлайн
+            {onlineCount} {t('online').toLowerCase()}
           </Badge>
           {offlineCount > 0 && (
             <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
-              {offlineCount} офлайн
+              {offlineCount} {t('offline').toLowerCase()}
             </Badge>
           )}
         </div>
@@ -305,7 +316,7 @@ const ServicesPage = () => {
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex-1 min-w-[200px]">
               <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-                Server IP
+                {t('serverIp')}
               </label>
               <Input
                 value={serverIp}
@@ -316,14 +327,14 @@ const ServicesPage = () => {
             </div>
             <div className="flex-1 min-w-[300px]">
               <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-                Поиск сервисов
+                {t('searchServices')}
               </label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Поиск по названию или описанию..."
+                  placeholder={t('searchServices')}
                   className="pl-10"
                 />
               </div>
@@ -338,7 +349,7 @@ const ServicesPage = () => {
           {categories.map((cat) => (
             <TabsTrigger key={cat.id} value={cat.id} className="gap-1.5">
               {cat.icon}
-              <span className="hidden sm:inline">{cat.label}</span>
+              <span className="hidden sm:inline">{t(cat.labelKey)}</span>
             </TabsTrigger>
           ))}
         </TabsList>
@@ -364,7 +375,7 @@ const ServicesPage = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className={cn("text-xs", getCategoryColor(service.category))}>
-                    {service.category}
+                    {getCategoryLabel(service.category)}
                   </Badge>
                   <div className={cn(
                     "w-2 h-2 rounded-full",
@@ -377,7 +388,7 @@ const ServicesPage = () => {
                 {service.name}
               </h3>
               <p className="text-xs text-muted-foreground mb-3">
-                {service.description}
+                {t(service.descriptionKey)}
               </p>
               
               <div className="flex items-center justify-between">
@@ -392,7 +403,7 @@ const ServicesPage = () => {
                   disabled={service.status === 'offline'}
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
-                  Открыть
+                  {t('open')}
                 </Button>
               </div>
             </CardContent>
@@ -403,7 +414,7 @@ const ServicesPage = () => {
       {filteredServices.length === 0 && (
         <div className="text-center py-12">
           <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">Сервисы не найдены</p>
+          <p className="text-muted-foreground">{t('noServicesFound')}</p>
         </div>
       )}
     </div>
