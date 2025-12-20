@@ -226,6 +226,7 @@ const AIHubPage = () => {
   
   // Image generation state
   const [imagePrompt, setImagePrompt] = useState('');
+  const [imageStyle, setImageStyle] = useState('');
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
   
@@ -804,17 +805,22 @@ const AIHubPage = () => {
     setImageLoading(true);
     setGeneratedImage(null);
 
+    // Объединяем промпт со стилем
+    const finalPrompt = imageStyle 
+      ? `${imagePrompt.trim()}, ${imageStyle}` 
+      : imagePrompt.trim();
+
     try {
       const { data, error } = await supabase.functions.invoke('ai-image', {
-        body: { prompt: imagePrompt.trim() }
+        body: { prompt: finalPrompt }
       });
 
       if (error) throw error;
 
       if (data.imageUrl) {
         setGeneratedImage(data.imageUrl);
-        await saveToHistory('image', { prompt: imagePrompt }, { imageUrl: data.imageUrl }, data.model, 'completed');
-        pushLog('Image generated', { prompt: imagePrompt.substring(0, 50) });
+        await saveToHistory('image', { prompt: finalPrompt, style: imageStyle }, { imageUrl: data.imageUrl }, data.model, 'completed');
+        pushLog('Image generated', { prompt: imagePrompt.substring(0, 50), style: imageStyle });
         toast.success('Изображение сгенерировано!');
       } else {
         throw new Error('No image returned');
@@ -823,11 +829,14 @@ const AIHubPage = () => {
       const errorMessage = e instanceof Error ? e.message : 'Unknown error';
       toast.error('Ошибка генерации: ' + errorMessage);
       pushLog('Image generation error', undefined, undefined, errorMessage);
-      await saveToHistory('image', { prompt: imagePrompt }, null, null, 'error', errorMessage);
+      await saveToHistory('image', { prompt: imagePrompt, style: imageStyle }, null, null, 'error', errorMessage);
     } finally {
       setImageLoading(false);
     }
   };
+
+  // Получаем пресеты стилей для изображений
+  const imageStylePresets = presets.filter(p => p.target === 'image' && p.payload.style);
 
   // Summarization handler
   const handleSummarize = async () => {
@@ -1284,14 +1293,37 @@ const AIHubPage = () => {
                   onImport={importPresets}
                   importInputRef={importPresetsInputRef}
                 />
-                <div>
-                  <Label>Промпт для генерации</Label>
-                  <Textarea
-                    value={imagePrompt}
-                    onChange={(e) => setImagePrompt(e.target.value)}
-                    placeholder="Опишите изображение, которое хотите сгенерировать..."
-                    className="mt-1.5 h-24"
-                  />
+                <div className="space-y-3">
+                  <div>
+                    <Label>Стиль изображения</Label>
+                    <Select value={imageStyle} onValueChange={setImageStyle}>
+                      <SelectTrigger className="mt-1.5">
+                        <SelectValue placeholder="Без стиля (обычный промпт)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Без стиля</SelectItem>
+                        {imageStylePresets.map(preset => (
+                          <SelectItem key={preset.id} value={preset.payload.style}>
+                            {preset.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {imageStyle && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Добавится к промпту: <span className="text-foreground">{imageStyle.slice(0, 50)}...</span>
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Label>Промпт для генерации</Label>
+                    <Textarea
+                      value={imagePrompt}
+                      onChange={(e) => setImagePrompt(e.target.value)}
+                      placeholder="Опишите изображение, которое хотите сгенерировать..."
+                      className="mt-1.5 h-24"
+                    />
+                  </div>
                 </div>
                 <Button 
                   onClick={handleGenerateImage} 
