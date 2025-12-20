@@ -18,6 +18,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { RevenueAnalytics } from './RevenueAnalytics';
 
 interface MediaChannel {
   id: string;
@@ -403,8 +404,12 @@ export const AdRevenueManager = ({ channels }: AdRevenueManagerProps) => {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="rates">
-        <TabsList className="grid w-full grid-cols-3 max-w-lg">
+      <Tabs defaultValue="analytics">
+        <TabsList className="grid w-full grid-cols-4 max-w-xl">
+          <TabsTrigger value="analytics" className="gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Аналитика
+          </TabsTrigger>
           <TabsTrigger value="rates" className="gap-2">
             <Receipt className="h-4 w-4" />
             Тарифы
@@ -418,6 +423,11 @@ export const AdRevenueManager = ({ channels }: AdRevenueManagerProps) => {
             Покупки
           </TabsTrigger>
         </TabsList>
+
+        {/* Analytics Tab */}
+        <TabsContent value="analytics" className="space-y-4 mt-6">
+          <RevenueAnalytics sales={sales as any} purchases={purchases as any} />
+        </TabsContent>
 
         {/* RATES TAB */}
         <TabsContent value="rates" className="space-y-4 mt-6">
