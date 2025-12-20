@@ -33,18 +33,18 @@ const QuickActions = () => {
         <Zap className="h-5 w-5 text-warning" />
         <h3 className="font-semibold text-foreground">{t('quickActions')}</h3>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         {actions.map((action) => (
           <Button
             key={action.id}
             variant="outline"
             size="sm"
-            className="h-auto py-3 px-2 flex flex-col items-center gap-2 border-border hover:bg-muted/50 transition-all hover:scale-105 min-w-0 overflow-hidden"
+            className="h-auto py-2.5 px-1.5 flex flex-col items-center gap-1.5 border-border hover:bg-muted/50 transition-all hover:scale-105"
             onClick={() => handleAction(action.id, action.labelKey)}
             disabled={loading === action.id}
           >
-            <action.icon className={`h-5 w-5 shrink-0 ${action.color} ${loading === action.id ? 'animate-spin' : ''}`} />
-            <span className="text-[10px] leading-tight text-muted-foreground text-center truncate w-full">{t(action.labelKey)}</span>
+            <action.icon className={`h-4 w-4 shrink-0 ${action.color} ${loading === action.id ? 'animate-spin' : ''}`} />
+            <span className="text-[9px] leading-tight text-muted-foreground text-center line-clamp-2">{t(action.labelKey)}</span>
           </Button>
         ))}
       </div>
