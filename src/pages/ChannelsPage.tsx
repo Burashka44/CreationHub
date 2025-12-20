@@ -13,7 +13,7 @@ const ChannelsPage = () => {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-foreground">{t('channels')}</h1>
-          <p className="text-muted-foreground">YouTube, TikTok, Telegram, RuTube</p>
+          <p className="text-muted-foreground">YouTube, TikTok, RuTube, Telegram</p>
         </div>
       </div>
       
