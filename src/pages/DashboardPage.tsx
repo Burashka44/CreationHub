@@ -1,12 +1,12 @@
 import StatsBar from '@/components/dashboard/StatsBar';
 import VpnMap from '@/components/dashboard/VpnMap';
-import SystemCharts from '@/components/dashboard/SystemCharts';
+import SystemGauges from '@/components/dashboard/SystemGauges';
+import DiskStorageBar from '@/components/dashboard/DiskStorageBar';
 import ServiceCard from '@/components/dashboard/ServiceCard';
 import QuickActions from '@/components/dashboard/QuickActions';
 import NetworkMonitor from '@/components/dashboard/NetworkMonitor';
 import SecurityStatus from '@/components/dashboard/SecurityStatus';
 import BackupStatus from '@/components/dashboard/BackupStatus';
-import GpuMonitor from '@/components/dashboard/GpuMonitor';
 import OnlineUsers from '@/components/dashboard/OnlineUsers';
 import ActivityLog from '@/components/dashboard/ActivityLog';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -25,8 +25,11 @@ const DashboardPage = () => {
   
   return (
     <>
-      {/* Stats Bar */}
-      <StatsBar />
+      {/* System Gauges (CPU/GPU temps like Zabbix) */}
+      <SystemGauges />
+      
+      {/* Disk Storage */}
+      <DiskStorageBar />
       
       {/* Quick Actions & Network */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -36,26 +39,22 @@ const DashboardPage = () => {
         </div>
       </div>
       
-      {/* Map, Charts & GPU */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      {/* Map & Online Users */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <VpnMap />
-        <SystemCharts />
-        <GpuMonitor />
+        <OnlineUsers />
       </div>
       
-      {/* Services & Online Users */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-            {t('services')}
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {services.map((service) => (
-              <ServiceCard key={service.name} {...service} />
-            ))}
-          </div>
+      {/* Services */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+          {t('services')}
+        </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+          {services.map((service) => (
+            <ServiceCard key={service.name} {...service} />
+          ))}
         </div>
-        <OnlineUsers />
       </div>
       
       {/* Security, Backups & Activity */}

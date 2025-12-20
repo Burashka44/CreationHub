@@ -1,10 +1,11 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Settings, Globe, Palette, Bell, Shield, User } from 'lucide-react';
+import { Settings, Globe, Palette, Bell, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import TelegramBotsManager from '@/components/dashboard/TelegramBotsManager';
 
 const SettingsPage = () => {
   const { t, language, setLanguage } = useLanguage();
@@ -126,6 +127,11 @@ const SettingsPage = () => {
             </Button>
           </CardContent>
         </Card>
+      </div>
+      
+      {/* Telegram Bots */}
+      <div className="max-w-4xl">
+        <TelegramBotsManager />
       </div>
     </div>
   );
