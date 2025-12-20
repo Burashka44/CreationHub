@@ -280,6 +280,134 @@ const AIHubPage = () => {
       pushLog('Preset error', undefined, undefined, 'Invalid JSON');
     }
   };
+
+  // Словарь описаний полей для экспорта
+  const fieldDescriptions: Record<string, string> = {
+    src_lang: 'Исходный язык (auto = автоопределение)',
+    tgt_lang: 'Целевой язык перевода/дубляжа',
+    method: 'Метод обработки (propainter, deepfill и др.)',
+    objects: 'Объекты для удаления (logo, face, watermark)',
+    model: 'Модель AI для обработки',
+    voice: 'Голос для синтеза речи',
+    speed: 'Скорость речи (0.5-2.0)',
+    format: 'Формат выходного файла',
+    quality: 'Качество обработки (low, medium, high)',
+    prompt: 'Промпт для генерации',
+    temperature: 'Температура генерации (0-1)',
+  };
+
+  const getTargetDescription = (target: string): string => {
+    switch (target) {
+      case 'av': return 'Дубляж видео - перевод и озвучка';
+      case 'asr': return 'Распознавание речи в текст';
+      case 'tts': return 'Синтез речи из текста';
+      case 'translate': return 'Перевод текста';
+      case 'clean': return 'Очистка видео от объектов';
+      case 'chat': return 'AI чат-ассистент';
+      case 'image': return 'Генерация изображений';
+      case 'summarize': return 'Суммаризация текста';
+      default: return target;
+    }
+  };
+
+  const exportPresets = () => {
+    // Создаём экспортируемый формат с комментариями
+    const exportData = {
+      _info: {
+        exported_at: new Date().toISOString(),
+        version: '1.0',
+        description: 'Экспорт пресетов AI Hub. Поля payload описаны в _field_descriptions.',
+      },
+      _field_descriptions: fieldDescriptions,
+      _target_types: {
+        av: 'Дубляж видео',
+        asr: 'Распознавание речи',
+        tts: 'Синтез речи',
+        translate: 'Перевод текста',
+        clean: 'Очистка видео',
+        chat: 'AI чат',
+        image: 'Генерация картинок',
+        summarize: 'Суммаризация',
+      },
+      presets: presets.map(p => ({
+        name: p.name,
+        target: p.target,
+        target_description: getTargetDescription(p.target),
+        description: p.description || '',
+        payload: p.payload,
+        payload_explained: Object.fromEntries(
+          Object.entries(p.payload).map(([key, value]) => [
+            key,
+            { value, description: fieldDescriptions[key] || 'Пользовательский параметр' }
+          ])
+        ),
+      })),
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ai-hub-presets-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Пресеты экспортированы');
+  };
+
+  const importPresetsInputRef = useRef<HTMLInputElement>(null);
+
+  const importPresets = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target?.result as string);
+        
+        // Поддержка разных форматов импорта
+        let importedPresets: Preset[] = [];
+        
+        if (Array.isArray(data)) {
+          // Простой массив пресетов
+          importedPresets = data.map((p, i) => ({
+            id: Math.random().toString(36).slice(2),
+            name: p.name || `Imported ${i + 1}`,
+            target: p.target || 'chat',
+            payload: p.payload || {},
+            description: p.description,
+          }));
+        } else if (data.presets && Array.isArray(data.presets)) {
+          // Формат с метаданными
+          importedPresets = data.presets.map((p: Record<string, unknown>, i: number) => ({
+            id: Math.random().toString(36).slice(2),
+            name: (p.name as string) || `Imported ${i + 1}`,
+            target: (p.target as string) || 'chat',
+            payload: (p.payload as Record<string, string>) || {},
+            description: p.description as string | undefined,
+          }));
+        } else {
+          throw new Error('Неверный формат файла');
+        }
+
+        if (importedPresets.length === 0) {
+          toast.error('Файл не содержит пресетов');
+          return;
+        }
+
+        setPresets(prev => [...importedPresets, ...prev]);
+        toast.success(`Импортировано ${importedPresets.length} пресетов`);
+      } catch (err) {
+        toast.error('Ошибка чтения файла: ' + (err instanceof Error ? err.message : 'Неверный JSON'));
+      }
+    };
+    reader.readAsText(file);
+    
+    // Сброс input для повторного импорта того же файла
+    if (importPresetsInputRef.current) {
+      importPresetsInputRef.current.value = '';
+    }
+  };
   
   const getTargetBadgeColor = (target: string) => {
     switch (target) {
@@ -851,6 +979,34 @@ const AIHubPage = () => {
                 <Plus className="h-4 w-4" />
                 Сохранить пресет
               </Button>
+              
+              <div className="flex gap-2 pt-2 border-t border-border/30">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1 gap-1.5"
+                  onClick={exportPresets}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Экспорт
+                </Button>
+                <input
+                  ref={importPresetsInputRef}
+                  type="file"
+                  accept=".json"
+                  onChange={importPresets}
+                  className="hidden"
+                />
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1 gap-1.5"
+                  onClick={() => importPresetsInputRef.current?.click()}
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                  Импорт
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
