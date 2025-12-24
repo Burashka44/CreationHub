@@ -1,0 +1,40 @@
+name: creationhub-ai-transcribe
+
+services:
+  # Faster Whisper Server (OpenAI Compatible API)
+  # Docs: https://github.com/fedirz/faster-whisper-server
+  ai-transcribe:
+    image: fedirz/faster-whisper-server:latest-cuda
+    container_name: creationhub-ai-transcribe
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.scope=apps
+    networks:
+      - backend
+      - egress
+    ports:
+      - "8000:8000" # Internal API
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - /home/inno/creationhub/orchestration/volumes/ai/whisper:/root/.cache/huggingface
+    environment:
+      - WHISPER_MODEL=large-v3
+      - WHISPER_BEAM_SIZE=5
+      # OpenAI API compatibility
+      - UVICORN_HOST=0.0.0.0
+      - UVICORN_PORT=8000
+
+networks:
+  backend:
+    external: true
+    name: creationhub-backend
+  egress:
+    external: true
+    name: creationhub-egress
+

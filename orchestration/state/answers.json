@@ -1,0 +1,10 @@
+{
+  "hostname": "CreationHub",
+  "timezone": "Europe/Moscow",
+  "admin_email": "simonredison@gmail.com",
+  "db_password": "Tarantul1310",
+  "wireguard_enabled": "false",
+  "dns_provider": "8.8.8.8",
+  "telegram_contact": "@Urban1a",
+  "services_raw": "npm postgres redis portainer dozzle watchtower glances grafana landing adminer wireguard-ui firewall-ui n8n browserless rsshub nextcloud filebrowser media ai-transcribe ai-translate ai-tts homepage healthchecks" 
+}

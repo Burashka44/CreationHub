@@ -1,0 +1,32 @@
+name: creationhub-firewall-ui
+
+services:
+  firewall-ui:
+    image: creationhub-ufw-web-manager:latest
+    container_name: creationhub-firewall-ui
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.scope=apps
+    networks:
+      - backend
+      - egress
+    ports:
+      - "9090:5000"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - /etc/ufw:/etc/ufw
+      - /var/log/ufw.log:/var/log/ufw.log:ro
+      - ./volumes/firewall-ui:/app/data
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=creationhub-firewall-secret-2024
+
+networks:
+  backend:
+    external: true
+    name: creationhub-backend
+  egress:
+    external: true
+    name: creationhub-egress

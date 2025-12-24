@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ==============================================================================
+# CreationHub Doctor
+# Diagnosis & Health Check
+# ==============================================================================
+
+PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+LOG_FILE="$PROJECT_ROOT/logs/install.log"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
+
+pass() { echo -e "[${GREEN}PASS${NC}] $1"; }
+fail() { echo -e "[${RED}FAIL${NC}] $1"; }
+warn() { echo -e "[${YELLOW}WARN${NC}] $1"; }
+info() { echo -e "[ INFO ] $1"; }
+
+check_root() {
+    if [[ $EUID -ne 0 ]]; then
+        fail "Running as non-root user. Some checks may fail or be inaccurate."
+        # We do not exit here to allow checking other things in dev environments
+        return 0
+    else
+        pass "Running as root"
+    fi
+}
+
+check_docker() {
+    info "Checking Docker Engine..."
+    if systemctl is-active --quiet docker; then
+        pass "Docker service is active"
+    else
+        fail "Docker service is NOT active"
+    fi
+
+    if command -v docker >/dev/null; then
+        if docker info >/dev/null 2>&1; then
+            pass "Docker CLI can talk to daemon"
+        else
+            fail "Docker CLI cannot talk to daemon"
+        fi
+    else
+        fail "Docker binary not found"
+    fi
+}
+
+check_containers() {
+    info "Checking Containers..."
+    if ! command -v docker >/dev/null; then
+        warn "Docker binary not found, skipping container checks."
+        return
+    fi
+    
+    local count
+    count=$(docker ps -q | wc -l)
+    if [[ "$count" -gt 0 ]]; then
+        pass "$count containers running"
+    else
+        warn "No containers running (system might be stopped)"
+    fi
+    
+    # Check for unhealthy containers
+    local unhealthy
+    unhealthy=$(docker ps --filter health=unhealthy -q)
+    if [[ -n "$unhealthy" ]]; then
+        fail "Found UNHEALTHY containers:"
+        docker ps --filter health=unhealthy --format "table {{.Names}}\t{{.Status}}"
+    else
+        pass "No unhealthy containers found"
+    fi
+}
+
+check_dns() {
+    info "Checking DNS resolution..."
+    if resolvectl status >/dev/null 2>&1; then
+        pass "systemd-resolved is active"
+    else
+        warn "systemd-resolved might be down"
+    fi
+
+    # Check resolution from host
+    if ping -c 1 google.com >/dev/null 2>&1; then
+        pass "Host DNS resolution working"
+    else
+        fail "Host DNS resolution FAILED"
+    fi
+}
+
+check_wireguard() {
+    info "Checking WireGuard..."
+    if modprobe --dry-run wireguard >/dev/null 2>&1; then
+        pass "WireGuard kernel module available"
+    else
+        fail "WireGuard kernel module missing"
+    fi
+    
+    # Check if interface exists (assuming wg0 usually)
+    if ip link show wg0 >/dev/null 2>&1; then
+        pass "WireGuard interface (wg0) exists"
+    else
+        warn "WireGuard interface (wg0) not active (normal if VPN disabled)"
+    fi
+}
+
+check_gpu() {
+    info "Checking GPU..."
+    if lspci | grep -i nvidia >/dev/null; then
+        info "Nvidia GPU detected on bus"
+        if command -v nvidia-smi >/dev/null; then
+            if nvidia-smi >/dev/null 2>&1; then
+                pass "nvidia-smi working"
+            else
+                fail "nvidia-smi failed to communicate with driver"
+            fi
+        else
+            warn "nvidia-smi not found"
+        fi
+    else
+        info "No Nvidia GPU detected (ignoring)"
+    fi
+}
+
+check_logs() {
+    info "Checking recent install logs..."
+    if [[ -f "$LOG_FILE" ]]; then
+        pass "Log file exists: $LOG_FILE"
+        echo "--- Last 5 error lines ---"
+        grep -i "error" "$LOG_FILE" | tail -n 5 || echo "No errors found."
+        echo "--------------------------"
+    else
+        warn "Log file not found"
+    fi
+}
+
+main() {
+    echo "CreationHub Doctor - Diagnostics Routine"
+    echo "========================================"
+    
+    check_root
+    check_docker
+    check_containers
+    check_dns
+    check_wireguard
+    check_gpu
+    check_logs
+    
+    echo ""
+    echo "Diagnostics complete."
+}
+
+main

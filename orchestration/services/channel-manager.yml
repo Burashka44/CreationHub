@@ -1,0 +1,24 @@
+name: creationhub-channel-manager
+
+services:
+  channel-manager:
+    build: ../bin/channel-manager
+    container_name: creationhub-channel-manager
+    restart: unless-stopped
+    ports:
+      - "5002:5002"
+    environment:
+      - DATA_FILE=/data/channels.json
+    volumes:
+      - /home/inno/creationhub/orchestration/volumes/n8n/custom_config:/data
+    networks:
+      - backend
+      - egress
+
+networks:
+  backend:
+    external: true
+    name: creationhub-backend
+  egress:
+    external: true
+    name: creationhub-egress

@@ -1,0 +1,29 @@
+# System
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules/
+dist/
+build/
+*.pyc
+__pycache__/
+
+# Environment & Secrets
+.env
+*.env
+.secret
+
+# Data Volumes (IMPORTANT)
+orchestration/volumes/
+dashboard/stats-recorder/
+dashboard/sqlite.db
+
+# Docker
+docker-compose.override.yml
+
+# IDE
+.vscode/
+.idea/
+orchestration/services/volumes/
+orchestration/backups/*.tar.gz

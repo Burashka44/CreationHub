@@ -1,0 +1,51 @@
+services:
+  creationhub:
+    build: 
+      context: .
+      args:
+        - VITE_SUPABASE_URL=/api/v1
+        - VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoicG9zdGdyZXMiLCJleHAiOjIwODE2NzIxNTF9.-gu0krXvHDXGb2LVREvlEg43hO6BHZ2Vjb9mTS-BGLk
+    container_name: creationhub
+    ports:
+      - "7777:80"
+    restart: always
+    environment:
+      - VITE_SUPABASE_URL=/api/v1
+      - VITE_SUPABASE_ANON_KEY=my-secret-anon-key
+    networks:
+      - default
+      - creationhub-backend
+
+  postgrest:
+    image: postgrest/postgrest
+    container_name: creationhub_api
+    ports:
+      - "7778:3000"
+    environment:
+      PGRST_DB_URI: "postgres://postgres:Tarantul1310@creationhub-postgres:5432/postgres"
+      PGRST_DB_SCHEMA: public
+      PGRST_DB_ANON_ROLE: postgres
+      PGRST_JWT_SECRET: "my-secret-jwt-secret-must-be-at-least-32-chars-long"
+    restart: always
+    networks:
+      - default
+      - creationhub-backend
+
+  stats-recorder:
+    build: ./stats-recorder
+    container_name: creationhub_stats
+    restart: always
+    environment:
+      - DATABASE_URL=postgres://postgres:Tarantul1310@creationhub-postgres:5432/postgres
+      - GLANCES_URL=http://creationhub-glances:61208/api/4
+    networks:
+      - default
+      - creationhub-backend
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: creationhub_ollama
+    restart: always
+    ports:
+      - "11434:11434"
+volumes: {}

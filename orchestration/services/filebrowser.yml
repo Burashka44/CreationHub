@@ -1,0 +1,27 @@
+name: creationhub-filebrowser
+
+services:
+  filebrowser:
+    image: filebrowser/filebrowser:latest
+    container_name: creationhub-filebrowser
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.scope=apps
+    networks:
+      - backend
+    ports:
+      - "8082:80"
+    volumes:
+      - /home/inno/creationhub/orchestration/volumes/filebrowser/filebrowser.db:/database.db
+      - ./.env:/filebrowser/.env:ro # Explicitly visible to admin if needed? Spec says "Admin manages files". Maybe root mount?
+      - /home/inno/creationhub/orchestration/volumes:/srv/volumes # Manage all app volumes
+      - ./logs:/srv/logs
+    environment:
+      - FB_DATABASE=/database.db
+      - FB_ROOT=/srv
+
+networks:
+  backend:
+    external: true
+    name: creationhub-backend
+

@@ -1,0 +1,53 @@
+name: creationhub-vpn
+
+services:
+  # VPN Client (Gateway)
+  # Acts as the exit node for other containers
+  vpn-client:
+    image: linuxserver/wireguard:latest
+    container_name: creationhub-vpn-client
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE # Optional if kernel module loaded
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Moscow
+    volumes:
+      - /home/inno/creationhub/orchestration/volumes/vpn/active:/config
+      - /lib/modules:/lib/modules # For kernel module access
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv4.ip_forward=1
+    restart: unless-stopped
+    networks:
+      - backend
+      - egress
+    ports:
+      - 51820:51820/udp # Open port for incoming? No, client mode usually doesn't need this unless P2P.
+      - 8080:8080       # Exposing yt-dlp API (routed through VPN)
+      
+  # VPN Manager (UI & Controller)
+  vpn-manager:
+    build: ../bin/vpn-manager
+    container_name: creationhub-vpn-manager
+    restart: unless-stopped
+    networks:
+      - backend
+      - egress
+    ports:
+      - "5001:5000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/inno/creationhub/orchestration/volumes/vpn/configs:/configs            # Library of .conf files
+      - /home/inno/creationhub/orchestration/volumes/vpn/active:/etc/wireguard       # Active config injection target
+    environment:
+      - TZ=Europe/Moscow
+
+networks:
+  backend:
+    name: creationhub-backend
+    external: true
+  egress:
+    name: creationhub-egress
+    external: true

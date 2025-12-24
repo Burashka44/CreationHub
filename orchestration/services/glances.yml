@@ -1,0 +1,23 @@
+name: creationhub-glances
+
+services:
+  # Glances - System Monitor API & UI
+  # Docs: https://nicolargo.github.io/glances/
+  glances:
+    image: nicolargo/glances:latest-full
+    container_name: creationhub-glances
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.scope=system
+    pid: host # Required for host stats
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/host:ro # Monitor host disk usage
+    environment:
+      - GLANCES_OPT=-w
+    networks:
+      - backend
+      - egress
+    ports:
+      - "61208:61208"
+

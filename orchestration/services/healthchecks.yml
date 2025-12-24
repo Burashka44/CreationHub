@@ -1,0 +1,33 @@
+name: creationhub-healthchecks
+
+services:
+  healthchecks:
+    image: linuxserver/healthchecks:latest
+    container_name: creationhub-healthchecks
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.scope=apps
+    networks:
+      - backend
+      - egress
+    ports:
+      - "8001:8000"
+    environment:
+      - DB_HOST=postgres
+      - DB_NAME=db_healthchecks
+      - DB_USER=user_healthchecks
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - SITE_ROOT=https://${CREATIONHUB_HOST}/healthchecks
+      - SITE_NAME=CreationHub
+    volumes:
+      - /home/inno/creationhub/orchestration/volumes/healthchecks:/config
+
+
+networks:
+  backend:
+    external: true
+    name: creationhub-backend
+  egress:
+    external: true
+    name: creationhub-egress
+

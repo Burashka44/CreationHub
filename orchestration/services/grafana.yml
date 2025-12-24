@@ -1,0 +1,37 @@
+name: creationhub-grafana
+
+services:
+  # Grafana - Analytics Visualization
+  # Docs: https://grafana.com/
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: creationhub-grafana
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.scope=apps
+    networks:
+      - backend
+      - egress
+    ports:
+      - "3001:3000"
+    volumes:
+      - /home/inno/creationhub/orchestration/volumes/grafana:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${POSTGRES_PASSWORD} # Use global pass initially
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+      - GF_SERVER_ROOT_URL=http://${CREATIONHUB_HOST}:3001/
+      # Pre-configure Postgres Datasource likely via provision files in real prod, 
+      # but effectively we just provide the connection params here for reference or future provisioning.
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+
+networks:
+  backend:
+    external: true
+    name: creationhub-backend
+  egress:
+    external: true
+    name: creationhub-egress

@@ -1,0 +1,1 @@
+/* App.tsx snapshot will go here. See canvas version. */

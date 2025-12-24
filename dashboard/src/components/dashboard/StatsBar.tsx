@@ -1,0 +1,114 @@
+import React from 'react';
+import { Clock, HardDrive, MapPin, Wifi } from 'lucide-react';
+import Gauge from './Gauge';
+import { useLanguage } from '@/contexts/LanguageContext';
+
+const StatsBar = () => {
+  const { t } = useLanguage();
+  const [currentTime, setCurrentTime] = React.useState(new Date());
+  const [osInfo, setOsInfo] = React.useState<any>(null);
+  const [uptimeStr, setUptimeStr] = React.useState('Loading...');
+
+  // Default/mock data for gauges (still missing backend for these)
+  const cpuUsage = 45;
+  const memoryUsage = 62;
+  const diskUsage = 38;
+  const ipLocation = { city: 'N/A', country: 'XX', ip: 'Loading...' };
+
+  React.useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [osRes, upRes] = await Promise.all([
+          fetch('/api/system/os'),
+          fetch('/api/system/uptime')
+        ]);
+
+        if (osRes.ok) {
+          const data = await osRes.json();
+          setOsInfo(data.data);
+        }
+
+        if (upRes.ok) {
+          const data = await upRes.json();
+          setUptimeStr(data.pretty);
+        }
+      } catch (e) {
+        console.error('Stats fetch error:', e);
+      }
+    };
+    fetchData();
+    const interval = setInterval(fetchData, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, []);
+
+  const countryFlags: Record<string, string> = {
+    NL: '🇳🇱', US: '🇺🇸', DE: '🇩🇪', GB: '🇬🇧', FR: '🇫🇷',
+    JP: '🇯🇵', RU: '🇷🇺', CA: '🇨🇦', AU: '🇦🇺', CH: '🇨🇭',
+  };
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <Gauge value={cpuUsage} label={t('cpuUsage')} size={80} strokeWidth={6} />
+      <Gauge value={memoryUsage} label={t('memoryUsage')} size={80} strokeWidth={6} />
+
+      {/* Disk Usage */}
+      <div className="stat-card">
+        <HardDrive className="h-6 w-6 text-primary mb-2" />
+        <div className="w-full bg-muted rounded-full h-2 mb-2">
+          <div
+            className="bg-primary h-2 rounded-full transition-all duration-500"
+            style={{ width: `${diskUsage}%` }}
+          />
+        </div>
+        <span className="text-lg font-bold text-foreground">{diskUsage}%</span>
+        <span className="text-xs text-muted-foreground">{t('diskUsage')}</span>
+      </div>
+
+      {/* Uptime */}
+      <div className="stat-card">
+        <Clock className="h-6 w-6 text-success mb-2" />
+        <span className="text-lg font-bold text-foreground">
+          {uptimeStr}
+        </span>
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          {osInfo ? (
+            <>
+              <span className="font-semibold">{osInfo.name}</span>
+              <span className="opacity-75">{osInfo.version}</span>
+            </>
+          ) : (
+            t('uptime')
+          )}
+        </div>
+      </div>
+
+      {/* IP Location */}
+      <div className="stat-card">
+        <div className="flex items-center gap-2 mb-1">
+          <MapPin className="h-5 w-5 text-warning" />
+          <span className="text-2xl">{countryFlags[ipLocation.country] || '🌍'}</span>
+        </div>
+        <span className="text-sm font-semibold text-foreground">{ipLocation.city}</span>
+        <span className="text-xs text-muted-foreground font-mono">{ipLocation.ip}</span>
+      </div>
+
+      {/* Current Time */}
+      <div className="stat-card">
+        <Wifi className="h-6 w-6 text-primary mb-2" />
+        <span className="text-lg font-bold text-foreground font-mono">
+          {currentTime.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {currentTime.toLocaleDateString('ru-RU')}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+export default StatsBar;

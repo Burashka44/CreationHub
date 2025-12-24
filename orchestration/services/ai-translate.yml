@@ -1,0 +1,30 @@
+name: creationhub-ai-translate
+
+services:
+  # LibreTranslate (Offline Translation API)
+  # Docs: https://github.com/LibreTranslate/LibreTranslate
+  ai-translate:
+    image: libretranslate/libretranslate:latest
+    container_name: creationhub-ai-translate
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.scope=apps
+    networks:
+      - backend
+      - egress
+    ports:
+      - "5000:5000" # Internal API
+    volumes:
+      - /home/inno/creationhub/orchestration/volumes/ai/translate:/app/db
+    environment:
+      - LT_HOST=0.0.0.0
+      - LT_PORT=5000
+      - LT_UPDATE_MODELS=true # Auto-update models on restart
+
+networks:
+  backend:
+    external: true
+    name: creationhub-backend
+  egress:
+    external: true
+    name: creationhub-egress

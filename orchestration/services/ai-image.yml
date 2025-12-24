@@ -1,0 +1,21 @@
+services:
+  ai-image:
+    image: universities/stable-diffusion-webui-docker:auto
+    container_name: creationhub_ai_image
+    restart: unless-stopped
+    ports:
+      - "7860:7860"
+    environment:
+      - CLI_ARGS=--listen --api --xformers
+    volumes:
+      - ${AI_DATA_PATH:-./volumes/ai_models}/stable-diffusion/data:/data
+      - ${AI_DATA_PATH:-./volumes/ai_models}/stable-diffusion/output:/output
+    networks:
+      - creationhub-backend
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

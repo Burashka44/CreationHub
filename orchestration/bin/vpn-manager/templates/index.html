@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VPN Manager</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=One+Size&display=swap');
+
+        body {
+            margin: 0;
+            background: transparent;
+            color: #fff;
+            font-family: 'Segoe UI', sans-serif;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar List */
+        .sidebar {
+            width: 30%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            padding: 10px;
+            overflow-y: auto;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .config-item {
+            padding: 10px;
+            margin-bottom: 5px;
+            background: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+
+        .config-item:hover {
+            background: rgba(139, 92, 246, 0.3);
+        }
+
+        .config-item.active {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid #10b981;
+        }
+
+        .flag {
+            font-size: 1.2em;
+            margin-right: 10px;
+        }
+
+        /* Map Area */
+        .map-wrapper {
+            width: 70%;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Overlay Info */
+        .status-overlay {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            text-align: right;
+        }
+
+        .ip-address {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #8b5cf6;
+        }
+
+        .location {
+            font-size: 0.9em;
+            color: #ccc;
+        }
+
+        /* Loader */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #8b5cf6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="sidebar" id="configList">
+            <div style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: center;">
+                <button onclick="document.getElementById('fileInput').click()"
+                    style="background: #8b5cf6; border: none; color: white; padding: 8px 15px; border-radius: 5px; cursor: pointer;">
+                    + Upload Config
+                </button>
+                <input type="file" id="fileInput" style="display: none" accept=".conf" onchange="uploadConfig(this)">
+            </div>
+            <!-- Configs will be loaded here -->
+            <div id="listContent">
+                <div style="text-align:center; padding: 20px; color: #666;">Loading configs...</div>
+            </div>
+        </div>
+
+        <div class="map-wrapper">
+            <div id="map"></div>
+            <div class="status-overlay">
+                <div class="ip-address" id="ipDisplay">Checking...</div>
+                <div class="location" id="locDisplay">Scanning VPN Tunnel</div>
+                <div class="loader" id="loader"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Map (Dark Mode)
+        const map = L.map('map').setView([20, 0], 2);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CartoDB',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+        let currentMarker = null;
+
+        async function loadStatus() {
+            document.getElementById('loader').style.display = 'inline-block';
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+
+                if (data.ip) {
+                    document.getElementById('ipDisplay').innerText = data.ip;
+                    document.getElementById('locDisplay').innerText = `${data.city}, ${data.country}`;
+
+                    // Update Map
+                    if (data.loc) {
+                        const [lat, lon] = data.loc.split(',');
+                        const zoom = 5; // Default zoom
+                        map.flyTo([lat, lon], zoom);
+
+                        if (currentMarker) map.removeLayer(currentMarker);
+                        currentMarker = L.marker([lat, lon]).addTo(map)
+                            .bindPopup(`<b>VPN Exit Node</b><br>${data.org}`).openPopup();
+                    }
+                } else {
+                    document.getElementById('ipDisplay').innerText = "Disconnected";
+                }
+            } catch (e) {
+                console.error(e);
+            }
+            document.getElementById('loader').style.display = 'none';
+        }
+
+        async function loadConfigs() {
+            const res = await fetch('/api/configs');
+            const files = await res.json();
+            const container = document.getElementById('listContent'); // CORRECTED ID
+            container.innerHTML = '';
+
+            if (files.length === 0) {
+                container.innerHTML = '<div style="padding:20px;">No .conf files found in /volumes/vpn/configs</div>';
+                return;
+            }
+
+            files.forEach(f => {
+                const el = document.createElement('div');
+                el.className = 'config-item';
+                el.innerHTML = `<span class="flag">📄</span> ${f}`;
+                el.onclick = () => switchConfig(f);
+                container.appendChild(el);
+            });
+        }
+
+        async function uploadConfig(input) {
+            if (!input.files || !input.files[0]) return;
+
+            const file = input.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            document.getElementById('loader').style.display = 'inline-block';
+
+            try {
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await res.json();
+                if (result.status === 'ok') {
+                    alert("Uploaded!");
+                    loadConfigs(); // Refresh list
+                } else {
+                    alert("Error: " + result.error);
+                }
+            } catch (e) {
+                alert("Upload Failed");
+            }
+            document.getElementById('loader').style.display = 'none';
+            input.value = ''; // Reset
+        }
+
+        async function switchConfig(filename) {
+            if (!confirm(`Switch VPN to ${filename}? Connection will drop briefly.`)) return;
+
+            document.getElementById('loader').style.display = 'inline-block';
+            document.getElementById('ipDisplay').innerText = "Switching...";
+
+            try {
+                const res = await fetch('/api/switch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename })
+                });
+                const result = await res.json();
+
+                if (result.status === 'ok') {
+                    setTimeout(loadStatus, 4000); // Wait for connection
+                } else {
+                    alert("Error: " + result.error);
+                }
+            } catch (e) {
+                alert("Network Error");
+            }
+        }
+
+        // Init
+        loadConfigs();
+        loadStatus();
+
+        // Auto refresh status every 30s
+        setInterval(loadStatus, 30000);
+    </script>
+</body>
+
+</html>

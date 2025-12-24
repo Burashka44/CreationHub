@@ -1,0 +1,18 @@
+name: creationhub-landing
+
+services:
+  # Static Landing Page for public domain (innoguru.dev/ru)
+  landing:
+    image: nginx:alpine
+    container_name: creationhub-landing
+    restart: unless-stopped
+    volumes:
+      - /home/inno/creationhub/orchestration/volumes/landing:/usr/share/nginx/html:ro
+    networks:
+      - backend
+      - egress # Needs outbound internet? No, JS runs on client side. Backend only is enough if NPM connects to it.
+    ports:
+      - "8085:80"
+    labels:
+      - com.centurylinklabs.watchtower.scope=apps
+

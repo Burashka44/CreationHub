@@ -1,0 +1,28 @@
+project_id = "wpwexenbvzpcxdrcuequ"
+
+[functions.send-telegram-notification]
+verify_jwt = false
+
+[functions.fetch-youtube-stats]
+verify_jwt = false
+
+[functions.fetch-telegram-stats]
+verify_jwt = false
+
+[functions.track-ad-click]
+verify_jwt = false
+
+[functions.publish-telegram-post]
+verify_jwt = false
+
+[functions.ai-chat]
+verify_jwt = false
+
+[functions.ai-image]
+verify_jwt = false
+
+[functions.record-system-metrics]
+verify_jwt = false
+
+[functions.check-services]
+verify_jwt = false

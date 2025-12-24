@@ -1,0 +1,27 @@
+name: creationhub-ai-tts
+
+services:
+  # Wyoming Piper (Fast Neural TTS)
+  # Docs: https://github.com/rhasspy/wyoming-piper
+  ai-tts:
+    image: rhasspy/wyoming-piper:latest
+    container_name: creationhub-ai-tts
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.scope=apps
+    networks:
+      - backend
+      - egress
+    ports:
+      - "10200:10200" # Wyoming Protocol
+    volumes:
+      - /home/inno/creationhub/orchestration/volumes/ai/piper:/data
+    command: --voice en_US-lessac-medium --data-dir /data --uri tcp://0.0.0.0:10200
+
+networks:
+  backend:
+    external: true
+    name: creationhub-backend
+  egress:
+    external: true
+    name: creationhub-egress

@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Channel Manager</title>
+    <style>
+        :root {
+            --bg: #0b0c10;
+            --card-bg: #1f2833;
+            --text: #c5c6c7;
+            --accent: #66fcf1;
+            --accent-dim: #45a29e;
+            --danger: #ff4d4d;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--accent);
+            text-align: center;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+        .tab-btn {
+            background: var(--card-bg);
+            border: 1px solid #333;
+            color: var(--text);
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .tab-btn.active,
+        .tab-btn:hover {
+            background: var(--accent-dim);
+            color: #fff;
+            border-color: var(--accent);
+        }
+
+        .tab-content {
+            display: none;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Form */
+        .add-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #333;
+        }
+
+        input {
+            background: #0b0c10;
+            border: 1px solid #333;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            flex-grow: 1;
+        }
+
+        button.add-btn {
+            background: var(--accent);
+            color: #0b0c10;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button.add-btn:hover {
+            background: #fff;
+        }
+
+        /* List */
+        .channel-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .channel-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            margin-bottom: 8px;
+            border-radius: 4px;
+            border-left: 3px solid var(--accent-dim);
+        }
+
+        .channel-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .channel-name {
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .channel-url {
+            font-size: 0.8em;
+            color: #888;
+        }
+
+        .delete-btn {
+            background: transparent;
+            color: var(--danger);
+            border: 1px solid var(--danger);
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .delete-btn:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .empty-msg {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid var(--accent);
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            color: var(--text);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #fff;
+        }
+
+        .auth-field {
+            margin-bottom: 15px;
+        }
+
+        .auth-field label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--accent);
+            font-size: 0.9em;
+        }
+
+        .auth-field input {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .btn-auth {
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .btn-auth:hover {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        .save-btn {
+            background: var(--accent);
+            color: var(--bg);
+            width: 100%;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        function getIcon(platform) {
+            if (platform === 'YouTube') return '<i class="fab fa-youtube" style="color:#FF0000;"></i>';
+            if (platform === 'Telegram') return '<i class="fab fa-telegram" style="color:#229ED9;"></i>';
+            if (platform === 'Instagram') return '<i class="fab fa-instagram" style="color:#E1306C;"></i>';
+            if (platform === 'TikTok') return '<i class="fab fa-tiktok" style="color:#fff;"></i>';
+            if (platform === 'Rutube') return '<svg width="16" height="16" viewBox="0 0 24 24" fill="#0077FF"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm-2 17V7l7 5-7 5z"/></svg>';
+            if (platform === 'MAX Messenger') return '<span style="font-weight:900; color:#00E676;">MAX</span>';
+            return '<i class="fas fa-hashtag"></i>';
+        }
+
+        window.onload = function () {
+            // Inject icons into tabs
+            var tabs = document.getElementsByClassName('tab-btn');
+            for (var i = 0; i < tabs.length; i++) {
+                var p = tabs[i].innerText;
+                tabs[i].innerHTML = getIcon(p) + ' ' + p;
+            }
+        };
+
+        function openTab(platformName) {
+            // Hide all
+            var contents = document.getElementsByClassName("tab-content");
+            for (var i = 0; i < contents.length; i++) {
+                contents[i].classList.remove("active");
+            }
+            var tabs = document.getElementsByClassName("tab-btn");
+            for (var i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove("active");
+            }
+
+            // Show one (Handle space in ID)
+            var safeId = platformName.replace(' ', '\\ ');
+            document.getElementById(platformName).classList.add("active");
+            // Highlight tab
+            // Note: complex selector due to icon injection.
+            // Simplified: we just re-loop or rely on the onclick binding context if possible, 
+            // but relying on ID match is safer for this simple script.
+            var btn = document.getElementById("btn-" + platformName);
+            if (btn) btn.classList.add("active");
+        }
+        function openAuthModal(id, platform, name, authJson) {
+            var modal = document.getElementById('authModal');
+            document.getElementById('modal-title').innerText = "Auth: " + name;
+            document.getElementById('auth-id').value = id;
+            document.getElementById('auth-platform').value = platform;
+
+            // Clear fields first
+            var container = document.getElementById('auth-fields-container');
+            container.innerHTML = '';
+
+            var auth = JSON.parse(authJson || "{}");
+
+            // Dynamic fields based on platform
+            var fields = [];
+            if (platform === 'YouTube') {
+                fields = ['client_id', 'client_secret', 'refresh_token'];
+            } else if (platform === 'Rutube' || platform === 'Instagram' || platform === 'TikTok') {
+                fields = ['email', 'password', '2fa_secret'];
+            } else if (platform === 'Telegram') {
+                fields = ['api_id', 'api_hash', 'phone'];
+            } else {
+                fields = ['username', 'password', 'api_key'];
+            }
+
+            fields.forEach(f => {
+                var div = document.createElement('div');
+                div.className = 'auth-field';
+                div.innerHTML = `<label>${f.replace('_', ' ').toUpperCase()}</label>` +
+                    `<input type="text" name="${f}" value="${auth[f] || ''}" placeholder="Enter ${f}...">`;
+                container.appendChild(div);
+            });
+
+            modal.style.display = "block";
+        }
+
+        function closeAuthModal() {
+            document.getElementById('authModal').style.display = "none";
+        }
+
+        window.onclick = function (event) {
+            var modal = document.getElementById('authModal');
+            if (event.target == modal) { modal.style.display = "none"; }
+        }
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Channel Manager</h1>
+
+        <div class="tabs">
+            {% for p in platforms %}
+            <button id="btn-{{p}}" class="tab-btn {% if loop.first %}active{% endif %}"
+                onclick="openTab('{{p}}')">{{p}}</button>
+            {% endfor %}
+        </div>
+
+        {% for p in platforms %}
+        <div id="{{p}}" class="tab-content {% if loop.first %}active{% endif %}">
+            <form class="add-form" action="/add" method="POST">
+                <input type="hidden" name="platform" value="{{p}}">
+                <input type="text" name="name" placeholder="Channel Name" required>
+                <input type="text" name="url" placeholder="Channel URL / ID" required>
+                <button type="submit" class="add-btn">ADD</button>
+            </form>
+
+            <ul class="channel-list">
+                {% if data[p] %}
+                {% for item in data[p] %}
+                <li class="channel-item">
+                    <div class="channel-info">
+                        <span class="channel-name">{{ item.name }}</span>
+                        <span class="channel-url">{{ item.url }}</span>
+                        <span style="font-size:0.7em; color:#555;">ID: {{ item.id }}</span>
+                    </div>
+                    <div style="display:flex; align-items:center;">
+                        <!-- Auth Button -->
+                        <button class="btn-auth"
+                            onclick='openAuthModal("{{item.id}}", "{{p}}", "{{item.name}}", {{ item.auth | tojson | safe }})'>
+                            AUTH
+                        </button>
+
+                        <!-- Delete Form -->
+                        <form action="/delete" method="POST" style="margin:0;">
+                            <input type="hidden" name="platform" value="{{p}}">
+                            <input type="hidden" name="id" value="{{ item.id }}">
+                            <button type="submit" class="delete-btn">DEL</button>
+                        </form>
+                    </div>
+                </li>
+                {% endfor %}
+                {% else %}
+                <li class="empty-msg">No channels added yet.</li>
+                {% endif %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="authModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAuthModal()">&times;</span>
+            <h2 id="modal-title" style="color:var(--accent); margin-top:0;">Auth Settings</h2>
+            <form action="/update_auth" method="POST">
+                <input type="hidden" id="auth-id" name="id">
+                <input type="hidden" id="auth-platform" name="platform">
+
+                <div id="auth-fields-container">
+                    <!-- Dynamic Fields -->
+                </div>
+
+                <p style="font-size:0.8em; color:#888; font-style:italic;">
+                    Note: Credentials are saved securely to your isolated profile.
+                </p>
+                <button type="submit" class="save-btn">SAVE CREDENTIALS</button>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>

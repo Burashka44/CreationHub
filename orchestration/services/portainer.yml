@@ -1,0 +1,18 @@
+name: creationhub-portainer
+
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: creationhub-portainer
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.scope=system
+    networks:
+      - backend
+      - egress
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/inno/creationhub/orchestration/volumes/portainer:/data
+

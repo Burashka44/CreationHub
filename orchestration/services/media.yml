@@ -1,0 +1,46 @@
+name: creationhub-media
+
+services:
+  # Downloader (Class A - Needs Egress, HTTP API for n8n)
+  yt-dlp:
+    image: nbr23/youtube-dl-server:yt-dlp
+    container_name: creationhub-yt-dlp
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.scope=n8n
+      - com.centurylinklabs.watchtower.enable=false
+    # Routing via VPN
+    network_mode: service:vpn-client
+    depends_on:
+      - vpn-client
+    # Note: When using network_mode: service, ports must be defined on the PARENT (vpn-client) 
+    # OR we must rely on internal routing. 
+    # Wait, if we use network_mode: service, we CANNOT expose ports here.
+    # We must expose them in vpn.yml on the vpn-client container!
+    volumes:
+      - /home/inno/creationhub/orchestration/volumes/media:/youtube-dl
+    environment:
+      - YDL_UPDATE=yes
+      - YDL_PYTHON_JSON=True 
+    
+  # Processor (Class B - Internal + GPU)
+  ffmpeg:
+    image: linuxserver/ffmpeg:latest
+    container_name: creationhub-ffmpeg
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.scope=apps
+    networks:
+      - backend
+    # GPU Access
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - /home/inno/creationhub/orchestration/volumes/media:/media_root
+    entrypoint: ["tail", "-f", "/dev/null"] # Worker mode, waiting for exec
+

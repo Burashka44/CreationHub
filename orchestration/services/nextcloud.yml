@@ -1,0 +1,31 @@
+name: creationhub-nextcloud
+
+services:
+  nextcloud:
+    image: nextcloud:29
+    container_name: creationhub-nextcloud
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.scope=apps
+    networks:
+      - backend
+      - egress
+    ports:
+      - "8081:80" # Exposed to LAN/NPM
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=db_nextcloud
+      - POSTGRES_USER=user_nextcloud
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_HOST_PASSWORD=${REDIS_PASSWORD}
+      - NEXTCLOUD_TRUSTED_DOMAINS=nextcloud,${CREATIONHUB_HOST}
+    volumes:
+      - /home/inno/creationhub/orchestration/volumes/nextcloud:/var/www/html
+      - /home/inno/creationhub/orchestration/volumes/media:/media_root # To see media files
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+

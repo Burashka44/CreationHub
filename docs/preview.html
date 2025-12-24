@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Hub Web UI - Preview</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        // ---- Utils ----
+        const LS = {
+          apiBase: "aihub.apiBase",
+          apiKey: "aihub.apiKey",
+          presets: "aihub.presets",
+        };
+
+        function uid() {
+          return Math.random().toString(36).slice(2);
+        }
+
+        function useLocalStorage(key, initial) {
+          const [val, setVal] = React.useState(() => {
+            try {
+              const raw = localStorage.getItem(key);
+              return raw ? JSON.parse(raw) : initial;
+            } catch {
+              return initial;
+            }
+          });
+          React.useEffect(() => {
+            localStorage.setItem(key, JSON.stringify(val));
+          }, [key, val]);
+          return [val, setVal];
+        }
+
+        function classNames(...xs) {
+          return xs.filter(Boolean).join(" ");
+        }
+
+        function buildApiUrl(base, path) {
+          return `${base.replace(/\/$/, "")}${path}`;
+        }
+
+        async function apiFetch(base, path, init, apiKey) {
+          const headers = {
+            ...(init.headers || {}),
+          };
+          if (apiKey && apiKey !== "") headers["X-API-Key"] = apiKey;
+          return fetch(buildApiUrl(base, path), { ...init, headers });
+        }
+
+        // ---- Small inline tooltip (question mark) ----
+        const Hint = ({ text, example }) => (
+          React.createElement("span", {
+            className: "ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-700 text-slate-100 text-[10px] cursor-help align-middle",
+            title: example ? `${text}\n\nПример: ${example}` : text,
+            "aria-label": text
+          }, "?")
+        );
+
+        // ---- Main App ----
+        function App() {
+          const [apiBase, setApiBase] = useLocalStorage(LS.apiBase, "http://localhost:8088");
+          const [apiKey, setApiKey] = useLocalStorage(LS.apiKey, "");
+          const [health, setHealth] = React.useState("—");
+
+          const [presets, setPresets] = useLocalStorage(LS.presets, [
+            {
+              id: uid(),
+              name: "Dubbing → English",
+              target: "av",
+              payload: { src_lang: "auto", tgt_lang: "en" },
+              description: "ASR→MT→TTS с авто-определением языка, выход EN",
+            },
+            {
+              id: uid(),
+              name: "Dubbing → French",
+              target: "av",
+              payload: { src_lang: "auto", tgt_lang: "fr" },
+              description: "ASR→MT→TTS, выход FR",
+            },
+            {
+              id: uid(),
+              name: "Clean: logo+face",
+              target: "clean",
+              payload: { method: "propainter", objects: "logo,face" },
+              description: "Инпейнт логотипов и лиц",
+            },
+          ]);
+
+          const [consoleItems, setConsoleItems] = React.useState([]);
+
+          function pushLog(title, body, downloadUrl, error) {
+            setConsoleItems((s) => [{ id: uid(), title, body, downloadUrl, error }, ...s]);
+          }
+
+          // --- health ---
+          async function checkHealth() {
+            try {
+              const r = await apiFetch(apiBase, "/healthz", { method: "GET" }, apiKey);
+              const j = await r.json();
+              setHealth(j.status || JSON.stringify(j));
+              pushLog("/healthz", j);
+            } catch (e) {
+              setHealth("ERR");
+              pushLog("/healthz error", undefined, undefined, String(e));
+            }
+          }
+
+          React.useEffect(() => {
+            checkHealth();
+          }, []);
+
+          // --- file helpers ---
+          const asrFileRef = React.useRef(null);
+          const ttsSpeakerRef = React.useRef(null);
+          const avFileRef = React.useRef(null);
+          const cleanFileRef = React.useRef(null);
+
+          // --- ASR form ---
+          const [asrTask, setAsrTask] = React.useState("transcribe");
+          const [asrLang, setAsrLang] = React.useState("");
+
+          async function runASR() {
+            const f = asrFileRef.current?.files?.[0];
+            if (!f) return alert("Выбери аудио/видео файл для ASR");
+            const fd = new FormData();
+            fd.append("file", f);
+            fd.append("task", asrTask);
+            if (asrLang) fd.append("language", asrLang);
+            try {
+              const r = await apiFetch(apiBase, "/asr", { method: "POST", body: fd }, apiKey);
+              const j = await r.json();
+              pushLog("/asr", j);
+            } catch (e) {
+              pushLog("/asr error", undefined, undefined, String(e));
+            }
+          }
+
+          // --- Translate form ---
+          const [trText, setTrText] = React.useState("Привет! Это тест перевода.");
+          const [trSrc, setTrSrc] = React.useState("ru");
+          const [trTgt, setTrTgt] = React.useState("en");
+          async function runTranslate(payload) {
+            const body = payload || { text: trText, source_lang: trSrc, target_lang: trTgt };
+            try {
+              const r = await apiFetch(
+                apiBase,
+                "/translate",
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(body),
+                },
+                apiKey
+              );
+              const j = await r.json();
+              pushLog("/translate", j);
+            } catch (e) {
+              pushLog("/translate error", undefined, undefined, String(e));
+            }
+          }
+
+          // --- TTS form ---
+          const [ttsText, setTtsText] = React.useState("Hello! This is a synthesized sample.");
+          const [ttsLang, setTtsLang] = React.useState("en");
+          async function runTTS() {
+            const fd = new FormData();
+            fd.append("text", ttsText);
+            fd.append("language", ttsLang);
+            const spk = ttsSpeakerRef.current?.files?.[0];
+            if (spk) fd.append("speaker_wav", spk);
+            try {
+              const r = await apiFetch(apiBase, "/tts", { method: "POST", body: fd }, apiKey);
+              const blob = await r.blob();
+              const url = URL.createObjectURL(blob);
+              pushLog("/tts", { note: "Аудио готово" }, url);
+            } catch (e) {
+              pushLog("/tts error", undefined, undefined, String(e));
+            }
+          }
+
+          // --- AV Pipeline ---
+          const [avSrcLang, setAvSrcLang] = React.useState("auto");
+          const [avTgtLang, setAvTgtLang] = React.useState("en");
+          async function runAV(payload) {
+            const f = avFileRef.current?.files?.[0];
+            if (!f && !payload?.__skipFile) return alert("Выбери аудио/видео для дубляжа");
+            const fd = new FormData();
+            if (!payload?.__skipFile) fd.append("file", f);
+            fd.append("src_lang", payload?.src_lang ?? avSrcLang);
+            fd.append("tgt_lang", payload?.tgt_lang ?? avTgtLang);
+            try {
+              const r = await apiFetch(apiBase, "/av-pipeline", { method: "POST", body: fd }, apiKey);
+              const j = await r.json();
+              pushLog("/av-pipeline", j);
+            } catch (e) {
+              pushLog("/av-pipeline error", undefined, undefined, String(e));
+            }
+          }
+
+          // --- Video Clean ---
+          const [cleanMethod, setCleanMethod] = React.useState("propainter");
+          const [cleanObjects, setCleanObjects] = React.useState("logo,face");
+          async function runClean(payload) {
+            const f = cleanFileRef.current?.files?.[0];
+            if (!f && !payload?.__skipFile) return alert("Выбери видео для отчистки");
+            const fd = new FormData();
+            if (!payload?.__skipFile) fd.append("file", f);
+            fd.append("method", payload?.method ?? cleanMethod);
+            fd.append("objects", payload?.objects ?? cleanObjects);
+            try {
+              const r = await apiFetch(apiBase, "/video/clean", { method: "POST", body: fd }, apiKey);
+              const j = await r.json();
+              pushLog("/video/clean", j);
+            } catch (e) {
+              pushLog("/video/clean error", undefined, undefined, String(e));
+            }
+          }
+
+          // --- Presets CRUD ---
+          const [presetName, setPresetName] = React.useState("");
+          const [presetTarget, setPresetTarget] = React.useState("av");
+          const [presetJSON, setPresetJSON] = React.useState(`{
+  "src_lang": "auto",
+  "tgt_lang": "en"
+}`);
+
+          function addPreset() {
+            try {
+              const payload = JSON.parse(presetJSON);
+              const p = { id: uid(), name: presetName || "Preset", target: presetTarget, payload };
+              setPresets((s) => [p, ...s]);
+              setPresetName("");
+            } catch (e) {
+              alert("Некорректный JSON пресета");
+            }
+          }
+
+          function delPreset(id) {
+            setPresets((s) => s.filter((x) => x.id !== id));
+          }
+
+          async function applyPreset(p) {
+            if (p.target === "translate") return runTranslate(p.payload);
+            if (p.target === "tts") return runTTS();
+            if (p.target === "asr") return runASR();
+            if (p.target === "clean") return runClean(p.payload);
+            return runAV(p.payload);
+          }
+
+          // ---- UI ----
+          return React.createElement("div", { className: "min-h-screen bg-slate-950 text-slate-100" },
+            React.createElement("header", { className: "sticky top-0 z-10 backdrop-blur bg-slate-950/70 border-b border-slate-800" },
+              React.createElement("div", { className: "max-w-7xl mx-auto px-4 py-4 flex items-center gap-4" },
+                React.createElement("div", { className: "text-2xl font-bold" }, "AI Hub — Web UI"),
+                React.createElement("span", { 
+                  className: classNames("px-2 py-1 text-xs rounded", health === "ok" ? "bg-emerald-600/20 text-emerald-300" : "bg-rose-600/20 text-rose-300")
+                }, "health: ", health),
+                React.createElement("button", { 
+                  onClick: checkHealth, 
+                  className: "ml-auto px-3 py-2 rounded bg-slate-800 hover:bg-slate-700" 
+                }, "Проверить")
+              )
+            ),
+            React.createElement("main", { className: "max-w-7xl mx-auto px-4 py-6 grid md:grid-cols-3 gap-6" },
+              // Config section
+              React.createElement("section", { className: "md:col-span-3 p-4 rounded-2xl bg-slate-900 border border-slate-800" },
+                React.createElement("p", { className: "text-xs text-slate-400 mb-3" }, "Укажи адрес бэкенда и ключ доступа. Сохраняется в localStorage браузера; используй токен из .env (X-API-Key)."),
+                React.createElement("div", { className: "flex flex-wrap gap-4 items-end" },
+                  React.createElement("div", { className: "grow" },
+                    React.createElement("label", { className: "block text-sm mb-1" }, 
+                      "API Base URL ", 
+                      React.createElement(Hint, { text: "Адрес FastAPI сервиса", example: "https://aihub.innoguru.ru" })
+                    ),
+                    React.createElement("input", {
+                      value: apiBase,
+                      onChange: (e) => setApiBase(e.target.value),
+                      placeholder: "http://localhost:8088",
+                      className: "w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 outline-none"
+                    })
+                  ),
+                  React.createElement("div", { className: "grow" },
+                    React.createElement("label", { className: "block text-sm mb-1" },
+                      "API Key (X-API-Key) ",
+                      React.createElement(Hint, { text: "Токен авторизации", example: "скопируй из .env → API_KEY" })
+                    ),
+                    React.createElement("input", {
+                      value: apiKey,
+                      onChange: (e) => setApiKey(e.target.value),
+                      placeholder: "optional",
+                      className: "w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 outline-none"
+                    })
+                  ),
+                  React.createElement("button", {
+                    onClick: checkHealth,
+                    className: "px-4 h-10 rounded bg-emerald-600 hover:bg-emerald-500"
+                  }, "Сохранить & Проверить")
+                )
+              ),
+              // Presets section
+              React.createElement("section", { className: "md:col-span-1 p-4 rounded-2xl bg-slate-900 border border-slate-800" },
+                React.createElement("h2", { className: "text-lg font-semibold mb-2" }, "Пресеты"),
+                React.createElement("p", { className: "text-xs text-slate-400 mb-3" }, "Создавай и применяй наборы параметров к эндпоинтам. Хранятся локально, можно быстро переключать сценарии."),
+                React.createElement("div", { className: "space-y-2 max-h-[380px] overflow-y-auto pr-1" },
+                  presets.map((p) => React.createElement("div", { key: p.id, className: "p-3 rounded-xl border border-slate-800 bg-slate-950/50" },
+                    React.createElement("div", { className: "flex items-center gap-2" },
+                      React.createElement("div", { className: "font-medium" }, p.name),
+                      p.target && React.createElement("span", { className: "ml-auto text-xs px-2 py-0.5 rounded bg-slate-800 border border-slate-700" }, p.target)
+                    ),
+                    p.description && React.createElement("div", { className: "text-xs text-slate-400 mt-1" }, p.description),
+                    React.createElement("pre", { className: "text-xs mt-2 bg-slate-950 p-2 rounded border border-slate-800 overflow-x-auto" }, JSON.stringify(p.payload, null, 2)),
+                    React.createElement("div", { className: "mt-2 flex gap-2" },
+                      React.createElement("button", {
+                        onClick: () => applyPreset(p),
+                        className: "px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500"
+                      }, "Применить"),
+                      React.createElement("button", {
+                        onClick: () => delPreset(p.id),
+                        className: "px-3 py-1.5 rounded bg-rose-600/80 hover:bg-rose-500"
+                      }, "Удалить")
+                    )
+                  ))
+                ),
+                React.createElement("div", { className: "mt-4 border-t border-slate-800 pt-3" },
+                  React.createElement("div", { className: "text-sm font-medium mb-1" }, "Новый пресет"),
+                  React.createElement("label", { className: "block text-xs text-slate-400 mb-1" },
+                    "Имя пресета ",
+                    React.createElement(Hint, { text: "Название для списка", example: "Dubbing → EN (shorts)" })
+                  ),
+                  React.createElement("input", {
+                    value: presetName,
+                    onChange: (e) => setPresetName(e.target.value),
+                    placeholder: "Название",
+                    className: "w-full mb-2 px-3 py-2 rounded bg-slate-800 border border-slate-700 outline-none"
+                  }),
+                  React.createElement("div", { className: "flex gap-2 mb-2 items-end" },
+                    React.createElement("div", null,
+                      React.createElement("label", { className: "block text-xs text-slate-400 mb-1" },
+                        "Целевой эндпоинт ",
+                        React.createElement(Hint, { text: "Куда применится пресет", example: "av / asr / tts / translate / clean" })
+                      ),
+                      React.createElement("select", {
+                        value: presetTarget,
+                        onChange: (e) => setPresetTarget(e.target.value),
+                        className: "px-3 py-2 rounded bg-slate-800 border border-slate-700 outline-none"
+                      },
+                        React.createElement("option", { value: "av" }, "av (ASR→MT→TTS)"),
+                        React.createElement("option", { value: "asr" }, "asr"),
+                        React.createElement("option", { value: "translate" }, "translate"),
+                        React.createElement("option", { value: "tts" }, "tts"),
+                        React.createElement("option", { value: "clean" }, "clean")
+                      )
+                    ),
+                    React.createElement("button", {
+                      onClick: addPreset,
+                      className: "ml-auto px-3 h-9 rounded bg-slate-800 hover:bg-slate-700"
+                    }, "Сохранить")
+                  ),
+                  React.createElement("label", { className: "block text-xs text-slate-400 mb-1" },
+                    "JSON параметров ",
+                    React.createElement(Hint, { text: "Тело запроса", example: '{"src_lang":"auto","tgt_lang":"en"}' })
+                  ),
+                  React.createElement("textarea", {
+                    value: presetJSON,
+                    onChange: (e) => setPresetJSON(e.target.value),
+                    rows: 6,
+                    className: "w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 outline-none"
+                  })
+                )
+              ),
+              // Tools section
+              React.createElement("section", { className: "md:col-span-2 grid gap-6" },
+                // ASR
+                React.createElement("div", { className: "p-4 rounded-2xl bg-slate-900 border border-slate-800" },
+                  React.createElement("div", { className: "flex items-center gap-3 mb-3" },
+                    React.createElement("h3", { className: "text-lg font-semibold" }, "ASR"),
+                    React.createElement("span", { className: "text-xs text-slate-400" }, "Whisper (faster-whisper)")
+                  ),
+                  React.createElement("p", { className: "text-xs text-slate-400 mb-3" }, "Загрузи файл и выбери режим расшифровки/перевода. Язык можно оставить пустым для автоопределения."),
+                  React.createElement("div", { className: "grid md:grid-cols-3 gap-3 items-end" },
+                    React.createElement("div", null,
+                      React.createElement("label", { className: "block text-sm mb-1" },
+                        "Файл (аудио/видео) ",
+                        React.createElement(Hint, { text: "Исходный медиафайл", example: ".wav .mp3 .mp4" })
+                      ),
+                      React.createElement("input", {
+                        ref: asrFileRef,
+                        type: "file",
+                        className: "w-full text-sm file:mr-3 file:px-3 file:py-2 file:rounded file:border-0 file:bg-slate-800 file:text-slate-100"
+                      })
+                    ),
+                    React.createElement("div", null,
+                      React.createElement("label", { className: "block text-sm mb-1" },
+                        "Задача ",
+                        React.createElement(Hint, { text: "Режим", example: "transcribe — расшифровка, translate — перевод" })
+                      ),
+                      React.createElement("select", {
+                        value: asrTask,
+                        onChange: (e) => setAsrTask(e.target.value),
+                        className: "w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 outline-none"
+                      },
+                        React.createElement("option", { value: "transcribe" }, "transcribe"),
+                        React.createElement("option", { value: "translate" }, "translate")
+                      )
+                    ),
+                    React.createElement("div", null,
+                      React.createElement("label", { className: "block text-sm mb-1" },
+                        "Язык (опц.) ",
+                        React.createElement(Hint, { text: "Фиксируй язык при ошибках автоопределения", example: "ru / en / fr" })
+                      ),
+                      React.createElement("input", {
+                        value: asrLang,
+                        onChange: (e) => setAsrLang(e.target.value),
+                        placeholder: "auto",
+                        className: "w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 outline-none"
+                      })
+                    )
+                  ),
+                  React.createElement("div", { className: "mt-3" },
+                    React.createElement("button", {
+                      onClick: runASR,
+                      className: "px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-500"
+                    }, "Старт ASR")
+                  )
+                ),
+                // Translate
+                React.createElement("div", { className: "p-4 rounded-2xl bg-slate-900 border border-slate-800" },
+                  React.createElement("div", { className: "flex items-center gap-3 mb-3" },
+                    React.createElement("h3", { className: "text-lg font-semibold" }, "Translate"),
+                    React.createElement("span", { className: "text-xs text-slate-400" }, "NLLB-200 / M2M100")
+                  ),
+                  React.createElement("p", { className: "text-xs text-slate-400 mb-3" }, "Введи текст и языковые коды (напр., ru → en). Для больших текстов используй пресеты."),
+                  React.createElement("div", { className: "grid md:grid-cols-3 gap-3 items-end" },
+                    React.createElement("div", { className: "md:col-span-3" },
+                      React.createElement("label", { className: "block text-sm mb-1" },
+                        "Текст ",
+                        React.createElement(Hint, { text: "Исходный текст для перевода", example: "Bonjour → Hello" })
+                      ),
+                      React.createElement("textarea", {
+                        value: trText,
+                        onChange: (e) => setTrText(e.target.value),
+                        rows: 3,
+                        className: "w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 outline-none"
+                      })
+                    ),
+                    React.createElement("div", null,
+                      React.createElement("label", { className: "block text-sm mb-1" },
+                        "Источник ",
+                        React.createElement(Hint, { text: "ISO язык", example: "ru / fr / en / de" })
+                      ),
+                      React.createElement("input", {
+                        value: trSrc,
+                        onChange: (e) => setTrSrc(e.target.value),
+                        className: "w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 outline-none"
+                      })
+                    ),
+                    React.createElement("div", null,
+                      React.createElement("label", { className: "block text-sm mb-1" },
+                        "Цель ",
+                        React.createElement(Hint, { text: "ISO язык", example: "en / fr" })
+                      ),
+                      React.createElement("input", {
+                        value: trTgt,
+                        onChange: (e) => setTrTgt(e.target.value),
+                        className: "w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 outline-none"
+                      })
+                    ),
+                    React.createElement("div", { className: "flex items-end" },
+                      React.createElement("button", {
+                        onClick: () => runTranslate(),
+                        className: "px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-500"
+                      }, "Перевести")
+                    )
+                  )
+                ),
+                // TTS
+                React.createElement("div", { className: "p-4 rounded-2xl bg-slate-900 border border-slate-800" },
+                  React.createElement("div", { className: "flex items-center gap-3 mb-3" },
+                    React.createElement("h3", { className: "text-lg font-semibold" }, "TTS"),
+                    React.createElement("span", { className: "text-xs text-slate-400" }, "XTTS-v2")
+                  ),
+                  React.createElement("p", { className: "text-xs text-slate-400 mb-3" }, "Синтез речи XTTS-v2. Можно добавить образец голоса (speaker_wav) для клонирования тембра."),
+                  React.createElement("div", { className: "grid md:grid-cols-3 gap-3 items-end" },
+                    React.createElement("div", { className: "md:col-span-2" },
+                      React.createElement("label", { className: "block text-sm mb-1" },
+                        "Текст ",
+                        React.createElement(Hint, { text: "Что озвучиваем", example: "Hello world!" })
+                      ),
+                      React.createElement("textarea", {
+                        value: ttsText,
+                        onChange: (e) => setTtsText(e.target.value),
+                        rows: 3,
+                        className: "w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 outline-none"
+                      })
+                    ),
+                    React.createElement("div", null,
+                      React.createElement("label", { className: "block text-sm mb-1" },
+                        "Язык ",
+                        React.createElement(Hint, { text: "Код языка синтеза", example: "en / fr / ru" })
+                      ),
+                      React.createElement("input", {
+                        value: ttsLang,
+                        onChange: (e) => setTtsLang(e.target.value),
+                        className: "w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 outline-none"
+                      })
+                    ),
+                    React.createElement("div", { className: "md:col-span-2" },
+                      React.createElement("label", { className: "block text-sm mb-1" },
+                        "Speaker (опц.) ",
+                        React.createElement(Hint, { text: "Референс для тембра", example: "voice.wav 3–10 сек" })
+                      ),
+                      React.createElement("input", {
+                        ref: ttsSpeakerRef,
+                        type: "file",
+                        accept: "audio/*",
+                        className: "w-full text-sm file:mr-3 file:px-3 file:py-2 file:rounded file:border-0 file:bg-slate-800 file:text-slate-100"
+                      })
+                    )
+                  ),
+                  React.createElement("div", { className: "mt-3" },
+                    React.createElement("button", {
+                      onClick: runTTS,
+                      className: "px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-500"
+                    }, "Синтез")
+                  )
+                ),
+                // AV Pipeline
+                React.createElement("div", { className: "p-4 rounded-2xl bg-slate-900 border border-slate-800" },
+                  React.createElement("div", { className: "flex items-center gap-3 mb-3" },
+                    React.createElement("h3", { className: "text-lg font-semibold" }, "AV Pipeline (ASR→MT→TTS)"),
+                    React.createElement("span", { className: "text-xs text-slate-400" }, "Дубляж")
+                  ),
+                  React.createElement("p", { className: "text-xs text-slate-400 mb-3" }, "Полный дубляж за один шаг: распознавание → перевод → озвучка. Исходный язык можно оставить auto."),
+                  React.createElement("div", { className: "grid md:grid-cols-3 gap-3 items-end" },
+                    React.createElement("div", null,
+                      React.createElement("label", { className: "block text-sm mb-1" },
+                        "Файл (аудио/видео) ",
+                        React.createElement(Hint, { text: "Исходный медиафайл", example: ".wav .mp3 .mp4" })
+                      ),
+                      React.createElement("input", {
+                        ref: avFileRef,
+                        type: "file",
+                        className: "w-full text-sm file:mr-3 file:px-3 file:py-2 file:rounded file:border-0 file:bg-slate-800 file:text-slate-100"
+                      })
+                    ),
+                    React.createElement("div", null,
+                      React.createElement("label", { className: "block text-sm mb-1" },
+                        "Исх. язык ",
+                        React.createElement(Hint, { text: "Код языка исходника", example: "auto / ru / fr / en" })
+                      ),
+                      React.createElement("input", {
+                        value: avSrcLang,
+                        onChange: (e) => setAvSrcLang(e.target.value),
+                        placeholder: "auto",
+                        className: "w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 outline-none"
+                      })
+                    ),
+                    React.createElement("div", null,
+                      React.createElement("label", { className: "block text-sm mb-1" },
+                        "Целевой язык ",
+                        React.createElement(Hint, { text: "Код целевого языка", example: "en / fr" })
+                      ),
+                      React.createElement("input", {
+                        value: avTgtLang,
+                        onChange: (e) => setAvTgtLang(e.target.value),
+                        className: "w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 outline-none"
+                      })
+                    )
+                  ),
+                  React.createElement("div", { className: "mt-3" },
+                    React.createElement("button", {
+                      onClick: () => runAV(),
+                      className: "px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-500"
+                    }, "Старт дубляжа")
+                  )
+                ),
+                // Video Clean
+                React.createElement("div", { className: "p-4 rounded-2xl bg-slate-900 border border-slate-800" },
+                  React.createElement("div", { className: "flex items-center gap-3 mb-3" },
+                    React.createElement("h3", { className: "text-lg font-semibold" }, "Video Clean"),
+                    React.createElement("span", { className: "text-xs text-slate-400" }, "ProPainter / E2FGVI (hook)")
+                  ),
+                  React.createElement("p", { className: "text-xs text-slate-400 mb-3" }, "Хук к пайплайну отчистки (ProPainter/E2FGVI). Укажи метод и список объектов: logo, face, ban и т.п."),
+                  React.createElement("div", { className: "grid md:grid-cols-3 gap-3 items-end" },
+                    React.createElement("div", null,
+                      React.createElement("label", { className: "block text-sm mb-1" },
+                        "Файл (видео) ",
+                        React.createElement(Hint, { text: "Исходный ролик", example: ".mp4 .mov" })
+                      ),
+                      React.createElement("input", {
+                        ref: cleanFileRef,
+                        type: "file",
+                        accept: "video/*",
+                        className: "w-full text-sm file:mr-3 file:px-3 file:py-2 file:rounded file:border-0 file:bg-slate-800 file:text-slate-100"
+                      })
+                    ),
+                    React.createElement("div", null,
+                      React.createElement("label", { className: "block text-sm mb-1" },
+                        "Метод ",
+                        React.createElement(Hint, { text: "Алгоритм инпейнта", example: "propainter / e2fgvi" })
+                      ),
+                      React.createElement("input", {
+                        value: cleanMethod,
+                        onChange: (e) => setCleanMethod(e.target.value),
+                        className: "w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 outline-none"
+                      })
+                    ),
+                    React.createElement("div", null,
+                      React.createElement("label", { className: "block text-sm mb-1" },
+                        "Объекты ",
+                        React.createElement(Hint, { text: "Список через запятую", example: "logo,face,ban" })
+                      ),
+                      React.createElement("input", {
+                        value: cleanObjects,
+                        onChange: (e) => setCleanObjects(e.target.value),
+                        className: "w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 outline-none"
+                      })
+                    )
+                  ),
+                  React.createElement("div", { className: "mt-3" },
+                    React.createElement("button", {
+                      onClick: () => runClean(),
+                      className: "px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-500"
+                    }, "Очистить")
+                  )
+                )
+              ),
+              // Console
+              React.createElement("section", { className: "md:col-span-3 p-4 rounded-2xl bg-slate-900 border border-slate-800" },
+                React.createElement("div", { className: "flex items-center gap-3 mb-3" },
+                  React.createElement("h3", { className: "text-lg font-semibold" }, "Консоль задач"),
+                  React.createElement("span", { className: "text-xs text-slate-400" }, "последние ответы API")
+                ),
+                React.createElement("p", { className: "text-xs text-slate-400 mb-3" }, "Лента последних результатов. Нажимай пресеты/кнопки выше, чтобы видеть ответы и артефакты."),
+                React.createElement("div", { className: "space-y-3" },
+                  consoleItems.map((x) => React.createElement("div", { key: x.id, className: "p-3 rounded-xl bg-slate-950/50 border border-slate-800" },
+                    React.createElement("div", { className: "font-medium" }, x.title),
+                    x.error && React.createElement("div", { className: "text-rose-300 text-sm mt-1" }, x.error),
+                    x.body && React.createElement("pre", { className: "text-xs mt-2 bg-slate-950 p-2 rounded border border-slate-800 overflow-x-auto" }, JSON.stringify(x.body, null, 2)),
+                    x.downloadUrl && React.createElement("audio", { controls: true, src: x.downloadUrl, className: "mt-2 w-full" })
+                  ))
+                )
+              )
+            ),
+            React.createElement("footer", { className: "max-w-7xl mx-auto px-4 pb-10 text-xs text-slate-500" },
+              "Made with ❤️ for Innoguru. Храни модели локально, не корми трафиком облака."
+            )
+          );
+        }
+    </script>
+    
+    <script type="text/babel">
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+    </script>
+</body>
+</html>

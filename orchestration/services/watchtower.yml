@@ -1,0 +1,52 @@
+name: creationhub-watchtower
+
+services:
+  # 1. N8N Updater (Mon, Wed, Fri at 20:00 MSK -> 17:00 UTC)
+  watchtower-n8n:
+    image: containrrr/watchtower:latest
+    container_name: creationhub-watchtower-n8n
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_SCOPE=n8n
+      - WATCHTOWER_CLEANUP=true
+      - DOCKER_API_VERSION=1.44
+      - WATCHTOWER_SCHEDULE=0 0 17 * * 1,3,5
+      - WATCHTOWER_ROLLING_RESTART=true
+    networks:
+      - backend
+
+  # 2. System Updater (Sunday at 23:00 MSK -> 20:00 UTC)
+  watchtower-system:
+    image: containrrr/watchtower:latest
+    container_name: creationhub-watchtower-system
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_SCOPE=system
+      - WATCHTOWER_CLEANUP=true
+      - DOCKER_API_VERSION=1.44
+      - WATCHTOWER_SCHEDULE=0 0 20 * * 0
+      - WATCHTOWER_ROLLING_RESTART=true
+    networks:
+      - backend
+
+  # 3. Apps Updater (Monday at 02:00 MSK -> Sunday 23:00 UTC)
+  # Includes: Media, AI, Cloud, Dashboard, Monitoring, Security
+  watchtower-apps:
+    image: containrrr/watchtower:latest
+    container_name: creationhub-watchtower-apps
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_SCOPE=apps
+      - WATCHTOWER_CLEANUP=true
+      - DOCKER_API_VERSION=1.44
+      - WATCHTOWER_SCHEDULE=0 0 23 * * 0
+      - WATCHTOWER_ROLLING_RESTART=true
+    networks:
+      - backend
+

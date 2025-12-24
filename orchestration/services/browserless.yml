@@ -1,0 +1,28 @@
+name: creationhub-browserless
+
+services:
+  browserless:
+    image: ghcr.io/browserless/chromium:latest
+    container_name: creationhub-browserless
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.scope=apps
+    networks:
+      - backend
+      - egress
+    ports:
+      - "3002:3000"
+    environment:
+      - TOKEN=${POSTGRES_PASSWORD} # Reuse secret
+      - MAX_CONCURRENT_SESSIONS=5
+    volumes:
+      - /home/inno/creationhub/orchestration/volumes/browserless:/tmp
+
+networks:
+  backend:
+    external: true
+    name: creationhub-backend
+  egress:
+    external: true
+    name: creationhub-egress
+

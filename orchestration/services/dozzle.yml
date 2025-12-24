@@ -1,0 +1,22 @@
+name: creationhub-dozzle
+
+services:
+  # Dozzle - Real-time Log Viewer
+  # Docs: https://dozzle.dev/
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: creationhub-dozzle
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.scope=system
+    networks:
+      - backend
+      - egress
+    ports:
+      - "8888:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - DOZZLE_LEVEL=info
+      - DOZZLE_TAIL=100
+

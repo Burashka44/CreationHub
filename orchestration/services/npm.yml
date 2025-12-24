@@ -1,0 +1,37 @@
+name: creationhub-npm
+
+services:
+  npm:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: creationhub-npm
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.scope=system
+    ports:
+      - "80:80"
+      - "443:443"
+      - "81:81" # Management UI (should be behind firewall/VPN in prod)
+    environment:
+      DB_MYSQL_HOST: "db-npm" # NPM uses its own SQLite or MySQL. Using built-in SQLite for simplicity or dedicated MySQL? 
+      # Spec implies "Single PostgreSQL instance". NPM supports Postgres?
+      # Yes, NPM supports Postgres. Let's use the central Postgres.
+      DB_SQLITE_FILE: "/data/database.sqlite"
+      DISABLE_IPV6: 'true'
+    # Wait, usually NPM uses SQLite by default or MariaDB. 
+    # Spec 2.6 says "Single PostgreSQL instance". 
+    # If possible we should use Postgres for NPM. 
+    # Checking docs: NPM supports MySQL/MariaDB/SQLite. It does NOT officially support Postgres in standard image easily without custom mods.
+    # To strictly follow "Single PostgreSQL" we might be stuck. 
+    # But usually NPM with SQLite is fine for single server. 
+    # Let's stick to default SQLite to avoid complexity or "breaking rules" by adding MariaDB.
+    # Spec doesn't explicitly forbid SQLite for NPM, just says "Database + cache as shared infrastructure primitives (PostgreSQL, Redis)".
+    # Let's use SQLite for NPM to be safe and simple, or check if we can add MariaDB if needed. 
+    # Actually, simpler is better. SQLite is embedded.
+    
+    volumes:
+      - /home/inno/creationhub/orchestration/volumes/npm/data:/data
+      - /home/inno/creationhub/orchestration/volumes/npm/letsencrypt:/etc/letsencrypt
+    networks:
+      - backend
+      - egress
+

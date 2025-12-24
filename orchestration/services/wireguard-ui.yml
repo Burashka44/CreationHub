@@ -1,0 +1,34 @@
+name: creationhub-wireguard-ui
+
+services:
+  wireguard-ui:
+    image: ngoduykhanh/wireguard-ui:latest
+    container_name: creationhub-wireguard-ui
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.scope=system
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - backend
+      - egress # Needs egress to update WG/download configs? Usually yes.
+    ports:
+      - "5003:5000"
+    environment:
+      - SESSION_SECRET=${POSTGRES_PASSWORD} # Reusing secret for simplicity of V1
+      - WGUI_USERNAME=admin
+      - WGUI_PASSWORD=${POSTGRES_PASSWORD}
+      - WGUI_WG_POST_UP_SCRIPT=iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+      - WGUI_WG_POST_DOWN_SCRIPT=iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+    volumes:
+      - /home/inno/creationhub/orchestration/volumes/wireguard-ui/db:/app/db
+      - /etc/wireguard:/etc/wireguard
+
+networks:
+  backend:
+    external: true
+    name: creationhub-backend
+  egress:
+    external: true
+    name: creationhub-egress
+

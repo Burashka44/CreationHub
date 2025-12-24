@@ -1,0 +1,173 @@
+
+CURSOR IMPLEMENTATION PROMPT — CREATIONHUB
+==========================================
+
+READ THIS FIRST
+---------------
+You are implementing CreationHub.
+This is NOT a greenfield design task.
+Architecture is FIXED.
+
+You MUST follow:
+- ARCHITECTURE.md v1
+- CREATIONHUB_FULL_SPECIFICATION.txt
+
+Do NOT redesign.
+Do NOT simplify by breaking rules.
+Do NOT merge phases.
+Ask questions ONLY if something is technically impossible.
+
+GOAL
+----
+Implement an idempotent installer (install.sh) for Ubuntu 24
+that provisions a full CreationHub system exactly as specified.
+
+MENTAL MODEL
+------------
+CreationHub is a STATE MACHINE.
+
+States:
+- UI_COLLECTED
+- INSTALLED
+- CONFIGURED
+- RUNNING
+
+Transitions are one-way per run.
+Never skip a state.
+Never partially apply a state.
+
+GLOBAL RULES
+------------
+1. install.sh is an ORCHESTRATOR
+2. No system changes during whiptail UI
+3. Install → Configure → Start phases are strictly separated
+4. Everything logs to install.log
+5. Web UI everywhere
+6. Docker services are LAN-only
+7. DNS/WireGuard rules are absolute
+8. Docker networking uses CGNAT only
+9. Re-running install.sh must be safe
+
+FILES YOU WILL WORK WITH
+------------------------
+/opt/creationhub/install.sh          (entrypoint)
+/opt/creationhub/apply_config.sh     (configuration logic)
+/opt/creationhub/compose/*.yml       (modular docker compose files)
+/opt/creationhub/.env                (runtime secrets, 600)
+/opt/creationhub/state/*.json        (state tracking)
+/opt/creationhub/logs/install.log    (full log)
+
+INSTALL.SH — REQUIRED STRUCTURE
+-------------------------------
+main()
+ ├─ preflight_checks()
+ ├─ run_whiptail_ui()
+ ├─ phase_install()
+ ├─ phase_configure()
+ ├─ phase_start()
+ └─ show_summary()
+
+DO NOT:
+- call apt inside configure
+- configure before install
+- start services before configure
+
+WHIPTAIL UI RULES
+-----------------
+- One uninterrupted wizard
+- Uses /dev/tty explicitly
+- Collects ONLY data
+- Writes answers to state files
+- No live system changes
+
+DNS & WIREGUARD (CRITICAL)
+-------------------------
+IF WireGuard ENABLED:
+  - DNS MUST come from WireGuard config
+  - DNS is forced globally via systemd-resolved
+
+IF WireGuard DISABLED:
+  - DNS MUST come from UI selection
+
+There is NO other valid behavior.
+
+DOCKER NETWORKING
+-----------------
+You MUST create networks explicitly:
+
+backend:
+  subnet: 100.64.10.0/24
+  internal: true
+
+egress:
+  subnet: 100.64.20.0/24
+  internal: false
+
+NO default docker bridges.
+NO overlapping subnets.
+NO IP hardcoding.
+
+SERVICE COMMUNICATION
+---------------------
+Containers communicate ONLY via service names.
+Example:
+- postgres:5432
+- redis:6379
+- n8n:5678
+
+NEVER:
+- use container IPs
+- use localhost inside Docker
+
+SERVICE ENABLE/DISABLE LOGIC
+----------------------------
+Services are modular.
+
+If service is DISABLED:
+- container is stopped and removed
+- volume is removed
+- compose file is NOT included
+- env variables are commented
+- config files are preserved
+
+If re-enabled:
+- service starts clean
+- previous config reused
+
+LOGGING & DIAGNOSTICS
+--------------------
+- install.log must capture everything except UI
+- permissions: 600
+- summary.txt must list:
+  service name
+  URL
+  port
+  username
+  temporary password
+
+Implement:
+  creationhub-doctor
+
+Doctor must report:
+- Docker status
+- Container health
+- DNS state
+- WireGuard state
+- GPU availability
+- Recent install errors
+
+WHAT SUCCESS LOOKS LIKE
+-----------------------
+- install.sh can be run multiple times safely
+- No partial states
+- No race conditions
+- No hidden assumptions
+- User never has to guess ports or passwords
+- All access is via LAN / VPN / NPM only
+
+FINAL NOTE
+----------
+If you are unsure, STOP and re-read:
+CREATIONHUB_FULL_SPECIFICATION.txt
+
+Implementation correctness is more important than speed.
