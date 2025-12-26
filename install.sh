@@ -50,23 +50,90 @@ fi
 source .env 2>/dev/null || true
 
 # ===========================================
-# AI Storage Configuration
+# AI Storage Configuration - Disk Selection
 # ===========================================
-# Use temp file to properly capture exit code
-AI_PATH_TMP=$(mktemp)
-whiptail --title "AI Storage Configuration" --inputbox \
-"CreationHub uses large AI models (Llama 3, Whisper, etc.) which can take 10GB+.\n\n\
-Where should these models be stored?\n\
-(Enter path on secondary drive, e.g., /mnt/hdd/ai-models)\n\n\
-Default: ./ai_data" 15 70 "${AI_DATA_PATH:-./ai_data}" 2>"$AI_PATH_TMP"
+echo -e "${GREEN}Detecting available disks...${NC}"
 
-WHIPTAIL_EXIT=$?
-AI_PATH=$(cat "$AI_PATH_TMP")
-rm -f "$AI_PATH_TMP"
+# Build disk options for whiptail radiolist
+# Format: "path" "description" ON/OFF
+DISK_OPTIONS=()
+FIRST=true
 
-if [ $WHIPTAIL_EXIT -ne 0 ]; then
-    echo -e "${RED}Setup cancelled by user.${NC}"
-    exit 1
+# Get mounted partitions with size > 10GB, exclude system partitions
+while IFS= read -r line; do
+    MOUNTPOINT=$(echo "$line" | awk '{print $6}')
+    SIZE=$(echo "$line" | awk '{print $2}')
+    AVAIL=$(echo "$line" | awk '{print $4}')
+    FILESYSTEM=$(echo "$line" | awk '{print $1}')
+    
+    # Skip system partitions and small disks
+    if [[ "$MOUNTPOINT" == "/" ]] || [[ "$MOUNTPOINT" == "/boot"* ]] || [[ "$MOUNTPOINT" == "/snap"* ]]; then
+        continue
+    fi
+    
+    # Only include if mount point exists and is writable
+    if [ -n "$MOUNTPOINT" ] && [ -d "$MOUNTPOINT" ] && [ -w "$MOUNTPOINT" ]; then
+        AI_SUBPATH="${MOUNTPOINT}/ai_data"
+        DESCRIPTION="${SIZE} total, ${AVAIL} free (${FILESYSTEM})"
+        
+        if $FIRST; then
+            DISK_OPTIONS+=("$AI_SUBPATH" "$DESCRIPTION" "ON")
+            FIRST=false
+        else
+            DISK_OPTIONS+=("$AI_SUBPATH" "$DESCRIPTION" "OFF")
+        fi
+    fi
+done < <(df -h --output=source,size,used,avail,pcent,target 2>/dev/null | tail -n +2 | sort -k2 -hr)
+
+# Add custom path option
+DISK_OPTIONS+=("custom" "Enter custom path manually..." "OFF")
+
+# Show disk selection if we have options
+if [ ${#DISK_OPTIONS[@]} -gt 3 ]; then
+    DISK_TMP=$(mktemp)
+    whiptail --title "AI Storage Location" --radiolist \
+"AI models require 10-50GB of space.\n\nSelect where to store AI models:" 18 75 6 \
+"${DISK_OPTIONS[@]}" 2>"$DISK_TMP"
+    
+    WHIPTAIL_EXIT=$?
+    SELECTED_DISK=$(cat "$DISK_TMP")
+    rm -f "$DISK_TMP"
+    
+    if [ $WHIPTAIL_EXIT -ne 0 ]; then
+        echo -e "${RED}Setup cancelled by user.${NC}"
+        exit 1
+    fi
+    
+    if [ "$SELECTED_DISK" = "custom" ]; then
+        # Custom path input
+        CUSTOM_TMP=$(mktemp)
+        whiptail --title "Custom AI Storage Path" --inputbox \
+"Enter the full path for AI model storage:\n\n(e.g., /mnt/external/ai-models)" 12 60 "${AI_DATA_PATH:-./ai_data}" 2>"$CUSTOM_TMP"
+        WHIPTAIL_EXIT=$?
+        AI_PATH=$(cat "$CUSTOM_TMP")
+        rm -f "$CUSTOM_TMP"
+        
+        if [ $WHIPTAIL_EXIT -ne 0 ]; then
+            echo -e "${RED}Setup cancelled by user.${NC}"
+            exit 1
+        fi
+    else
+        AI_PATH="$SELECTED_DISK"
+    fi
+else
+    # No suitable disks found, use inputbox
+    AI_PATH_TMP=$(mktemp)
+    whiptail --title "AI Storage Configuration" --inputbox \
+"No large disks detected. Enter path for AI models:\n\n(e.g., /mnt/hdd/ai-models)\n\nDefault: ./ai_data" 14 60 "${AI_DATA_PATH:-./ai_data}" 2>"$AI_PATH_TMP"
+    
+    WHIPTAIL_EXIT=$?
+    AI_PATH=$(cat "$AI_PATH_TMP")
+    rm -f "$AI_PATH_TMP"
+    
+    if [ $WHIPTAIL_EXIT -ne 0 ]; then
+        echo -e "${RED}Setup cancelled by user.${NC}"
+        exit 1
+    fi
 fi
 
 # Validate and create directory
@@ -74,6 +141,7 @@ if [ -z "$AI_PATH" ]; then
     AI_PATH="./ai_data"
 fi
 mkdir -p "$AI_PATH"
+echo -e "${GREEN}AI models will be stored in: ${AI_PATH}${NC}"
 
 # ===========================================
 # AI Services Selection
