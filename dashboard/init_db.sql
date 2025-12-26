@@ -534,3 +534,27 @@ BEGIN
 END $$;
 
 SELECT 'All 10 missing tables created successfully!' as result;
+
+-- ===========================================
+-- Schema Fixes (added 2024-12-26)
+-- ===========================================
+
+-- Add missing columns to network_traffic
+ALTER TABLE public.network_traffic ADD COLUMN IF NOT EXISTS rx_rate real;
+ALTER TABLE public.network_traffic ADD COLUMN IF NOT EXISTS tx_rate real;
+
+-- Add missing columns to disk_snapshots
+ALTER TABLE public.disk_snapshots ADD COLUMN IF NOT EXISTS name text;
+ALTER TABLE public.disk_snapshots ADD COLUMN IF NOT EXISTS percent real;
+ALTER TABLE public.disk_snapshots ADD COLUMN IF NOT EXISTS fs_type text;
+
+-- Create cleanup function for old data
+CREATE OR REPLACE FUNCTION public.cleanup_old_data()
+RETURNS void AS $$
+BEGIN
+    DELETE FROM system_metrics WHERE recorded_at < NOW() - INTERVAL '7 days';
+    DELETE FROM network_traffic WHERE recorded_at < NOW() - INTERVAL '7 days';
+    DELETE FROM disk_snapshots WHERE recorded_at < NOW() - INTERVAL '7 days';
+    DELETE FROM service_uptime WHERE checked_at < NOW() - INTERVAL '30 days';
+END;
+$$ LANGUAGE plpgsql;
