@@ -66,8 +66,26 @@ while IFS= read -r line; do
     AVAIL=$(echo "$line" | awk '{print $4}')
     FILESYSTEM=$(echo "$line" | awk '{print $1}')
     
-    # Skip system partitions and small disks
-    if [[ "$MOUNTPOINT" == "/" ]] || [[ "$MOUNTPOINT" == "/boot"* ]] || [[ "$MOUNTPOINT" == "/snap"* ]]; then
+    # Skip system partitions, tmpfs, and small disks
+    if [[ "$MOUNTPOINT" == "/" ]] || \
+       [[ "$MOUNTPOINT" == "/boot"* ]] || \
+       [[ "$MOUNTPOINT" == "/snap"* ]] || \
+       [[ "$MOUNTPOINT" == "/run"* ]] || \
+       [[ "$MOUNTPOINT" == "/dev"* ]] || \
+       [[ "$MOUNTPOINT" == "/sys"* ]] || \
+       [[ "$FILESYSTEM" == tmpfs* ]] || \
+       [[ "$FILESYSTEM" == devtmpfs* ]] || \
+       [[ "$FILESYSTEM" == efivarfs* ]]; then
+        continue
+    fi
+    
+    # Skip partitions with less than 50GB free (not suitable for AI models)
+    AVAIL_NUM=$(echo "$AVAIL" | sed 's/[^0-9.]//g')
+    AVAIL_UNIT=$(echo "$AVAIL" | sed 's/[0-9.]//g')
+    if [[ "$AVAIL_UNIT" == "G" ]] && (( $(echo "$AVAIL_NUM < 50" | bc -l 2>/dev/null || echo 0) )); then
+        continue
+    fi
+    if [[ "$AVAIL_UNIT" == "M" ]] || [[ "$AVAIL_UNIT" == "K" ]]; then
         continue
     fi
     
