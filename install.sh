@@ -55,18 +55,25 @@ source .env 2>/dev/null || true
 echo -e "${GREEN}Detecting available disks...${NC}"
 
 # Build disk options for whiptail radiolist
-# Format: "path" "description" ON/OFF
 DISK_OPTIONS=()
-FIRST=true
+DISK_NUM=1
 
-# Get mounted partitions with size > 10GB, exclude system partitions
+# First, add system disk with warning
+SYSTEM_INFO=$(df -h / --output=source,size,avail 2>/dev/null | tail -1)
+SYSTEM_DEV=$(echo "$SYSTEM_INFO" | awk '{print $1}')
+SYSTEM_SIZE=$(echo "$SYSTEM_INFO" | awk '{print $2}')
+SYSTEM_AVAIL=$(echo "$SYSTEM_INFO" | awk '{print $3}')
+DISK_OPTIONS+=("./ai_data" "[${DISK_NUM}] SYSTEM: ${SYSTEM_SIZE} (${SYSTEM_AVAIL} free) ⚠️ NOT RECOMMENDED" "OFF")
+((DISK_NUM++))
+
+# Get other mounted partitions sorted by size (largest first)
 while IFS= read -r line; do
     MOUNTPOINT=$(echo "$line" | awk '{print $6}')
     SIZE=$(echo "$line" | awk '{print $2}')
     AVAIL=$(echo "$line" | awk '{print $4}')
     FILESYSTEM=$(echo "$line" | awk '{print $1}')
     
-    # Skip system partitions, tmpfs, and small disks
+    # Skip system and virtual partitions
     if [[ "$MOUNTPOINT" == "/" ]] || \
        [[ "$MOUNTPOINT" == "/boot"* ]] || \
        [[ "$MOUNTPOINT" == "/snap"* ]] || \
@@ -79,32 +86,45 @@ while IFS= read -r line; do
         continue
     fi
     
-    # Skip partitions with less than 50GB free (not suitable for AI models)
+    # Skip partitions with less than 10GB free
     AVAIL_NUM=$(echo "$AVAIL" | sed 's/[^0-9.]//g')
     AVAIL_UNIT=$(echo "$AVAIL" | sed 's/[0-9.]//g')
-    if [[ "$AVAIL_UNIT" == "G" ]] && (( $(echo "$AVAIL_NUM < 50" | bc -l 2>/dev/null || echo 0) )); then
-        continue
-    fi
     if [[ "$AVAIL_UNIT" == "M" ]] || [[ "$AVAIL_UNIT" == "K" ]]; then
         continue
     fi
     
-    # Only include if mount point exists and is writable
+    # Only include writable mount points
     if [ -n "$MOUNTPOINT" ] && [ -d "$MOUNTPOINT" ] && [ -w "$MOUNTPOINT" ]; then
         AI_SUBPATH="${MOUNTPOINT}/ai_data"
-        DESCRIPTION="${SIZE} total, ${AVAIL} free (${FILESYSTEM})"
         
-        if $FIRST; then
-            DISK_OPTIONS+=("$AI_SUBPATH" "$DESCRIPTION" "ON")
-            FIRST=false
+        # Determine disk type label
+        if [[ "$SIZE" == *T* ]]; then
+            DISK_LABEL="HDD"
+        elif [[ "$SIZE" == *G* ]]; then
+            SIZE_NUM=$(echo "$SIZE" | sed 's/[^0-9.]//g')
+            if (( $(echo "$SIZE_NUM > 500" | bc -l 2>/dev/null || echo 0) )); then
+                DISK_LABEL="HDD"
+            else
+                DISK_LABEL="SSD"
+            fi
+        else
+            DISK_LABEL="DISK"
+        fi
+        
+        DESCRIPTION="[${DISK_NUM}] ${DISK_LABEL}: ${SIZE} total, ${AVAIL} free"
+        
+        # First non-system disk is selected by default
+        if [ $DISK_NUM -eq 2 ]; then
+            DISK_OPTIONS+=("$AI_SUBPATH" "$DESCRIPTION ✓ RECOMMENDED" "ON")
         else
             DISK_OPTIONS+=("$AI_SUBPATH" "$DESCRIPTION" "OFF")
         fi
+        ((DISK_NUM++))
     fi
 done < <(df -h --output=source,size,used,avail,pcent,target 2>/dev/null | tail -n +2 | sort -k2 -hr)
 
 # Add custom path option
-DISK_OPTIONS+=("custom" "Enter custom path manually..." "OFF")
+DISK_OPTIONS+=("custom" "[${DISK_NUM}] Enter custom path manually..." "OFF")
 
 # Show disk selection if we have options
 if [ ${#DISK_OPTIONS[@]} -gt 3 ]; then
