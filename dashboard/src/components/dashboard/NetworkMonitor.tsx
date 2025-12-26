@@ -26,11 +26,32 @@ const NetworkMonitor = () => {
         let ifaceName = 'eth0';
 
         if (Array.isArray(data)) {
-          const primary = data.find((i: any) =>
-            i.interface_name !== 'lo' && !i.interface_name.startsWith('veth') && !i.interface_name.startsWith('docker')
-          ) || data[0];
+          // Filter out lo, veth, docker, br- interfaces
+          const physicalInterfaces = data.filter((i: any) =>
+            i.interface_name !== 'lo' &&
+            !i.interface_name.startsWith('veth') &&
+            !i.interface_name.startsWith('docker') &&
+            !i.interface_name.startsWith('br-')
+          );
+
+          // Prefer WiFi (wl*/wlan*) over Ethernet if available
+          const wifiInterface = physicalInterfaces.find((i: any) =>
+            i.interface_name.startsWith('wl') || i.interface_name.startsWith('wlan')
+          );
+          const primary = wifiInterface || physicalInterfaces[0] || data[0];
 
           if (primary) ifaceName = primary.interface_name;
+
+          // Map cryptic interface names to friendly names
+          const getFriendlyName = (name: string): string => {
+            if (name.startsWith('wl') || name.startsWith('wlan')) return 'WiFi';
+            if (name.startsWith('eth') || name.startsWith('enp') || name.startsWith('eno')) return 'Ethernet';
+            if (name.startsWith('wg')) return 'WireGuard';
+            if (name === 'lo') return 'Loopback';
+            return name.length > 10 ? name.slice(0, 8) + '...' : name;
+          };
+
+          ifaceName = getFriendlyName(ifaceName);
 
           data.forEach((iface: any) => {
             if (iface.interface_name === 'lo') return;
@@ -107,8 +128,8 @@ const NetworkMonitor = () => {
         >
           {/* Animated glow effect */}
           <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${internetEnabled
-              ? 'bg-gradient-to-r from-emerald-500/10 via-transparent to-emerald-500/10'
-              : 'bg-gradient-to-r from-red-500/10 via-transparent to-red-500/10'
+            ? 'bg-gradient-to-r from-emerald-500/10 via-transparent to-emerald-500/10'
+            : 'bg-gradient-to-r from-red-500/10 via-transparent to-red-500/10'
             }`} />
 
           <div className="flex items-center gap-1.5 mb-1 relative z-10">
@@ -125,8 +146,8 @@ const NetworkMonitor = () => {
 
             {/* Custom animated toggle */}
             <div className={`w-10 h-5 rounded-full relative transition-all duration-500 ${internetEnabled
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/30'
-                : 'bg-gradient-to-r from-red-500 to-orange-500 shadow-lg shadow-red-500/30'
+              ? 'bg-gradient-to-r from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/30'
+              : 'bg-gradient-to-r from-red-500 to-orange-500 shadow-lg shadow-red-500/30'
               }`}>
               <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-md transition-all duration-500 ${internetEnabled ? 'left-5' : 'left-0.5'
                 }`}>

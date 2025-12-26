@@ -28,7 +28,7 @@ const ServerStats = () => {
           fetch('/api/glances/mem'),
           fetch('/api/glances/uptime'),
           fetch('/api/glances/sensors'),
-          fetch('/api/glances/containers'),
+          fetch('/api/system/docker'),
           fetch('/api/system/os')  // Our system-api for real host OS
         ]);
 
@@ -81,14 +81,11 @@ const ServerStats = () => {
           }
         }
 
-        // Count running containers
+        // Count running containers via System API
         if (containersRes.status === 'fulfilled' && containersRes.value.ok) {
-          const containers = await containersRes.value.json();
-          if (Array.isArray(containers)) {
-            const running = containers.filter((c: any) =>
-              c.Status === 'running' || c.Status?.startsWith('Up')
-            ).length;
-            newData.containers = running;
+          const result = await containersRes.value.json();
+          if (result.success) {
+            newData.containers = result.running || 0;
           }
         }
 
