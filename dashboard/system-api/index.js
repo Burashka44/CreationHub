@@ -345,6 +345,46 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', service: 'system-api' });
 });
 
+// ==================== DOCKER CONTAINERS ====================
+app.get('/api/system/docker', (req, res) => {
+    const http = require('http');
+    const options = {
+        socketPath: '/var/run/docker.sock',
+        path: '/containers/json',
+        method: 'GET'
+    };
+    
+    const dockerReq = http.request(options, (dockerRes) => {
+        let data = '';
+        dockerRes.on('data', chunk => data += chunk);
+        dockerRes.on('end', () => {
+            try {
+                const containers = JSON.parse(data);
+                const running = containers.filter(c => c.State === 'running').length;
+                res.json({ 
+                    success: true, 
+                    total: containers.length, 
+                    running,
+                    containers: containers.map(c => ({
+                        name: c.Names[0].replace(/^\//, ''),
+                        status: c.Status,
+                        state: c.State
+                    }))
+                });
+            } catch(e) {
+                res.json({ success: false, error: e.message });
+            }
+        });
+    });
+    
+    dockerReq.on('error', (e) => {
+        res.json({ success: false, error: e.message });
+    });
+    
+    dockerReq.end();
+});
+
+// Start server
 app.listen(PORT, () => {
     console.log(`System API listening on port ${PORT}`);
     console.log(`WireGuard config dir: ${WG_CONFIG_DIR}`);

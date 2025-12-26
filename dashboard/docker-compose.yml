@@ -25,7 +25,6 @@ services:
       PGRST_DB_URI: "postgres://postgres:Tarantul1310@creationhub-postgres:5432/postgres"
       PGRST_DB_SCHEMA: public
       PGRST_DB_ANON_ROLE: postgres
-      PGRST_JWT_SECRET: "my-secret-jwt-secret-must-be-at-least-32-chars-long"
     restart: always
     networks:
       - default
@@ -37,7 +36,20 @@ services:
     restart: always
     environment:
       - DATABASE_URL=postgres://postgres:Tarantul1310@creationhub-postgres:5432/postgres
-      - GLANCES_URL=http://creationhub-glances:61208/api/4
+      - GLANCES_URL=http://192.168.1.220:61208/api/4
+    networks:
+      - default
+      - creationhub-backend
+
+  system-api:
+    build: ./system-api
+    container_name: creationhub_system_api
+    restart: always
+    ports:
+      - "9191:9191"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /etc:/host-etc:ro
     networks:
       - default
       - creationhub-backend
@@ -48,4 +60,10 @@ services:
     restart: always
     ports:
       - "11434:11434"
-volumes: {}
+    volumes:
+      - ${AI_DATA_PATH:-./ai_data}:/root/.ollama
+
+networks:
+  creationhub-backend:
+    external: true
+

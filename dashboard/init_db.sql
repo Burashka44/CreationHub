@@ -306,3 +306,231 @@ FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER update_ad_sales_updated_at
 BEFORE UPDATE ON public.ad_sales
 FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- Create table for managed services
+CREATE TABLE public.services (
+    id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    category TEXT NOT NULL DEFAULT 'admin',
+    port TEXT NOT NULL,
+    url TEXT,
+    icon TEXT DEFAULT 'server',
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    status TEXT DEFAULT 'unknown',
+    last_check_at TIMESTAMPTZ,
+    response_time_ms INTEGER,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Enable RLS
+ALTER TABLE public.services ENABLE ROW LEVEL SECURITY;
+
+-- Allow public access (services are not user-specific)
+CREATE POLICY "Allow public read access to services" 
+ON public.services 
+FOR SELECT 
+USING (true);
+
+CREATE POLICY "Allow public insert access to services" 
+ON public.services 
+FOR INSERT 
+WITH CHECK (true);
+
+CREATE POLICY "Allow public update access to services" 
+ON public.services 
+FOR UPDATE 
+USING (true);
+
+CREATE POLICY "Allow public delete access to services" 
+ON public.services 
+FOR DELETE 
+USING (true);
+
+-- Create table for service uptime history
+CREATE TABLE public.service_uptime (
+    id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+    service_id UUID NOT NULL REFERENCES public.services(id) ON DELETE CASCADE,
+    status TEXT NOT NULL,
+    response_time_ms INTEGER,
+    checked_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Enable RLS
+ALTER TABLE public.service_uptime ENABLE ROW LEVEL SECURITY;
+
+-- Allow public access
+CREATE POLICY "Allow public read access to service_uptime" 
+ON public.service_uptime 
+FOR SELECT 
+USING (true);
+
+CREATE POLICY "Allow public insert access to service_uptime" 
+ON public.service_uptime 
+FOR INSERT 
+WITH CHECK (true);
+
+-- Create indexes
+CREATE INDEX idx_service_uptime_service_id ON public.service_uptime(service_id);
+CREATE INDEX idx_service_uptime_checked_at ON public.service_uptime(checked_at DESC);
+
+-- Add trigger for updated_at
+CREATE TRIGGER update_services_updated_at
+BEFORE UPDATE ON public.services
+FOR EACH ROW
+EXECUTE FUNCTION public.update_updated_at_column();
+
+-- Insert default services
+INSERT INTO public.services (name, description, category, port, icon) VALUES
+('Portainer', 'Docker management', 'admin', '9000', 'container'),
+('Nginx Proxy Manager', 'Reverse proxy', 'admin', '81', 'shield'),
+('Glances', 'System monitor', 'admin', '61208', 'activity'),
+('WireGuard', 'VPN server', 'admin', '51820', 'key'),
+('Adminer', 'Database management', 'admin', '8080', 'database'),
+('Healthchecks', 'Uptime monitoring', 'admin', '8000', 'bell'),
+('Dozzle', 'Log viewer', 'admin', '8081', 'terminal'),
+('n8n', 'Workflow automation', 'work', '5678', 'workflow'),
+('yt-dlp', 'Video downloader', 'work', '8080', 'youtube'),
+('Whisper', 'Speech to text', 'work', '9000', 'mic'),
+('Browserless', 'Headless Chrome', 'work', '3000', 'chrome'),
+('RSSHub', 'RSS generator', 'work', '1200', 'rss'),
+('LibreTranslate', 'Translation API', 'work', '5000', 'languages'),
+('Grafana', 'Analytics', 'data', '3000', 'bar-chart-3'),
+('Nextcloud', 'Cloud storage', 'data', '8083', 'cloud'),
+('File Browser', 'File manager', 'data', '8082', 'folder-open');-- Missing tables for CreationHub Dashboard - Complete Schema Fix
+-- Run: docker exec -i creationhub-postgres psql -U postgres < fix_missing_tables.sql
+
+-- ============================================
+-- ADMINS
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.admins (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    email TEXT UNIQUE,
+    role TEXT DEFAULT 'admin',
+    avatar_url TEXT,
+    is_active BOOLEAN DEFAULT true,
+    last_login_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================
+-- TELEGRAM
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.telegram_bots (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    token TEXT,
+    username TEXT,
+    is_active BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.telegram_ads (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    bot_id UUID REFERENCES telegram_bots(id),
+    title TEXT NOT NULL,
+    content TEXT,
+    image_url TEXT,
+    status TEXT DEFAULT 'draft',
+    clicks INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================
+-- MEDIA
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.media_channels (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    platform TEXT DEFAULT 'youtube',
+    channel_id TEXT,
+    subscribers INTEGER DEFAULT 0,
+    views INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.channel_ad_rates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    channel_id UUID REFERENCES media_channels(id),
+    ad_type TEXT,
+    price DECIMAL(10,2),
+    duration_days INTEGER DEFAULT 7,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================
+-- AD SYSTEM
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.ad_sales (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    channel_id UUID,
+    buyer_name TEXT,
+    amount DECIMAL(10,2),
+    status TEXT DEFAULT 'pending',
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.ad_purchases (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    channel_id UUID,
+    seller_name TEXT,
+    amount DECIMAL(10,2),
+    status TEXT DEFAULT 'pending',
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.ad_clicks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ad_id UUID,
+    ip_address TEXT,
+    user_agent TEXT,
+    clicked_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================
+-- AI REQUESTS
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.ai_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    model TEXT DEFAULT 'gpt-4',
+    prompt TEXT,
+    response TEXT,
+    tokens_used INTEGER DEFAULT 0,
+    cost DECIMAL(10,4) DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================
+-- SERVICE UPTIME
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.service_uptime (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    service_id UUID REFERENCES services(id),
+    status TEXT DEFAULT 'unknown',
+    response_time_ms INTEGER,
+    checked_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================
+-- ENABLE RLS FOR ALL NEW TABLES
+-- ============================================
+DO $$
+DECLARE
+    tbl TEXT;
+BEGIN
+    FOR tbl IN SELECT unnest(ARRAY[
+        'admins', 'telegram_bots', 'telegram_ads', 'media_channels',
+        'channel_ad_rates', 'ad_sales', 'ad_purchases', 'ad_clicks',
+        'ai_requests', 'service_uptime'
+    ])
+    LOOP
+        EXECUTE format('ALTER TABLE public.%s ENABLE ROW LEVEL SECURITY', tbl);
+        EXECUTE format('DROP POLICY IF EXISTS "allow_all_%s" ON public.%s', tbl, tbl);
+        EXECUTE format('CREATE POLICY "allow_all_%s" ON public.%s FOR ALL USING (true) WITH CHECK (true)', tbl, tbl);
+    END LOOP;
+END $$;
+
+SELECT 'All 10 missing tables created successfully!' as result;

@@ -81,10 +81,63 @@ echo "AI_DATA_PATH=$AI_PATH" >> .env
 
 echo -e "${GREEN}Configuration saved! AI Models will be stored in: $AI_PATH${NC}"
 
+# ===========================================
+# Pre-flight Checks
+# ===========================================
+if ! command -v docker &> /dev/null; then
+    whiptail --title "Error" --msgbox "Docker is not installed!\n\nPlease install Docker first:\nhttps://docs.docker.com/engine/install/" 12 60
+    exit 1
+fi
+
+if ! docker info &> /dev/null; then
+    whiptail --title "Error" --msgbox "Docker daemon is not running or you don't have permissions.\n\nTry: sudo usermod -aG docker $USER" 12 60
+    exit 1
+fi
+
+# ===========================================
+# Database Network Check
+# ===========================================
+# Create external network if it doesn't exist
+docker network create creationhub-backend 2>/dev/null || true
+
 # Confirm Launch
 if (whiptail --title "Ready to Install" --yesno "Configuration complete.\n\nSelected Storage: $AI_PATH\n\nStart installation now? (This will run docker compose up)" 12 70); then
     echo "Starting CreationHub..."
+    
+    # Use dashboard compose file
+    cd dashboard
     docker compose up -d --build
+    
+    # ===========================================
+    # Database Initialization
+    # ===========================================
+    echo -e "${GREEN}Waiting for PostgreSQL to be ready...${NC}"
+    sleep 10
+    
+    # Check if PostgreSQL is ready
+    for i in {1..30}; do
+        if docker exec creationhub-postgres pg_isready -U postgres &>/dev/null; then
+            echo -e "${GREEN}PostgreSQL is ready!${NC}"
+            break
+        fi
+        echo "Waiting for PostgreSQL... ($i/30)"
+        sleep 2
+    done
+    
+    # Initialize database tables
+    echo -e "${GREEN}Initializing database...${NC}"
+    docker exec -i creationhub-postgres psql -U postgres < init_db.sql 2>/dev/null || true
+    
+    # Apply any additional migration scripts
+    if [ -f scripts/fix_missing_tables.sql ]; then
+        docker exec -i creationhub-postgres psql -U postgres < scripts/fix_missing_tables.sql 2>/dev/null || true
+    fi
+    
+    # Reload PostgREST schema cache
+    docker kill -s SIGUSR1 creationhub_api 2>/dev/null || true
+    echo -e "${GREEN}Database initialized!${NC}"
+    
+    cd ..
     
     # Check if we should pull Llama 3
     if (whiptail --title "AI Setup" --yesno "Do you want to download the Local Copilot model (Llama 3) now?\n\nThis is highly recommended for the Chat feature to work immediately.\nSize: ~4.7GB" 12 70); then
@@ -93,7 +146,11 @@ if (whiptail --title "Ready to Install" --yesno "Configuration complete.\n\nSele
         whiptail --title "Success" --msgbox "Llama 3 installed successfully!" 8 45
     fi
 
-    whiptail --title "Installation Complete" --msgbox "CreationHub is running!\n\nOpen http://localhost:7777 in your browser." 10 60
+    # Get server IP
+    SERVER_IP=$(hostname -I | awk '{print $1}')
+    
+    whiptail --title "Installation Complete" --msgbox "CreationHub is running!\n\nOpen http://${SERVER_IP}:7777 in your browser.\n\nServices:\n- Dashboard: :7777\n- Portainer: :9000\n- n8n: :5678" 14 60
 else
-    echo "Installation ready. Run 'docker compose up -d' manually."
+    echo "Installation ready. Run 'cd dashboard && docker compose up -d' manually."
 fi
+
