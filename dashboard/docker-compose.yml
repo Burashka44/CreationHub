@@ -1,46 +1,78 @@
 services:
+  # ===========================================
+  # Frontend Dashboard
+  # ===========================================
   creationhub:
     build: 
       context: .
       args:
         - VITE_SUPABASE_URL=/api/v1
-        - VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoicG9zdGdyZXMiLCJleHAiOjIwODE2NzIxNTF9.-gu0krXvHDXGb2LVREvlEg43hO6BHZ2Vjb9mTS-BGLk
+        - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoicG9zdGdyZXMifQ.placeholder}
     container_name: creationhub
     ports:
       - "7777:80"
     restart: always
+    depends_on:
+      postgrest:
+        condition: service_started
     environment:
       - VITE_SUPABASE_URL=/api/v1
-      - VITE_SUPABASE_ANON_KEY=my-secret-anon-key
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY:-anonymous}
     networks:
       - default
       - creationhub-backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ===========================================
+  # PostgREST API
+  # ===========================================
   postgrest:
     image: postgrest/postgrest
     container_name: creationhub_api
     ports:
       - "7778:3000"
     environment:
-      PGRST_DB_URI: "postgres://postgres:Tarantul1310@creationhub-postgres:5432/postgres"
+      PGRST_DB_URI: "postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@creationhub-postgres:5432/${POSTGRES_DB:-postgres}"
       PGRST_DB_SCHEMA: public
-      PGRST_DB_ANON_ROLE: postgres
+      PGRST_DB_ANON_ROLE: ${POSTGRES_USER:-postgres}
     restart: always
     networks:
       - default
       - creationhub-backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ===========================================
+  # Stats Recorder (System Metrics)
+  # ===========================================
   stats-recorder:
     build: ./stats-recorder
     container_name: creationhub_stats
     restart: always
     environment:
-      - DATABASE_URL=postgres://postgres:Tarantul1310@creationhub-postgres:5432/postgres
-      - GLANCES_URL=http://192.168.1.220:61208/api/4
+      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@creationhub-postgres:5432/${POSTGRES_DB:-postgres}
+      - GLANCES_URL=${GLANCES_URL:-http://host.docker.internal:61208/api/4}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - default
       - creationhub-backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ===========================================
+  # System API (Docker Monitoring)
+  # ===========================================
   system-api:
     build: ./system-api
     container_name: creationhub_system_api
@@ -48,12 +80,20 @@ services:
     ports:
       - "9191:9191"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - /etc:/host-etc:ro
     networks:
       - default
       - creationhub-backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ===========================================
+  # Ollama (AI Chat)
+  # ===========================================
   ollama:
     image: ollama/ollama:latest
     container_name: creationhub_ollama
@@ -62,8 +102,18 @@ services:
       - "11434:11434"
     volumes:
       - ${AI_DATA_PATH:-./ai_data}:/root/.ollama
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 2G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   creationhub-backend:
     external: true
-
