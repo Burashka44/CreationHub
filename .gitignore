@@ -27,3 +27,7 @@ docker-compose.override.yml
 .idea/
 orchestration/services/volumes/
 orchestration/backups/*.tar.gz
+
+# Logs
+*.log
+orchestration/logs/
