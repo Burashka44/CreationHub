@@ -16,6 +16,13 @@ services:
       - "10200:10200" # Wyoming Protocol
     volumes:
       - /home/inno/creationhub/orchestration/volumes/ai/piper:/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     command: --voice en_US-lessac-medium --data-dir /data --uri tcp://0.0.0.0:10200
 
 networks:

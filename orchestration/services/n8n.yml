@@ -2,7 +2,10 @@ name: creationhub-n8n
 
 services:
   n8n:
-    image: n8nio/n8n:latest
+    build:
+      context: ../builds/n8n-python
+      dockerfile: Dockerfile
+    image: creationhub-n8n-python:latest
     container_name: creationhub-n8n
     restart: unless-stopped
     labels:
