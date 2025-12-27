@@ -19,7 +19,9 @@ services:
     environment:
       - LT_HOST=0.0.0.0
       - LT_PORT=5000
-      - LT_UPDATE_MODELS=true # Auto-update models on restart
+      - LT_UPDATE_MODELS=true
+      # Only load these languages (en=English, de=German, ru=Russian, hi=Hindi, pt=Portuguese-Brazilian)
+      - LT_LOAD_ONLY=en,de,ru,hi,pt
 
 networks:
   backend:
