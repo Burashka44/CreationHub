@@ -17,9 +17,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 4G
+          memory: 6G
         reservations:
-          memory: 1G
+          memory: 2G
           devices:
             - driver: nvidia
               count: 1
@@ -27,9 +27,9 @@ services:
     volumes:
       - /home/inno/creationhub/orchestration/volumes/ai/whisper:/root/.cache/huggingface
     environment:
-      # Use medium for balance of speed/quality (large-v3 for max accuracy)
-      - WHISPER_MODEL=medium
-      - WHISPER_BEAM_SIZE=3
+      # Best quality model (on-demand allows higher resources)
+      - WHISPER_MODEL=large-v3
+      - WHISPER_BEAM_SIZE=5
       - WHISPER_COMPUTE_TYPE=float16
       # OpenAI API compatibility
       - UVICORN_HOST=0.0.0.0

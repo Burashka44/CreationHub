@@ -119,6 +119,26 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # ===========================================
+  # AI Gateway (On-Demand Service Manager)
+  # ===========================================
+  ai-gateway:
+    build: ./ai-gateway
+    container_name: creationhub_ai_gateway
+    restart: always
+    ports:
+      - "9292:9292"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - default
+      - creationhub-backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 networks:
   creationhub-backend:
     external: true
