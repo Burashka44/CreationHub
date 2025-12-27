@@ -82,6 +82,11 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /etc:/host-etc:ro
+      - /etc/wireguard:/etc/wireguard
+    environment:
+      - WG_CONFIG_DIR=/etc/wireguard
+      - OS_RELEASE_PATH=/host-etc/os-release
+      - RESOLV_CONF_PATH=/host-etc/resolv.conf
     networks:
       - default
       - creationhub-backend
