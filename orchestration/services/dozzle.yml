@@ -19,4 +19,5 @@ services:
     environment:
       - DOZZLE_LEVEL=info
       - DOZZLE_TAIL=100
+      - DOZZLE_THEME=dark
 

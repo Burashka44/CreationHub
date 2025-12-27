@@ -20,6 +20,7 @@ services:
       - WGUI_PASSWORD=${POSTGRES_PASSWORD}
       - WGUI_WG_POST_UP_SCRIPT=iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
       - WGUI_WG_POST_DOWN_SCRIPT=iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+      - WGUI_DARK_MODE=true
     volumes:
       - /home/inno/creationhub/orchestration/volumes/wireguard-ui/db:/app/db
       - /etc/wireguard:/etc/wireguard

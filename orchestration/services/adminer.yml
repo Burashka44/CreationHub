@@ -14,6 +14,7 @@ services:
       - "8083:8080"
     environment:
       ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_DESIGN: dracula
 
 networks:
   backend:

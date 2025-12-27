@@ -33,6 +33,8 @@ services:
       - N8N_SECURE_COOKIE=false # Critical for LAN IP access
       
       - WEBHOOK_URL=http://${CREATIONHUB_HOST}:5678/
+      - N8N_PERSONALIZATION_ENABLED=false
+      - N8N_DEFAULT_THEME=dark
       
     volumes:
       - /home/inno/creationhub/orchestration/volumes/n8n:/home/node/.n8n
