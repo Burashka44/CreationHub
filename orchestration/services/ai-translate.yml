@@ -22,6 +22,12 @@ services:
       - LT_UPDATE_MODELS=true
       # Only load these languages (7 total, ~3.5GB RAM)
       - LT_LOAD_ONLY=en,de,ru,zh,es,fr,ja
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 1G
 
 networks:
   backend:

@@ -18,11 +18,8 @@ services:
       - /home/inno/creationhub/orchestration/volumes/ai/piper:/data
     deploy:
       resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+        limits:
+          memory: 1G
     command: --voice en_US-lessac-medium --data-dir /data --uri tcp://0.0.0.0:10200
 
 networks:
