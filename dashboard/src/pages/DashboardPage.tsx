@@ -26,7 +26,6 @@ interface Service {
 const DashboardPage = () => {
   const { t } = useLanguage();
   const [services, setServices] = useState<Service[]>([]);
-  const serverIp = '192.168.1.220';
 
   // Fetch services from database - same source as Services page
   const fetchServices = async () => {
