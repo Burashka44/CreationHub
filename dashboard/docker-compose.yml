@@ -21,6 +21,8 @@ services:
     networks:
       - default
       - creationhub-backend
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     logging:
       driver: "json-file"
       options:
