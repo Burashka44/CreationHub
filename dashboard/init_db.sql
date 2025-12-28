@@ -398,7 +398,12 @@ INSERT INTO public.services (name, description, category, port, icon) VALUES
 ('LibreTranslate', 'Translation API', 'work', '5000', 'languages'),
 ('Grafana', 'Analytics', 'data', '3000', 'bar-chart-3'),
 ('Nextcloud', 'Cloud storage', 'data', '8083', 'cloud'),
-('File Browser', 'File manager', 'data', '8082', 'folder-open');-- Missing tables for CreationHub Dashboard - Complete Schema Fix
+('File Browser', 'File manager', 'data', '8082', 'folder-open'),
+('IOPaint', 'AI-инпейнтинг для удаления водяных знаков', 'AI Studio', '8585', 'eraser'),
+('SAM 2', 'Сегментация и отслеживание объектов', 'AI Studio', '8787', 'scan'),
+('Video Processor', 'API обработки видео с FFmpeg', 'AI Studio', '8686', 'video');
+
+-- Missing tables for CreationHub Dashboard - Complete Schema Fix
 -- Run: docker exec -i creationhub-postgres psql -U postgres < fix_missing_tables.sql
 
 -- ============================================
