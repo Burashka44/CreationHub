@@ -119,18 +119,27 @@ function VideoPipelinePage() {
     const checkServicesStatus = async () => {
         const checkService = async (url: string) => {
             try {
-                const response = await fetch(url, { method: 'GET', mode: 'no-cors' });
-                return true;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                const response = await fetch(url, {
+                    method: 'GET',
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                return response.ok;
             } catch {
                 return false;
             }
         };
 
+        // Use API proxy routes or check directly via server IP
+        const serverIP = window.location.hostname;
+
         setServicesStatus({
-            videoProcessor: await checkService('http://localhost:8686/health'),
-            iopaint: await checkService('http://localhost:8585'),
-            sam2: await checkService('http://localhost:8787/health'),
-            ollama: await checkService('http://localhost:11434/api/tags'),
+            videoProcessor: await checkService(`http://${serverIP}:8686/health`),
+            iopaint: await checkService(`http://${serverIP}:8585/`),
+            sam2: await checkService(`http://${serverIP}:8787/health`),
+            ollama: await checkService(`http://${serverIP}:11434/api/tags`),
         });
     };
 
