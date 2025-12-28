@@ -1,0 +1,33 @@
+name: creationhub-video-processor
+
+services:
+  # Video Processor API - FFmpeg + AI integration for n8n
+  video-processor:
+    build:
+      context: ../builds/video-processor
+      dockerfile: Dockerfile
+    image: creationhub-video-processor:latest
+    container_name: creationhub-video-processor
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.scope=apps
+    networks:
+      - backend
+    ports:
+      - "8686:8686"
+    volumes:
+      - /home/inno/creationhub/orchestration/volumes/media:/media
+    environment:
+      - OLLAMA_URL=http://creationhub_ollama:11434
+      - IOPAINT_URL=http://creationhub-iopaint:8080
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    depends_on:
+      - iopaint
+
+networks:
+  backend:
+    external: true
+    name: creationhub-backend

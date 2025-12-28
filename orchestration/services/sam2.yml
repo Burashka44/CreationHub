@@ -1,0 +1,38 @@
+name: creationhub-sam2
+
+services:
+  # SAM 2 - Segment Anything Model 2 for object tracking
+  # Docs: https://github.com/facebookresearch/segment-anything-2
+  sam2:
+    build:
+      context: ../builds/sam2
+      dockerfile: Dockerfile
+    image: creationhub-sam2:latest
+    container_name: creationhub-sam2
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.scope=apps
+    networks:
+      - backend
+    ports:
+      - "8787:8787"
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+        reservations:
+          memory: 2G
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - /home/inno/creationhub/orchestration/volumes/sam2:/app/checkpoints
+      - /home/inno/creationhub/orchestration/volumes/media:/media
+    environment:
+      - TORCH_HOME=/app/checkpoints
+
+networks:
+  backend:
+    external: true
+    name: creationhub-backend

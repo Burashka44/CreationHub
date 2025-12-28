@@ -1,0 +1,34 @@
+name: creationhub-iopaint
+
+services:
+  # IOPaint - AI Image Inpainting for watermark removal
+  # Docs: https://github.com/Sanster/IOPaint
+  iopaint:
+    build:
+      context: ../builds/iopaint
+      dockerfile: Dockerfile
+    image: creationhub-iopaint:latest
+    container_name: creationhub-iopaint
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.scope=apps
+    networks:
+      - backend
+    ports:
+      - "8585:8080"
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 1G
+    volumes:
+      - /home/inno/creationhub/orchestration/volumes/media:/media
+      - /home/inno/creationhub/orchestration/volumes/iopaint:/root/.cache
+    environment:
+      - TORCH_HOME=/root/.cache
+
+networks:
+  backend:
+    external: true
+    name: creationhub-backend
