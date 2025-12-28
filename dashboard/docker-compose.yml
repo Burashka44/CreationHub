@@ -7,7 +7,7 @@ services:
       context: .
       args:
         - VITE_SUPABASE_URL=/api/v1
-        - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoicG9zdGdyZXMifQ.placeholder}
+        - VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoicG9zdGdyZXMiLCJleHAiOjIwODE2NzIxNTF9.230cB1C85ECp3N5eXO4xOXabWYbA7bEVqDQ87tM1ZJ4
     container_name: creationhub
     ports:
       - "7777:80"
@@ -17,7 +17,7 @@ services:
         condition: service_started
     environment:
       - VITE_SUPABASE_URL=/api/v1
-      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY:-anonymous}
+      - VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoicG9zdGdyZXMiLCJleHAiOjIwODE2NzIxNTF9.230cB1C85ECp3N5eXO4xOXabWYbA7bEVqDQ87tM1ZJ4
     networks:
       - default
       - creationhub-backend
@@ -41,6 +41,7 @@ services:
       PGRST_DB_URI: "postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@creationhub-postgres:5432/${POSTGRES_DB:-postgres}"
       PGRST_DB_SCHEMA: public
       PGRST_DB_ANON_ROLE: ${POSTGRES_USER:-postgres}
+      PGRST_JWT_SECRET: "${JWT_SECRET:-super-secret-jwt-key-for-creationhub-2024}"
     restart: always
     networks:
       - default
