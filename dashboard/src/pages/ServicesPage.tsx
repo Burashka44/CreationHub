@@ -192,24 +192,24 @@ const ServicesPage = () => {
   };
 
   const checkServiceStatus = async (service: Service): Promise<string> => {
-    // Construct URL based on current server IP (from window.location or state) and service port
-    const targetUrl = `http://${serverIp}:${service.port}`;
+    // Construct local docker target for server-side ping
+    // If running in docker, using internal hostname/IP is better, but window.location.hostname works if ports mapped
+    // Actually, AI Gateway runs in docker network, so we can check internal IPs or external.
+    // Let's use the port and current hostname (which is reachable from container?)
+    // Wait, AI Gateway is in container. Server IP 192.168.1.220 is reachable.
+
+    const target = `${serverIp}:${service.port}`;
+    const checkUrl = `/api/ping?target=${target}`;
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
-
-      // We use no-cors because most services won't have CORS headers for us.
-      // We just want to know if it connects.
-      await fetch(targetUrl, {
-        mode: 'no-cors',
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-      return 'online';
+      const response = await fetch(checkUrl, { cache: 'no-store' });
+      if (response.ok) {
+        const data = await response.json();
+        return data.ok ? 'online' : 'offline';
+      }
+      return 'offline';
     } catch (error) {
-      // If fetches fail (network error, timeout), it's likely offline or blocked
+      // Fallback to client-side check if API fails? No, API is robust.
       return 'offline';
     }
   };

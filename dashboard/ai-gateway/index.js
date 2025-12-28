@@ -226,6 +226,31 @@ app.post('/api/ai/:service/stop', async (req, res) => {
     }
 });
 
+// Ping endpoint for checking external services
+app.get('/api/ping', async (req, res) => {
+    const { target } = req.query;
+    if (!target) return res.status(400).json({ error: 'Target required (e.g. 192.168.1.220:5678)' });
+
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+        // Use http protocol if not specified
+        const url = target.startsWith('http') ? target : `http://${target}`;
+
+        const response = await fetch(url, {
+            method: 'HEAD',
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        // 404 is technically functional, 401 is functional
+        res.json({ ok: true, status: response.status });
+    } catch (error) {
+        res.status(503).json({ ok: false, error: error.message });
+    }
+});
+
 const PORT = process.env.PORT || 9292;
 app.listen(PORT, () => {
     console.log(`AI Gateway running on port ${PORT}`);
