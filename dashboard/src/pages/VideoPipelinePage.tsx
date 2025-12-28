@@ -232,6 +232,13 @@ function VideoPipelinePage() {
                                     max={100}
                                     step={5}
                                 />
+                                <div className="flex justify-between text-xs text-muted-foreground px-1">
+                                    <span>10%</span>
+                                    <span>25%</span>
+                                    <span>50%</span>
+                                    <span>75%</span>
+                                    <span>100%</span>
+                                </div>
                                 <p className="text-sm text-muted-foreground">
                                     Высокая чувствительность — больше обнаружений, возможны ложные срабатывания
                                 </p>
@@ -406,6 +413,12 @@ function VideoPipelinePage() {
                                     max={4}
                                     step={1}
                                 />
+                                <div className="flex justify-between text-xs text-muted-foreground px-1">
+                                    <span>1</span>
+                                    <span>2</span>
+                                    <span>3</span>
+                                    <span>4</span>
+                                </div>
                                 <p className="text-sm text-muted-foreground">
                                     Больше задач = быстрее, но требует больше RAM/VRAM
                                 </p>
@@ -420,6 +433,13 @@ function VideoPipelinePage() {
                                     max={30}
                                     step={1}
                                 />
+                                <div className="flex justify-between text-xs text-muted-foreground px-1">
+                                    <span>1</span>
+                                    <span>7</span>
+                                    <span>14</span>
+                                    <span>21</span>
+                                    <span>30</span>
+                                </div>
                             </div>
 
                             <div className="pt-4 border-t">
@@ -460,9 +480,9 @@ function VideoPipelinePage() {
                                             </div>
                                             <div className="text-right">
                                                 <span className={`px-2 py-1 rounded text-xs ${job.status === 'completed' ? 'bg-green-500/20 text-green-500' :
-                                                        job.status === 'processing' ? 'bg-blue-500/20 text-blue-500' :
-                                                            job.status === 'failed' ? 'bg-red-500/20 text-red-500' :
-                                                                'bg-gray-500/20 text-gray-500'
+                                                    job.status === 'processing' ? 'bg-blue-500/20 text-blue-500' :
+                                                        job.status === 'failed' ? 'bg-red-500/20 text-red-500' :
+                                                            'bg-gray-500/20 text-gray-500'
                                                     }`}>
                                                     {job.status}
                                                 </span>
