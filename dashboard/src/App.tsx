@@ -17,6 +17,7 @@ import SettingsPage from "./pages/SettingsPage";
 import AdminsPage from "./pages/AdminsPage";
 import MediaAnalyticsPage from "./pages/MediaAnalyticsPage";
 import AIHubPage from "./pages/AIHubPage";
+import VideoPipelinePage from "./pages/VideoPipelinePage";
 import ServicesPage from "./pages/ServicesPage";
 import NotFound from "./pages/NotFound";
 
@@ -35,7 +36,7 @@ const App = () => (
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/services" element={<ServicesPage />} />
                 <Route path="/media" element={<MediaAnalyticsPage />} />
-                
+
                 <Route path="/admins" element={<AdminsPage />} />
                 <Route path="/data" element={<DataPage />} />
                 <Route path="/network" element={<NetworkPage />} />
@@ -43,6 +44,7 @@ const App = () => (
                 <Route path="/backups" element={<BackupsPage />} />
                 <Route path="/activity" element={<ActivityPage />} />
                 <Route path="/ai-hub" element={<AIHubPage />} />
+                <Route path="/video-pipeline" element={<VideoPipelinePage />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Route>
               <Route path="*" element={<NotFound />} />
