@@ -104,44 +104,20 @@ const formatDuration = (seconds: number) => {
 };
 
 // Generate mock views data per channel
+// Mock data generation disabled for production
 const generateChannelViewsData = () => {
-  const data = [];
-  const baseViews = Math.floor(Math.random() * 50000) + 10000;
-  for (let i = 29; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    data.push({
-      date: date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }),
-      views: Math.floor(baseViews + Math.random() * 20000 - 10000),
-      watchTime: Math.floor(Math.random() * 5000) + 1000,
-      impressions: Math.floor(Math.random() * 100000) + 20000,
-    });
-  }
-  return data;
+  // TODO: Connect to real stats table
+  return [];
 };
 
-// Generate mock subscriber data for Telegram
 const generateSubscriberData = () => {
-  const data = [];
-  for (let i = 29; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    data.push({
-      date: date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }),
-      subscribed: Math.floor(Math.random() * 150) + 50,
-      unsubscribed: Math.floor(Math.random() * 80) + 20,
-    });
-  }
-  return data;
+  // TODO: Connect to real stats table
+  return [];
 };
 
 // Traffic source data
 const generateTrafficSources = () => [
-  { name: 'Рекомендации', value: 45, color: '#FF6B6B' },
-  { name: 'Поиск', value: 25, color: '#4ECDC4' },
-  { name: 'Внешние ссылки', value: 15, color: '#45B7D1' },
-  { name: 'Прямой трафик', value: 10, color: '#96CEB4' },
-  { name: 'Подписки', value: 5, color: '#FFEAA7' },
+  // TODO: Connect to real stats table
 ];
 
 const MediaAnalyticsPage = () => {

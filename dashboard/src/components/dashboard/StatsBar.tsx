@@ -9,11 +9,11 @@ const StatsBar = () => {
   const [osInfo, setOsInfo] = React.useState<any>(null);
   const [uptimeStr, setUptimeStr] = React.useState('Loading...');
 
-  // Default/mock data for gauges (still missing backend for these)
-  const cpuUsage = 45;
-  const memoryUsage = 62;
-  const diskUsage = 38;
-  const ipLocation = { city: 'N/A', country: 'XX', ip: 'Loading...' };
+  // Real stats not yet connected, setting to 0 to avoid confusion
+  const cpuUsage = 0;
+  const memoryUsage = 0;
+  const diskUsage = 0;
+  const ipLocation = { city: 'Unknown', country: 'XX', ip: 'Unknown' };
 
   React.useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
