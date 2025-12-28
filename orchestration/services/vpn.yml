@@ -25,7 +25,7 @@ services:
       - egress
     ports:
       - 51820:51820/udp # Open port for incoming? No, client mode usually doesn't need this unless P2P.
-      - 8080:8080       # Exposing yt-dlp API (routed through VPN)
+      - "8084:8080"     # Exposing yt-dlp API (routed through VPN)
       
   # VPN Manager (UI & Controller)
   vpn-manager:

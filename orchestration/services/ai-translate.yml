@@ -31,8 +31,10 @@ services:
 
 networks:
   backend:
-    external: true
     name: creationhub-backend
-  egress:
     external: true
+  egress:
     name: creationhub-egress
+    external: true
+
+

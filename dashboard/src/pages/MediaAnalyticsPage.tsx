@@ -720,13 +720,7 @@ const MediaAnalyticsPage = () => {
 
   return (
     <div className="space-y-6">
-      <Alert className="bg-amber-500/10 border-amber-500/50 text-amber-600 dark:text-amber-400">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Demo Mode</AlertTitle>
-        <AlertDescription>
-          Historical analytics data is currently simulated for demonstration purposes. Connecting real platform APIs requires additional configuration.
-        </AlertDescription>
-      </Alert>
+
 
       {/* Header */}
       <div className="flex items-center justify-between">

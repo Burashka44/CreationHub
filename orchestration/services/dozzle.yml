@@ -21,3 +21,10 @@ services:
       - DOZZLE_TAIL=100
       - DOZZLE_THEME=dark
 
+networks:
+  backend:
+    name: creationhub-backend
+    external: true
+  egress:
+    name: creationhub-egress
+    external: true
