@@ -728,8 +728,10 @@ const ServicesPage = () => {
                     size="sm"
                     variant="ghost"
                     className="gap-1.5 h-7"
-                    onClick={() => window.open(getServiceUrl(service), '_blank')}
-                    disabled={service.status === 'offline'}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.open(getServiceUrl(service), '_blank');
+                    }}
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
                   </Button>
