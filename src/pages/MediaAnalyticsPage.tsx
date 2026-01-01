@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { 
-  BarChart3, Users, Eye, TrendingUp, Youtube, Video, 
+import {
+  BarChart3, Users, Eye, TrendingUp, Youtube, Video,
   MessageCircle, Plus, UserPlus, UserMinus, ChevronDown, ChevronRight,
   Play, ExternalLink, Trash2, DollarSign, Clock, ThumbsUp, MessageSquare,
   Share2, MousePointer, Target, Calendar, Link2, Copy, Check, Settings,
@@ -14,6 +14,7 @@ import TelegramIntegration from '@/components/media/TelegramIntegration';
 import AdAnalytics from '@/components/media/AdAnalytics';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
@@ -24,8 +25,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
-import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, 
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, AreaChart, Area, BarChart as RechartsBarChart, Bar, PieChart as RechartsPieChart, Pie, Cell
 } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
@@ -103,44 +104,20 @@ const formatDuration = (seconds: number) => {
 };
 
 // Generate mock views data per channel
+// Mock data generation disabled for production
 const generateChannelViewsData = () => {
-  const data = [];
-  const baseViews = Math.floor(Math.random() * 50000) + 10000;
-  for (let i = 29; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    data.push({
-      date: date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }),
-      views: Math.floor(baseViews + Math.random() * 20000 - 10000),
-      watchTime: Math.floor(Math.random() * 5000) + 1000,
-      impressions: Math.floor(Math.random() * 100000) + 20000,
-    });
-  }
-  return data;
+  // TODO: Connect to real stats table
+  return [];
 };
 
-// Generate mock subscriber data for Telegram
 const generateSubscriberData = () => {
-  const data = [];
-  for (let i = 29; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    data.push({
-      date: date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }),
-      subscribed: Math.floor(Math.random() * 150) + 50,
-      unsubscribed: Math.floor(Math.random() * 80) + 20,
-    });
-  }
-  return data;
+  // TODO: Connect to real stats table
+  return [];
 };
 
 // Traffic source data
 const generateTrafficSources = () => [
-  { name: 'Рекомендации', value: 45, color: '#FF6B6B' },
-  { name: 'Поиск', value: 25, color: '#4ECDC4' },
-  { name: 'Внешние ссылки', value: 15, color: '#45B7D1' },
-  { name: 'Прямой трафик', value: 10, color: '#96CEB4' },
-  { name: 'Подписки', value: 5, color: '#FFEAA7' },
+  // TODO: Connect to real stats table
 ];
 
 const MediaAnalyticsPage = () => {
@@ -160,7 +137,7 @@ const MediaAnalyticsPage = () => {
   const [syncingAllTelegram, setSyncingAllTelegram] = useState(false);
   const [editingChannel, setEditingChannel] = useState<MediaChannel | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     platform: 'youtube',
@@ -194,7 +171,7 @@ const MediaAnalyticsPage = () => {
       .from('media_channels')
       .select('*')
       .order('subscribers', { ascending: false });
-    
+
     if (error) {
       toast({ title: t('error'), description: error.message, variant: 'destructive' });
     } else {
@@ -213,7 +190,7 @@ const MediaAnalyticsPage = () => {
       .from('telegram_ads')
       .select('*')
       .order('created_at', { ascending: false });
-    
+
     if (error) {
       console.error('Error fetching ads:', error);
     } else {
@@ -242,7 +219,7 @@ const MediaAnalyticsPage = () => {
         watch_hours: formData.watch_hours,
         revenue: formData.revenue,
       });
-    
+
     if (error) {
       toast({ title: t('error'), description: error.message, variant: 'destructive' });
     } else {
@@ -274,7 +251,7 @@ const MediaAnalyticsPage = () => {
         end_date: adFormData.end_date || null,
         status: 'active',
       });
-    
+
     if (error) {
       toast({ title: t('error'), description: error.message, variant: 'destructive' });
     } else {
@@ -302,7 +279,7 @@ const MediaAnalyticsPage = () => {
 
   const handleUpdateChannel = async () => {
     if (!editingChannel) return;
-    
+
     const { error } = await supabase
       .from('media_channels')
       .update({
@@ -310,9 +287,22 @@ const MediaAnalyticsPage = () => {
         channel_url: editingChannel.channel_url,
         username: editingChannel.username,
         channel_id: editingChannel.channel_id,
+        subscribers: editingChannel.subscribers,
+        views: editingChannel.views,
+        likes: editingChannel.likes,
+        comments: editingChannel.comments,
+        shares: editingChannel.shares,
+        engagement: editingChannel.engagement,
+        growth: editingChannel.growth,
+        watch_hours: editingChannel.watch_hours,
+        avg_view_duration: editingChannel.avg_view_duration,
+        ctr: editingChannel.ctr,
+        revenue: editingChannel.revenue,
+        videos_count: editingChannel.videos_count,
+        is_monetized: editingChannel.is_monetized,
       })
       .eq('id', editingChannel.id);
-    
+
     if (error) {
       toast({ title: t('error'), description: error.message, variant: 'destructive' });
     } else {
@@ -327,20 +317,20 @@ const MediaAnalyticsPage = () => {
     setSyncingAllTelegram(true);
     try {
       const { data, error } = await supabase.functions.invoke('fetch-telegram-stats');
-      
+
       if (error) throw error;
-      
+
       if (data.configured === false) {
-        toast({ 
-          title: 'Бот не настроен', 
+        toast({
+          title: 'Бот не настроен',
           description: data.message || 'Добавьте активный Telegram бот для синхронизации',
           variant: 'destructive'
         });
       } else if (data.success) {
         const successCount = data.results?.filter((r: any) => r.success).length || 0;
         const errorCount = data.results?.filter((r: any) => !r.success).length || 0;
-        toast({ 
-          title: 'Синхронизация завершена', 
+        toast({
+          title: 'Синхронизация завершена',
           description: `Обновлено: ${successCount}, ошибок: ${errorCount}`
         });
         fetchChannels();
@@ -383,26 +373,26 @@ const MediaAnalyticsPage = () => {
       const { data, error } = await supabase.functions.invoke('fetch-telegram-stats', {
         body: { channel_id: channelId }
       });
-      
+
       if (error) throw error;
-      
+
       if (data.configured === false) {
-        toast({ 
-          title: 'Бот не настроен', 
+        toast({
+          title: 'Бот не настроен',
           description: data.message || 'Добавьте активный Telegram бот для синхронизации',
           variant: 'destructive'
         });
       } else if (data.success) {
         const result = data.results?.[0];
         if (result?.success) {
-          toast({ 
-            title: 'Синхронизация завершена', 
+          toast({
+            title: 'Синхронизация завершена',
             description: `${result.channel}: ${result.subscribers?.toLocaleString('ru-RU')} подписчиков (${result.diff >= 0 ? '+' : ''}${result.diff})`
           });
           fetchChannels();
         } else {
-          toast({ 
-            title: 'Ошибка синхронизации', 
+          toast({
+            title: 'Ошибка синхронизации',
             description: result?.error || 'Не удалось получить статистику',
             variant: 'destructive'
           });
@@ -576,7 +566,7 @@ const MediaAnalyticsPage = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                 <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={formatNumber} tickLine={false} axisLine={false} />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
                   formatter={(value: number) => [formatNumber(value), 'Просмотры']}
                 />
@@ -706,6 +696,8 @@ const MediaAnalyticsPage = () => {
 
   return (
     <div className="space-y-6">
+
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -717,7 +709,8 @@ const MediaAnalyticsPage = () => {
             <p className="text-muted-foreground">{t('mediaAnalyticsDescription')}</p>
           </div>
         </div>
-        
+
+
         <div className="flex items-center gap-2">
           <ApiSettingsDialog />
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -727,168 +720,318 @@ const MediaAnalyticsPage = () => {
                 Добавить канал
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Добавить канал</DialogTitle>
-              <DialogDescription>Заполните информацию о канале</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 pt-4 max-h-[60vh] overflow-y-auto">
-              <div className="space-y-2">
-                <Label>Название *</Label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Мой канал"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Платформа *</Label>
-                <Select value={formData.platform} onValueChange={(v) => setFormData({ ...formData, platform: v })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Видео платформы</div>
-                    {Object.entries(videoPlatforms).map(([key, config]) => (
-                      <SelectItem key={key} value={key}>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: config.color }} />
-                          {config.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2">Мессенджеры</div>
-                    {Object.entries(messagingPlatforms).map(([key, config]) => (
-                      <SelectItem key={key} value={key}>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: config.color }} />
-                          {config.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Добавить канал</DialogTitle>
+                <DialogDescription>Заполните информацию о канале</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 pt-4 max-h-[60vh] overflow-y-auto">
                 <div className="space-y-2">
-                  <Label>URL канала</Label>
+                  <Label>Название *</Label>
                   <Input
-                    value={formData.channel_url}
-                    onChange={(e) => setFormData({ ...formData, channel_url: e.target.value })}
-                    placeholder="https://..."
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Мой канал"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>ID канала</Label>
-                  <Input
-                    value={formData.channel_id}
-                    onChange={(e) => setFormData({ ...formData, channel_id: e.target.value })}
-                    placeholder="UC..."
-                  />
+                  <Label>Платформа *</Label>
+                  <Select value={formData.platform} onValueChange={(v) => setFormData({ ...formData, platform: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Видео платформы</div>
+                      {Object.entries(videoPlatforms).map(([key, config]) => (
+                        <SelectItem key={key} value={key}>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: config.color }} />
+                            {config.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2">Мессенджеры</div>
+                      {Object.entries(messagingPlatforms).map(([key, config]) => (
+                        <SelectItem key={key} value={key}>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: config.color }} />
+                            {config.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Подписчики</Label>
-                  <Input
-                    type="number"
-                    value={formData.subscribers}
-                    onChange={(e) => setFormData({ ...formData, subscribers: parseInt(e.target.value) || 0 })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Просмотры</Label>
-                  <Input
-                    type="number"
-                    value={formData.views}
-                    onChange={(e) => setFormData({ ...formData, views: parseInt(e.target.value) || 0 })}
-                  />
-                </div>
-              </div>
-
-              {formData.platform === 'youtube' && (
-                <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Часы просмотра</Label>
-                      <Input
-                        type="number"
-                        value={formData.watch_hours}
-                        onChange={(e) => setFormData({ ...formData, watch_hours: parseInt(e.target.value) || 0 })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Доход (₽)</Label>
-                      <Input
-                        type="number"
-                        value={formData.revenue}
-                        onChange={(e) => setFormData({ ...formData, revenue: parseInt(e.target.value) || 0 })}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-emerald-500" />
-                      <Label>Монетизация включена</Label>
-                    </div>
-                    <Switch
-                      checked={formData.is_monetized}
-                      onCheckedChange={(v) => setFormData({ ...formData, is_monetized: v })}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>URL канала</Label>
+                    <Input
+                      value={formData.channel_url}
+                      onChange={(e) => setFormData({ ...formData, channel_url: e.target.value })}
+                      placeholder="https://..."
                     />
                   </div>
-                </>
-              )}
+                  <div className="space-y-2">
+                    <Label>ID канала</Label>
+                    <Input
+                      value={formData.channel_id}
+                      onChange={(e) => setFormData({ ...formData, channel_id: e.target.value })}
+                      placeholder="UC..."
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Подписчики</Label>
+                    <Input
+                      type="number"
+                      value={formData.subscribers}
+                      onChange={(e) => setFormData({ ...formData, subscribers: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Просмотры</Label>
+                    <Input
+                      type="number"
+                      value={formData.views}
+                      onChange={(e) => setFormData({ ...formData, views: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
 
-              <Button onClick={handleAddChannel} className="w-full">
-                Добавить
-              </Button>
-            </div>
-          </DialogContent>
+                {formData.platform === 'youtube' && (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Часы просмотра</Label>
+                        <Input
+                          type="number"
+                          value={formData.watch_hours}
+                          onChange={(e) => setFormData({ ...formData, watch_hours: parseInt(e.target.value) || 0 })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Доход (₽)</Label>
+                        <Input
+                          type="number"
+                          value={formData.revenue}
+                          onChange={(e) => setFormData({ ...formData, revenue: parseInt(e.target.value) || 0 })}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="h-4 w-4 text-emerald-500" />
+                        <Label>Монетизация включена</Label>
+                      </div>
+                      <Switch
+                        checked={formData.is_monetized}
+                        onCheckedChange={(v) => setFormData({ ...formData, is_monetized: v })}
+                      />
+                    </div>
+                  </>
+                )}
+
+                <Button onClick={handleAddChannel} className="w-full">
+                  Добавить
+                </Button>
+              </div>
+            </DialogContent>
           </Dialog>
 
           {/* Edit Channel Dialog */}
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent>
+            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Редактировать канал</DialogTitle>
-                <DialogDescription>Измените данные канала</DialogDescription>
+                <DialogDescription>Измените данные и статистику канала</DialogDescription>
               </DialogHeader>
               {editingChannel && (
-                <div className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <Label>Название *</Label>
-                    <Input
-                      value={editingChannel.name}
-                      onChange={(e) => setEditingChannel({ ...editingChannel, name: e.target.value })}
-                      placeholder="Название канала"
-                    />
+                <div className="space-y-6 pt-4">
+                  {/* Basic Info */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-sm text-muted-foreground">Основная информация</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Название *</Label>
+                        <Input
+                          value={editingChannel.name}
+                          onChange={(e) => setEditingChannel({ ...editingChannel, name: e.target.value })}
+                          placeholder="Название канала"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Username</Label>
+                        <Input
+                          value={editingChannel.username || ''}
+                          onChange={(e) => setEditingChannel({ ...editingChannel, username: e.target.value })}
+                          placeholder="@username"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>URL канала</Label>
+                        <Input
+                          value={editingChannel.channel_url || ''}
+                          onChange={(e) => setEditingChannel({ ...editingChannel, channel_url: e.target.value })}
+                          placeholder="https://..."
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>ID канала (для API)</Label>
+                        <Input
+                          value={editingChannel.channel_id || ''}
+                          onChange={(e) => setEditingChannel({ ...editingChannel, channel_id: e.target.value })}
+                          placeholder="-1001234567890"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Username</Label>
-                    <Input
-                      value={editingChannel.username || ''}
-                      onChange={(e) => setEditingChannel({ ...editingChannel, username: e.target.value })}
-                      placeholder="@username"
-                    />
+
+                  {/* Statistics */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-sm text-muted-foreground">Статистика</h4>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Подписчики</Label>
+                        <Input
+                          type="number"
+                          value={editingChannel.subscribers || 0}
+                          onChange={(e) => setEditingChannel({ ...editingChannel, subscribers: parseInt(e.target.value) || 0 })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Просмотры</Label>
+                        <Input
+                          type="number"
+                          value={editingChannel.views || 0}
+                          onChange={(e) => setEditingChannel({ ...editingChannel, views: parseInt(e.target.value) || 0 })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Видео</Label>
+                        <Input
+                          type="number"
+                          value={editingChannel.videos_count || 0}
+                          onChange={(e) => setEditingChannel({ ...editingChannel, videos_count: parseInt(e.target.value) || 0 })}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>URL канала</Label>
-                    <Input
-                      value={editingChannel.channel_url || ''}
-                      onChange={(e) => setEditingChannel({ ...editingChannel, channel_url: e.target.value })}
-                      placeholder="https://t.me/channel"
-                    />
+
+                  {/* Engagement */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-sm text-muted-foreground">Вовлечённость</h4>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Лайки</Label>
+                        <Input
+                          type="number"
+                          value={editingChannel.likes || 0}
+                          onChange={(e) => setEditingChannel({ ...editingChannel, likes: parseInt(e.target.value) || 0 })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Комментарии</Label>
+                        <Input
+                          type="number"
+                          value={editingChannel.comments || 0}
+                          onChange={(e) => setEditingChannel({ ...editingChannel, comments: parseInt(e.target.value) || 0 })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Репосты</Label>
+                        <Input
+                          type="number"
+                          value={editingChannel.shares || 0}
+                          onChange={(e) => setEditingChannel({ ...editingChannel, shares: parseInt(e.target.value) || 0 })}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Вовлечённость (%)</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={editingChannel.engagement || 0}
+                          onChange={(e) => setEditingChannel({ ...editingChannel, engagement: parseFloat(e.target.value) || 0 })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Рост (%)</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={editingChannel.growth || 0}
+                          onChange={(e) => setEditingChannel({ ...editingChannel, growth: parseFloat(e.target.value) || 0 })}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>ID канала (для API)</Label>
-                    <Input
-                      value={editingChannel.channel_id || ''}
-                      onChange={(e) => setEditingChannel({ ...editingChannel, channel_id: e.target.value })}
-                      placeholder="-1001234567890"
-                    />
+
+                  {/* Performance (for video platforms) */}
+                  {Object.keys(videoPlatforms).includes(editingChannel.platform) && (
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-sm text-muted-foreground">Производительность</h4>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label>Часы просмотра</Label>
+                          <Input
+                            type="number"
+                            value={editingChannel.watch_hours || 0}
+                            onChange={(e) => setEditingChannel({ ...editingChannel, watch_hours: parseInt(e.target.value) || 0 })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Ср. время просмотра (сек)</Label>
+                          <Input
+                            type="number"
+                            value={editingChannel.avg_view_duration || 0}
+                            onChange={(e) => setEditingChannel({ ...editingChannel, avg_view_duration: parseInt(e.target.value) || 0 })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>CTR (%)</Label>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            value={editingChannel.ctr || 0}
+                            onChange={(e) => setEditingChannel({ ...editingChannel, ctr: parseFloat(e.target.value) || 0 })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Monetization */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-sm text-muted-foreground">Монетизация</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Доход (₽)</Label>
+                        <Input
+                          type="number"
+                          value={editingChannel.revenue || 0}
+                          onChange={(e) => setEditingChannel({ ...editingChannel, revenue: parseFloat(e.target.value) || 0 })}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 h-[58px]">
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="h-4 w-4 text-emerald-500" />
+                          <Label className="cursor-pointer">Монетизация</Label>
+                        </div>
+                        <Switch
+                          checked={editingChannel.is_monetized || false}
+                          onCheckedChange={(v) => setEditingChannel({ ...editingChannel, is_monetized: v })}
+                        />
+                      </div>
+                    </div>
                   </div>
+
                   <Button onClick={handleUpdateChannel} className="w-full">
-                    Сохранить
+                    Сохранить изменения
                   </Button>
                 </div>
               )}
@@ -999,7 +1142,7 @@ const MediaAnalyticsPage = () => {
               const platformChannels = channels.filter(ch => ch.platform === platformKey);
               const Icon = platform.icon;
               const isExpanded = expandedPlatforms[platformKey];
-              
+
               return (
                 <Card key={platformKey} className={`bg-gradient-to-r ${platform.gradient} border-border/50`}>
                   <Collapsible open={isExpanded} onOpenChange={() => togglePlatform(platformKey)}>
@@ -1021,7 +1164,7 @@ const MediaAnalyticsPage = () => {
                         </div>
                       </CardHeader>
                     </CollapsibleTrigger>
-                    
+
                     <CollapsibleContent>
                       <CardContent className="pt-0 space-y-4">
                         {platformChannels.length === 0 ? (
@@ -1071,9 +1214,9 @@ const MediaAnalyticsPage = () => {
                                             </a>
                                           </Button>
                                         )}
-                                        <Button 
-                                          variant="ghost" 
-                                          size="icon" 
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
                                           onClick={(e) => { e.stopPropagation(); handleEditChannel(channel); }}
                                           title="Редактировать"
                                         >
@@ -1086,7 +1229,7 @@ const MediaAnalyticsPage = () => {
                                     </div>
                                   </div>
                                 </CollapsibleTrigger>
-                                
+
                                 <CollapsibleContent>
                                   <div className="px-4 pb-4">
                                     {platformKey === 'youtube' && <YouTubeAnalytics channel={channel} />}
@@ -1112,21 +1255,21 @@ const MediaAnalyticsPage = () => {
         {/* Telegram Tab */}
         <TabsContent value="telegram" className="space-y-6 mt-6">
           {/* Telegram Integration - Bots & Publishing */}
-          <TelegramIntegration 
-            channels={telegramChannels.map(c => ({ 
-              id: c.id, 
-              name: c.name, 
-              username: c.username, 
-              subscribers: c.subscribers, 
-              last_synced_at: c.last_synced_at 
-            }))} 
-            onSync={fetchChannels} 
+          <TelegramIntegration
+            channels={telegramChannels.map(c => ({
+              id: c.id,
+              name: c.name,
+              username: c.username,
+              subscribers: c.subscribers,
+              last_synced_at: c.last_synced_at
+            }))}
+            onSync={fetchChannels}
           />
 
           {/* Mass Sync Button */}
           <div className="flex justify-end">
-            <Button 
-              onClick={handleSyncAllTelegramChannels} 
+            <Button
+              onClick={handleSyncAllTelegramChannels}
               disabled={syncingAllTelegram || telegramChannels.length === 0}
               className="gap-2"
             >
@@ -1134,7 +1277,7 @@ const MediaAnalyticsPage = () => {
               {syncingAllTelegram ? 'Синхронизация...' : 'Синхронизировать все каналы'}
             </Button>
           </div>
-          
+
           {/* Summary Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="bg-card/50 backdrop-blur-sm border-border/50">
@@ -1214,7 +1357,7 @@ const MediaAnalyticsPage = () => {
                 const weeklyLoss = subscriberData.reduce((s, d) => s + d.unsubscribed, 0);
                 const netGrowth = weeklyGain - weeklyLoss;
                 const channelAds = ads.filter(ad => ad.channel_id === channel.id);
-                
+
                 return (
                   <Collapsible key={channel.id} open={expandedChannels[channel.id]} onOpenChange={() => toggleChannel(channel.id)}>
                     <Card className="bg-gradient-to-r from-sky-500/10 to-sky-600/5 border-border/50">
@@ -1254,9 +1397,9 @@ const MediaAnalyticsPage = () => {
                                   Монетизация
                                 </Badge>
                               )}
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 className="text-sky-500 hover:text-sky-400"
                                 onClick={(e) => { e.stopPropagation(); handleSyncTelegramChannel(channel.id); }}
                                 disabled={syncingChannelId === channel.id}
@@ -1271,9 +1414,9 @@ const MediaAnalyticsPage = () => {
                                   </a>
                                 </Button>
                               )}
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 onClick={(e) => { e.stopPropagation(); handleEditChannel(channel); }}
                                 title="Редактировать канал"
                               >
@@ -1286,7 +1429,7 @@ const MediaAnalyticsPage = () => {
                           </div>
                         </CardHeader>
                       </CollapsibleTrigger>
-                      
+
                       <CollapsibleContent>
                         <CardContent className="pt-0 space-y-6">
                           {/* Quick Stats */}
@@ -1312,7 +1455,7 @@ const MediaAnalyticsPage = () => {
                               <p className="text-xs text-muted-foreground">Кампаний</p>
                             </div>
                           </div>
-                          
+
                           {/* Subscriber Chart */}
                           <div className="p-4 rounded-xl bg-background/50 border border-border/50">
                             <h4 className="font-medium mb-4">Динамика подписчиков</h4>
@@ -1339,7 +1482,7 @@ const MediaAnalyticsPage = () => {
                               </div>
                             </div>
                           </div>
-                          
+
                           {/* Full Telegram Analytics with Monetization */}
                           <TelegramAnalytics channel={channel} />
                         </CardContent>
@@ -1356,7 +1499,7 @@ const MediaAnalyticsPage = () => {
         <TabsContent value="ads" className="space-y-6 mt-6">
           {/* Ad Analytics Component */}
           <AdAnalytics />
-          
+
           {/* Summary Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="bg-card/50 backdrop-blur-sm border-border/50">
@@ -1524,7 +1667,7 @@ const MediaAnalyticsPage = () => {
           <AdRevenueManager channels={channels as any} />
         </TabsContent>
       </Tabs>
-    </div>
+    </div >
   );
 };
 

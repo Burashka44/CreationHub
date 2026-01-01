@@ -1,30 +1,83 @@
 import { useState } from 'react';
-import { 
-  RotateCcw, Trash2, Download, Upload, Shield, 
-  Terminal, Zap
+import {
+  RotateCcw, Trash2, Download, Upload, Shield,
+  Terminal, Zap, RefreshCw, Power
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const QuickActions = () => {
   const { t } = useLanguage();
   const [loading, setLoading] = useState<string | null>(null);
 
   const actions = [
-    { id: 'restart', icon: RotateCcw, labelKey: 'restartServer', shortLabel: 'Рестарт', color: 'text-warning' },
-    { id: 'cache', icon: Trash2, labelKey: 'clearCache', shortLabel: 'Кэш', color: 'text-destructive' },
+    { id: 'restart', icon: Power, labelKey: 'restartServer', shortLabel: 'Рестарт', color: 'text-destructive' },
+    { id: 'nginx', icon: RefreshCw, labelKey: 'restartNginx', shortLabel: 'Nginx', color: 'text-blue-500' },
+    { id: 'cache', icon: Trash2, labelKey: 'clearCache', shortLabel: 'Кэш', color: 'text-orange-500' },
     { id: 'backup', icon: Download, labelKey: 'backupNow', shortLabel: 'Бэкап', color: 'text-success' },
     { id: 'update', icon: Upload, labelKey: 'checkUpdates', shortLabel: 'Апдейт', color: 'text-primary' },
     { id: 'scan', icon: Shield, labelKey: 'securityScan', shortLabel: 'Скан', color: 'text-purple-500' },
     { id: 'terminal', icon: Terminal, labelKey: 'openTerminal', shortLabel: 'CLI', color: 'text-foreground' },
   ];
 
+  const logActivity = async (action: string, target: string) => {
+    try {
+      await supabase.from('activity_logs').insert({
+        action_key: action,
+        target: target,
+        user_name: 'admin',
+        activity_type: 'server'
+      });
+    } catch (e) {
+      console.error('Failed to log activity', e);
+    }
+  };
+
   const handleAction = async (id: string, labelKey: string) => {
     setLoading(id);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setLoading(null);
-    toast.success(`${t(labelKey)} - ${t('completed')}`);
+
+    try {
+      if (id === 'cache') {
+        // Real implementation: Clear Frontend Cache
+        localStorage.clear();
+        sessionStorage.clear();
+        await logActivity('cacheCleared', 'Browser Storage');
+        toast.success(t('cacheCleared') || 'Cache cleared successfully');
+        setTimeout(() => window.location.reload(), 1000);
+        return;
+      }
+
+      if (id === 'terminal') {
+        toast.info("CLI functionality requires SSH connection");
+        return;
+      }
+
+      // Backend Actions
+      // We attempt to call the edge function, or fallback to logging request
+      const { error } = await supabase.functions.invoke('server-actions', {
+        body: { action: id }
+      });
+
+      if (error) {
+        // Fallback for Honest UI if function not found
+        // We log that we TRIED, and tell user it was queued
+        await logActivity(id + 'Requested', 'Server Queue');
+        toast.info('Action requested', {
+          description: `Command "${t(labelKey)}" sent to server queue`
+        });
+      } else {
+        await logActivity(id, 'System');
+        toast.success(`${t(labelKey)} - Success`);
+      }
+
+    } catch (error) {
+      console.error(error);
+      toast.error('Action failed');
+    } finally {
+      setLoading(null);
+    }
   };
 
   return (

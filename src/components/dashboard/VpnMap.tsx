@@ -4,49 +4,94 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 const VpnMap = () => {
   const { t } = useLanguage();
+  const [location, setLocation] = React.useState({
+    lat: 0,
+    lon: 0,
+    city: 'Loading...',
+    country: '',
+    ip: 'Loading...',
+    org: 'Finding location...',
+    countryCode: '',
+    source: 'Initializing...'
+  });
+  const [mapUrl, setMapUrl] = React.useState('');
 
-  // Default/mock VPN location data
-  const location = {
-    lat: 52.3676,
-    lon: 4.9041,
-    city: 'Amsterdam',
-    country: 'NL',
-    ip: '185.x.x.x',
-    org: 'NordVPN',
-  };
+  React.useEffect(() => {
+    const fetchLocation = async () => {
+      try {
+        // Fetch from server-side proxy to get Server IP, not Client IP
+        const res = await fetch('/api/system/public-ip');
+        const data = await res.json();
+
+        if (data.error) throw new Error(data.reason);
+
+        setLocation({
+          lat: data.latitude,
+          lon: data.longitude,
+          city: data.city,
+          country: data.country,
+          countryCode: data.country_code,
+          ip: data.ip,
+          org: data.org,
+          source: 'Server Proxy (Secure)'
+        });
+
+        setMapUrl(`https://www.openstreetmap.org/export/embed.html?bbox=${data.longitude - 10},${data.latitude - 5},${data.longitude + 10},${data.latitude + 5}&layer=mapnik&marker=${data.latitude},${data.longitude}`);
+
+      } catch (e) {
+        console.error("GeoIP fetch failed", e);
+        // Fallback
+        setLocation({
+          lat: 55.75,
+          lon: 37.61,
+          city: 'Moscow',
+          country: 'Russia',
+          countryCode: 'RU',
+          ip: 'Unknown',
+          ip: 'Unknown',
+          org: 'ISP Unknown',
+          source: 'Error (Offline)'
+        });
+      }
+    };
+
+    fetchLocation();
+  }, []);
 
   const countryFlags: Record<string, string> = {
     NL: '🇳🇱', US: '🇺🇸', DE: '🇩🇪', GB: '🇬🇧', FR: '🇫🇷',
     JP: '🇯🇵', RU: '🇷🇺', CA: '🇨🇦', AU: '🇦🇺', CH: '🇨🇭',
   };
 
-  // Using static map image instead of react-leaflet to avoid Context conflicts
-  const mapUrl = `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/pin-l+3b82f6(${location.lon},${location.lat})/${location.lon},${location.lat},4,0/600x400@2x?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw`;
-
-  // Fallback to OpenStreetMap static image
-  const osmMapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${location.lon - 10},${location.lat - 5},${location.lon + 10},${location.lat + 5}&layer=mapnik&marker=${location.lat},${location.lon}`;
+  const getFlag = (code: string) => {
+    if (!code) return '🌍';
+    const codeUpper = code.toUpperCase();
+    return countryFlags[codeUpper] || codeUpper;
+  };
 
   return (
     <div className="dashboard-card h-full overflow-hidden flex flex-col">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-foreground flex items-center gap-2">
           <Globe className="h-5 w-5 text-primary" />
-          {t('vpnLocation')} (Demo Map)
+          {t('vpnLocation')}
         </h3>
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-2xl">{countryFlags[location.country] || '🌍'}</span>
+          <span className="text-2xl">{getFlag(location.countryCode)}</span>
           <span className="text-muted-foreground">{location.city}, {location.country}</span>
         </div>
       </div>
 
       <div className="flex-1 min-h-[200px] rounded-lg overflow-hidden relative bg-muted">
         {/* Map iframe */}
-        <iframe
-          src={osmMapUrl}
-          className="w-full h-full border-0"
-          style={{ filter: 'hue-rotate(180deg) invert(90%) contrast(90%)' }}
-          title="VPN Location Map"
-        />
+        {mapUrl && (
+          <iframe
+            src={mapUrl}
+            className="w-full h-full border-0"
+            style={{ filter: 'hue-rotate(180deg) invert(90%) contrast(90%)' }}
+            title="VPN Location Map"
+          />
+        )}
 
         {/* Overlay with location info */}
         <div className="absolute bottom-3 left-3 right-3 bg-card/90 backdrop-blur-sm rounded-lg p-2.5 border border-border">
@@ -62,8 +107,9 @@ const VpnMap = () => {
             </div>
             <div className="text-right">
               <p className="font-mono text-xs text-foreground">{location.ip}</p>
+              <p className="text-[10px] text-muted-foreground">{location.source}</p>
               <p className="text-[10px] text-muted-foreground">
-                {location.lat.toFixed(2)}, {location.lon.toFixed(2)}
+                {location.lat ? `${location.lat.toFixed(2)}, ${location.lon.toFixed(2)}` : ''}
               </p>
             </div>
           </div>

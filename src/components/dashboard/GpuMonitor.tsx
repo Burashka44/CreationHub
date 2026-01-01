@@ -2,6 +2,7 @@ import { Cpu, Thermometer } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useState, useEffect } from 'react';
 
 interface GpuStats {
   name: string;
@@ -19,20 +20,8 @@ interface GpuStats {
 }
 
 // Mock GPU data - in real app this would come from system API
-const gpuData: GpuStats = {
-  name: 'NVIDIA RTX 4090',
-  usage: 67,
-  temperature: 72,
-  memory: {
-    used: 18.2,
-    total: 24,
-  },
-  fanSpeed: 65,
-  power: {
-    current: 320,
-    limit: 450,
-  },
-};
+// Mock data removed in favor of real API
+
 
 const getTemperatureColor = (temp: number) => {
   if (temp < 50) return 'text-emerald-400';
@@ -50,8 +39,78 @@ const getUsageColor = (usage: number) => {
 
 const GpuMonitor = () => {
   const { t } = useLanguage();
-  const memoryUsage = (gpuData.memory.used / gpuData.memory.total) * 100;
-  const powerUsage = (gpuData.power.current / gpuData.power.limit) * 100;
+  const [gpuData, setGpuData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchGpu = async () => {
+      try {
+        // Try dedicated GPU plugin first
+        const res = await fetch('/api/glances/gpu');
+        const sensorsRes = await fetch('/api/glances/sensors');
+
+        if (res.ok) {
+          const data = await res.json();
+          // Glances GPU plugin returns array
+          if (Array.isArray(data) && data.length > 0) {
+            const gpu = data[0]; // Take first GPU
+            setGpuData({
+              name: gpu.gpu_id || 'GPU 0',
+              usage: gpu.proc || 0,
+              temperature: gpu.temperature || 0,
+              memory: {
+                used: (gpu.mem || 0) / 1024 / 1024 / 1024, // Assuming bytes? Glances usually %, but let's check. 
+                // Glances gpu plugin: mem is usually percent used. mem_used/mem_total might be available.
+                // Fallback to percent logic if explicit bytes not clear.
+                // actually 'mem' in glances gpu is percent.
+                total: 0, // aggregate later
+                percent: gpu.mem || 0
+              },
+              fanSpeed: gpu.fan_speed || 0,
+              power: {
+                current: 0, // often not available in standard export
+                limit: 0
+              }
+            });
+            setLoading(false);
+            return;
+          }
+        }
+
+        // Fallback: Check sensors for "Basic" GPU info (common for iGPUs or when nvidia-smi missing)
+        if (sensorsRes.ok) {
+          const sensors = await sensorsRes.json();
+          const gpuSensor = sensors.find((s: any) => s.label.toLowerCase().includes('gpu') || s.label.toLowerCase().includes('edge'));
+          if (gpuSensor) {
+            setGpuData({
+              name: 'Integrated/Discrete GPU',
+              usage: 0, // No usage info from sensors usually
+              temperature: gpuSensor.value,
+              memory: { used: 0, total: 0, percent: 0 },
+              fanSpeed: 0,
+              power: { current: 0, limit: 0 }
+            });
+            setLoading(false);
+            return;
+          }
+        }
+
+        setGpuData(null); // No GPU found
+      } catch (e) {
+        console.error("GPU fetch error", e);
+        setGpuData(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGpu();
+    const interval = setInterval(fetchGpu, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) return null;
+  if (!gpuData) return null; // Don't show if no GPU
 
   return (
     <Card className="bg-card/50 backdrop-blur-sm border-border/50">
@@ -76,28 +135,28 @@ const GpuMonitor = () => {
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">{t('gpuUsage')}</span>
-            <span className="font-medium text-foreground">{gpuData.usage}%</span>
+            <span className="font-medium text-foreground">{gpuData.usage.toFixed(1)}%</span>
           </div>
           <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div 
+            <div
               className={`h-full ${getUsageColor(gpuData.usage)} transition-all duration-500`}
-              style={{ width: `${gpuData.usage}%` }}
+              style={{ width: `${Math.min(gpuData.usage, 100)}%` }}
             />
           </div>
         </div>
 
-        {/* VRAM */}
+        {/* VRAM (Approx if only percent known) */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">VRAM</span>
             <span className="font-medium text-foreground">
-              {gpuData.memory.used.toFixed(1)} / {gpuData.memory.total} GB
+              {gpuData.memory.percent.toFixed(1)}%
             </span>
           </div>
           <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div 
+            <div
               className="h-full bg-blue-500 transition-all duration-500"
-              style={{ width: `${memoryUsage}%` }}
+              style={{ width: `${Math.min(gpuData.memory.percent, 100)}%` }}
             />
           </div>
         </div>
@@ -107,15 +166,6 @@ const GpuMonitor = () => {
           <div className="p-3 rounded-lg bg-muted/50">
             <p className="text-xs text-muted-foreground mb-1">{t('fanSpeed')}</p>
             <p className="text-lg font-bold text-foreground">{gpuData.fanSpeed}%</p>
-          </div>
-          <div className="p-3 rounded-lg bg-muted/50">
-            <p className="text-xs text-muted-foreground mb-1">{t('power')}</p>
-            <p className="text-lg font-bold text-foreground">
-              {gpuData.power.current}W
-              <span className="text-xs font-normal text-muted-foreground ml-1">
-                / {gpuData.power.limit}W
-              </span>
-            </p>
           </div>
         </div>
       </CardContent>

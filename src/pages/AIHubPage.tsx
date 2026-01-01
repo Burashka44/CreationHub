@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-  Settings, Server, Activity, Mic, Languages, Volume2, 
+import {
+  Settings, Server, Activity, Mic, Languages, Volume2,
   Video, Sparkles, Play, Trash2, Plus, RefreshCw, ArrowLeftRight,
   Check, AlertCircle, HelpCircle, FileAudio, Upload,
   MessageSquare, Image, FileText, History, Send, Loader2, Download, Paperclip, X
@@ -59,12 +59,13 @@ interface AIRequest {
 
 const AIHubPage = () => {
   const { t } = useLanguage();
-  
+
   // Config state
-  const [apiBase, setApiBase] = useState('http://localhost:8088');
+  // FIX: Use relative path for Nginx proxy instead of hardcoded localhost:8088
+  const [apiBase, setApiBase] = useState('/api/v1/ai');
   const [apiKey, setApiKey] = useState('');
   const [health, setHealth] = useState<'ok' | 'error' | 'checking' | 'unknown'>('unknown');
-  
+
   // Presets
   const [presets, setPresets] = useState<Preset[]>([
     // Chat presets - роли
@@ -193,13 +194,13 @@ const AIHubPage = () => {
       description: 'Синтез английской речи',
     },
   ]);
-  
+
   // Console logs
   const [logs, setLogs] = useState<LogItem[]>([]);
-  
+
   // Active tab
   const [activeTab, setActiveTab] = useState('chat');
-  
+
   // Form states
   const [asrTask, setAsrTask] = useState('transcribe');
   const [asrLang, setAsrLang] = useState('');
@@ -212,29 +213,29 @@ const AIHubPage = () => {
   const [avTgtLang, setAvTgtLang] = useState('en');
   const [cleanMethod, setCleanMethod] = useState('propainter');
   const [cleanObjects, setCleanObjects] = useState('logo,face');
-  
+
   // AI Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('gemini-flash');
+  const [selectedModel, setSelectedModel] = useState('llama3');
   const [streamingContent, setStreamingContent] = useState('');
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Image generation state
   const [imagePrompt, setImagePrompt] = useState('');
   const [imageStyle, setImageStyle] = useState('');
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
-  
+
   // Summarization state
   const [summarizeText, setSummarizeText] = useState('');
   const [summarizeResult, setSummarizeResult] = useState('');
   const [summarizeLoading, setSummarizeLoading] = useState(false);
-  
+
   // History state
   const [aiHistory, setAiHistory] = useState<AIRequest[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -249,6 +250,19 @@ const AIHubPage = () => {
   const [asrUploadProgress, setAsrUploadProgress] = useState(0);
   const [avUploadProgress, setAvUploadProgress] = useState(0);
   const [cleanUploadProgress, setCleanUploadProgress] = useState(0);
+
+  // New AI States
+  const [asrLoading, setAsrLoading] = useState(false);
+  const [asrResult, setAsrResult] = useState('');
+  const [trLoading, setTrLoading] = useState(false);
+  const [trResult, setTrResult] = useState('');
+  const [ttsLoading, setTtsLoading] = useState(false);
+  const [ttsAudioUrl, setTtsAudioUrl] = useState<string | null>(null);
+
+  // AV / Clean States
+  const [avLoading, setAvLoading] = useState(false);
+  const [cleanLoading, setCleanLoading] = useState(false);
+
   const asrInputRef = useRef<HTMLInputElement>(null);
   const avInputRef = useRef<HTMLInputElement>(null);
   const cleanInputRef = useRef<HTMLInputElement>(null);
@@ -262,22 +276,22 @@ const AIHubPage = () => {
       loadHistory();
     }
   }, [activeTab]);
-  
+
   const pushLog = (title: string, body?: unknown, downloadUrl?: string, error?: string) => {
-    setLogs(prev => [{ 
-      id: Math.random().toString(36).slice(2), 
-      title, 
-      body, 
-      downloadUrl, 
+    setLogs(prev => [{
+      id: Math.random().toString(36).slice(2),
+      title,
+      body,
+      downloadUrl,
       error,
       timestamp: new Date()
     }, ...prev]);
   };
 
   const saveToHistory = async (
-    type: string, 
-    input: Record<string, unknown>, 
-    output: Record<string, unknown> | null, 
+    type: string,
+    input: Record<string, unknown>,
+    output: Record<string, unknown> | null,
     model: string | null,
     status: string,
     error?: string
@@ -305,7 +319,7 @@ const AIHubPage = () => {
         .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
-      
+
       if (error) throw error;
       setAiHistory(data || []);
     } catch (e) {
@@ -315,11 +329,11 @@ const AIHubPage = () => {
       setHistoryLoading(false);
     }
   };
-  
+
   const applyPreset = (preset: Preset) => {
     setActiveTab(preset.target);
     const p = preset.payload;
-    
+
     switch (preset.target) {
       case 'asr':
         if (p.task) setAsrTask(p.task);
@@ -343,10 +357,10 @@ const AIHubPage = () => {
         if (p.objects) setCleanObjects(p.objects);
         break;
     }
-    
+
     pushLog(`Пресет "${preset.name}" применён`, preset.payload);
   };
-  
+
   const checkHealth = async () => {
     setHealth('checking');
     try {
@@ -361,11 +375,11 @@ const AIHubPage = () => {
       pushLog('/healthz error', undefined, undefined, String(e));
     }
   };
-  
+
   const deletePreset = (id: string) => {
     setPresets(prev => prev.filter(p => p.id !== id));
   };
-  
+
 
   // Добавление пресета для конкретной вкладки (для контекстных пресетов)
   const addPresetForTab = (name: string, payload: Record<string, string>) => {
@@ -447,7 +461,9 @@ const AIHubPage = () => {
     const a = document.createElement('a');
     a.href = url;
     a.download = `ai-hub-presets-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
     toast.success('Пресеты экспортированы');
   };
@@ -462,10 +478,10 @@ const AIHubPage = () => {
     reader.onload = (event) => {
       try {
         const data = JSON.parse(event.target?.result as string);
-        
+
         // Поддержка разных форматов импорта
         let importedPresets: Preset[] = [];
-        
+
         if (Array.isArray(data)) {
           // Простой массив пресетов
           importedPresets = data.map((p, i) => ({
@@ -500,13 +516,13 @@ const AIHubPage = () => {
       }
     };
     reader.readAsText(file);
-    
+
     // Сброс input для повторного импорта того же файла
     if (importPresetsInputRef.current) {
       importPresetsInputRef.current.value = '';
     }
   };
-  
+
   const getTargetBadgeColor = (target: string) => {
     switch (target) {
       case 'av': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
@@ -548,8 +564,8 @@ const AIHubPage = () => {
 
     // Check if it's a text-based file
     const textTypes = ['text/', 'application/json', 'application/xml', 'application/javascript'];
-    const isTextFile = textTypes.some(type => file.type.startsWith(type)) || 
-                       /\.(txt|md|json|xml|csv|js|ts|tsx|py|html|css|yaml|yml|log)$/i.test(file.name);
+    const isTextFile = textTypes.some(type => file.type.startsWith(type)) ||
+      /\.(txt|md|json|xml|csv|js|ts|tsx|py|html|css|yaml|yml|log)$/i.test(file.name);
 
     if (!isTextFile) {
       toast.error('Поддерживаются только текстовые файлы');
@@ -588,27 +604,27 @@ const AIHubPage = () => {
   }, []);
 
   const handleDropFile = useCallback((
-    e: React.DragEvent, 
-    setActive: (v: boolean) => void, 
+    e: React.DragEvent,
+    setActive: (v: boolean) => void,
     setFile: (f: File | null) => void,
     acceptedTypes: string[]
   ) => {
     e.preventDefault();
     e.stopPropagation();
     setActive(false);
-    
+
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
-    
-    const isValidType = acceptedTypes.some(type => 
+
+    const isValidType = acceptedTypes.some(type =>
       file.type.includes(type) || file.name.toLowerCase().endsWith(type)
     );
-    
+
     if (!isValidType) {
       toast.error(`Неподдерживаемый формат. Используйте: ${acceptedTypes.join(', ')}`);
       return;
     }
-    
+
     setFile(file);
     toast.success(`Файл ${file.name} загружен`);
   }, []);
@@ -708,17 +724,15 @@ const AIHubPage = () => {
     setStreamingContent('');
 
     try {
-      // Use streaming
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`, {
+      // Use streaming via System API (Ollama)
+      const response = await fetch(`${apiBase}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify({
           messages: [...chatMessages, userMessage],
-          type: 'chat',
-          model: selectedModel,
+          model: (selectedModel && selectedModel.includes('llama')) ? selectedModel : 'llama3', // Force valid model
           stream: true
         }),
       });
@@ -751,15 +765,19 @@ const AIHubPage = () => {
           const line = textBuffer.slice(0, newlineIndex);
           textBuffer = textBuffer.slice(newlineIndex + 1);
 
-          if (line.startsWith(':') || line.trim() === '') continue;
-          if (!line.startsWith('data: ')) continue;
+          if (line.trim() === '' || line === ':') continue;
 
-          const jsonStr = line.slice(6).trim();
+          let jsonStr = line;
+          if (line.startsWith('data: ')) {
+            jsonStr = line.slice(6).trim();
+          }
+
           if (jsonStr === '[DONE]') continue;
 
           try {
             const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
+            // Handle both Ollama (message.content) and OpenAI (choices[0].delta.content) formats
+            const content = parsed.message?.content || parsed.choices?.[0]?.delta?.content;
             if (content) {
               fullContent += content;
               // Update the last assistant message
@@ -784,7 +802,7 @@ const AIHubPage = () => {
       toast.error('Ошибка AI: ' + errorMessage);
       pushLog('AI Chat error', undefined, undefined, errorMessage);
       await saveToHistory('chat', { messages: [...chatMessages, userMessage] }, null, null, 'error', errorMessage);
-      
+
       // Remove empty assistant message on error
       setChatMessages(prev => {
         if (prev.length > 0 && prev[prev.length - 1].role === 'assistant' && prev[prev.length - 1].content === '') {
@@ -799,23 +817,30 @@ const AIHubPage = () => {
   };
 
   // Image generation handler
+  // Image generation handler
   const handleGenerateImage = async () => {
     if (!imagePrompt.trim() || imageLoading) return;
 
     setImageLoading(true);
     setGeneratedImage(null);
 
-    // Объединяем промпт со стилем
-    const finalPrompt = imageStyle 
-      ? `${imagePrompt.trim()}, ${imageStyle}` 
+    const finalPrompt = imageStyle
+      ? `${imagePrompt.trim()}, ${imageStyle}`
       : imagePrompt.trim();
 
     try {
-      const { data, error } = await supabase.functions.invoke('ai-image', {
-        body: { prompt: finalPrompt }
+      const response = await fetch(`${apiBase}/image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: finalPrompt })
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
 
       if (data.imageUrl) {
         setGeneratedImage(data.imageUrl);
@@ -835,6 +860,64 @@ const AIHubPage = () => {
     }
   };
 
+  const handleAV = async () => {
+    if (!avFile || avLoading) return;
+    setAvLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', avFile);
+      formData.append('src_lang', avSrcLang);
+      formData.append('tgt_lang', avTgtLang);
+
+      const response = await fetch(`${apiBase}/av`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${response.status}`);
+      }
+
+      toast.success('Дубляж запущен (mock)!');
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      toast.error('Ошибка AV: ' + errorMessage);
+    } finally {
+      setAvLoading(false);
+    }
+  };
+
+  const handleClean = async () => {
+    if (!cleanFile || cleanLoading) return;
+    setCleanLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', cleanFile);
+      formData.append('method', cleanMethod);
+      formData.append('objects', cleanObjects);
+
+      const response = await fetch(`${apiBase}/clean`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${response.status}`);
+      }
+
+      toast.success('Очистка запущена (mock)!');
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      toast.error('Ошибка Clean: ' + errorMessage);
+    } finally {
+      setCleanLoading(false);
+    }
+  };
+
   // Получаем пресеты стилей для изображений
   const imageStylePresets = presets.filter(p => p.target === 'image' && p.payload.style);
 
@@ -846,18 +929,25 @@ const AIHubPage = () => {
     setSummarizeResult('');
 
     try {
-      const { data, error } = await supabase.functions.invoke('ai-chat', {
-        body: { 
+      // Use internal Ollama for summarization
+      const response = await fetch(`${apiBase}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           messages: [{ role: 'user', content: `Пожалуйста, суммаризируй следующий текст:\n\n${summarizeText}` }],
-          type: 'summarize'
-        }
+          model: 'llama3.2',
+          stream: false // Non-streaming for summary
+        }),
       });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+      const data = await response.json();
 
-      setSummarizeResult(data.content);
-      await saveToHistory('summarize', { text: summarizeText }, { summary: data.content }, data.model, 'completed');
-      pushLog('Text summarized', { inputLength: summarizeText.length, outputLength: data.content.length });
+      const content = data.message?.content || data.response || "Ошибка получения ответа";
+
+      setSummarizeResult(content);
+      await saveToHistory('summarize', { text: summarizeText }, { summary: content }, 'llama3.2', 'completed');
+      pushLog('Text summarized', { inputLength: summarizeText.length, outputLength: content.length });
       toast.success('Текст суммаризирован!');
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : 'Unknown error';
@@ -866,6 +956,99 @@ const AIHubPage = () => {
       await saveToHistory('summarize', { text: summarizeText }, null, null, 'error', errorMessage);
     } finally {
       setSummarizeLoading(false);
+    }
+  };
+
+  const handleTranscribe = async () => {
+    if (!asrFile || asrLoading) return;
+    setAsrLoading(true);
+    setAsrResult('');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', asrFile);
+      formData.append('task', asrTask);
+      if (asrLang) formData.append('language', asrLang);
+
+      const response = await fetch(`${apiBase}/transcribe`, {
+        method: 'POST',
+        body: formData, // fetch automatically sets Content-Type to multipart/form-data
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+
+      setAsrResult(data.text || JSON.stringify(data));
+      await saveToHistory('asr', { filename: asrFile.name, task: asrTask }, { text: data.text }, 'faster-whisper', 'completed');
+      toast.success('ASR завершен!');
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      toast.error('Ошибка ASR: ' + errorMessage);
+      setAsrResult('Error: ' + errorMessage);
+    } finally {
+      setAsrLoading(false);
+    }
+  };
+
+  const handleTranslate = async () => {
+    if (!trText.trim() || trLoading) return;
+    setTrLoading(true);
+    setTrResult('');
+
+    try {
+      const response = await fetch(`${apiBase}/translate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: trText,
+          source: trSrc,
+          target: trTgt
+        })
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+
+      setTrResult(data.translatedText || JSON.stringify(data));
+      await saveToHistory('translate', { text: trText, src: trSrc, tgt: trTgt }, { result: data.translatedText }, 'libretranslate', 'completed');
+      toast.success('Перевод завершен!');
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      toast.error('Ошибка перевода: ' + errorMessage);
+      setTrResult('Error: ' + errorMessage);
+    } finally {
+      setTrLoading(false);
+    }
+  };
+
+  const handleTTS = async () => {
+    if (!ttsText.trim() || ttsLoading) return;
+    setTtsLoading(true);
+    setTtsAudioUrl(null);
+
+    try {
+      const response = await fetch(`${apiBase}/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: ttsText,
+          language: ttsLang
+        })
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      setTtsAudioUrl(url);
+
+      await saveToHistory('tts', { text: ttsText, lang: ttsLang }, { audio: 'blob' }, 'piper', 'completed');
+      toast.success('Озвучка готова!');
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      toast.error('Ошибка TTS: ' + errorMessage);
+    } finally {
+      setTtsLoading(false);
     }
   };
 
@@ -904,8 +1087,8 @@ const AIHubPage = () => {
             <p className="text-sm text-muted-foreground">Единый центр управления AI-сервисами: чат, генерация изображений, перевод, озвучка и обработка видео</p>
           </div>
         </div>
-        <Badge 
-          variant="outline" 
+        <Badge
+          variant="outline"
           className={cn(
             "gap-1.5 px-3 py-1",
             health === 'ok' && 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30',
@@ -1180,6 +1363,19 @@ const AIHubPage = () => {
                             </div>
                           </div>
                         </SelectItem>
+                        <SelectItem value="llama3">
+                          <div className="flex items-center justify-between w-full gap-3">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-orange-500" />
+                              <span>Llama 3</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span className="text-emerald-500">⚡ Быстрая</span>
+                              <span>•</span>
+                              <span className="text-blue-400">Open Source</span>
+                            </div>
+                          </div>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1189,7 +1385,7 @@ const AIHubPage = () => {
                     </Badge>
                     <Badge variant="outline" className={cn(
                       "text-xs",
-                      (selectedModel === 'gemini-pro' || selectedModel === 'gpt-5') 
+                      (selectedModel === 'gemini-pro' || selectedModel === 'gpt-5')
                         ? 'bg-purple-500/10 text-purple-400 border-purple-500/30'
                         : 'bg-blue-500/10 text-blue-400 border-blue-500/30'
                     )}>
@@ -1213,8 +1409,8 @@ const AIHubPage = () => {
                           )}>
                             <div className={cn(
                               "max-w-[85%] p-3 rounded-lg text-sm overflow-hidden",
-                              msg.role === 'user' 
-                                ? 'bg-primary text-primary-foreground' 
+                              msg.role === 'user'
+                                ? 'bg-primary text-primary-foreground'
                                 : 'bg-muted'
                             )}>
                               {msg.content ? (
@@ -1254,8 +1450,8 @@ const AIHubPage = () => {
                       accept=".txt,.md,.json,.xml,.csv,.js,.ts,.tsx,.py,.html,.css,.yaml,.yml,.log"
                       className="hidden"
                     />
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="icon"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={chatLoading}
@@ -1325,8 +1521,8 @@ const AIHubPage = () => {
                     />
                   </div>
                 </div>
-                <Button 
-                  onClick={handleGenerateImage} 
+                <Button
+                  onClick={handleGenerateImage}
                   disabled={imageLoading || !imagePrompt.trim()}
                   className="w-full gap-2"
                 >
@@ -1335,9 +1531,9 @@ const AIHubPage = () => {
                 </Button>
                 {generatedImage && (
                   <div className="border border-border/50 rounded-lg p-4 space-y-3">
-                    <img 
-                      src={generatedImage} 
-                      alt="Generated" 
+                    <img
+                      src={generatedImage}
+                      alt="Generated"
                       className="w-full max-h-[300px] object-contain rounded-lg"
                     />
                     <Button variant="outline" asChild className="w-full gap-2">
@@ -1371,8 +1567,8 @@ const AIHubPage = () => {
                     className="mt-1.5 h-32"
                   />
                 </div>
-                <Button 
-                  onClick={handleSummarize} 
+                <Button
+                  onClick={handleSummarize}
                   disabled={summarizeLoading || !summarizeText.trim()}
                   className="w-full gap-2"
                 >
@@ -1409,7 +1605,7 @@ const AIHubPage = () => {
                   ) : (
                     <div className="space-y-2">
                       {aiHistory.map((item) => (
-                        <div 
+                        <div
                           key={item.id}
                           className="p-3 rounded-lg border border-border/50 bg-background/50 space-y-2"
                         >
@@ -1483,13 +1679,13 @@ const AIHubPage = () => {
                   accept=".mp3,.wav,.mp4,.webm,audio/*,video/*"
                   onChange={(e) => handleInputFileChange(e, setAsrFile, setAsrUploadProgress)}
                 />
-                <div 
+                <div
                   className={cn(
                     "flex flex-col gap-2 p-4 border-2 border-dashed rounded-lg transition-colors cursor-pointer",
-                    asrDragActive 
-                      ? "border-primary bg-primary/10" 
-                      : asrFile 
-                        ? "border-emerald-500/50 bg-emerald-500/10" 
+                    asrDragActive
+                      ? "border-primary bg-primary/10"
+                      : asrFile
+                        ? "border-emerald-500/50 bg-emerald-500/10"
                         : "border-border/50 hover:border-primary/50"
                   )}
                   onDragOver={(e) => handleDragOver(e, setAsrDragActive)}
@@ -1513,9 +1709,9 @@ const AIHubPage = () => {
                       )}
                     </div>
                     {asrFile ? (
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={(e) => { e.stopPropagation(); setAsrFile(null); }}
                       >
                         <X className="h-4 w-4" />
@@ -1526,14 +1722,23 @@ const AIHubPage = () => {
                   </div>
                   {asrUploadProgress > 0 && asrUploadProgress < 100 && (
                     <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-primary transition-all duration-150 ease-out"
                         style={{ width: `${asrUploadProgress}%` }}
                       />
                     </div>
                   )}
                 </div>
-                <Button className="w-full" disabled={!asrFile}>Запустить ASR</Button>
+                <Button className="w-full" disabled={!asrFile || asrLoading} onClick={handleTranscribe}>
+                  {asrLoading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
+                  Запустить ASR
+                </Button>
+                {asrResult && (
+                  <div className="mt-4 p-4 bg-muted/50 rounded-lg border border-border/50">
+                    <Label className="mb-2 block">Результат:</Label>
+                    <div className="whitespace-pre-wrap text-sm font-mono">{asrResult}</div>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="translate" className="space-y-4">
@@ -1573,8 +1778,8 @@ const AIHubPage = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="icon"
                     className="shrink-0 mb-0"
                     onClick={() => {
@@ -1600,7 +1805,16 @@ const AIHubPage = () => {
                     </Select>
                   </div>
                 </div>
-                <Button className="w-full">Перевести</Button>
+                <Button className="w-full" onClick={handleTranslate} disabled={trLoading || !trText.trim()}>
+                  {trLoading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
+                  Перевести
+                </Button>
+                {trResult && (
+                  <div className="mt-4 p-4 bg-muted/50 rounded-lg border border-border/50">
+                    <Label className="mb-2 block">Перевод:</Label>
+                    <div className="whitespace-pre-wrap text-sm">{trResult}</div>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="tts" className="space-y-4">
@@ -1647,7 +1861,16 @@ const AIHubPage = () => {
                     </Button>
                   </div>
                 </div>
-                <Button className="w-full">Синтезировать</Button>
+                <Button className="w-full" onClick={handleTTS} disabled={ttsLoading || !ttsText.trim()}>
+                  {ttsLoading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
+                  Синтезировать
+                </Button>
+                {ttsAudioUrl && (
+                  <div className="mt-4 p-4 bg-muted/50 rounded-lg border border-border/50">
+                    <Label className="mb-2 block">Аудио:</Label>
+                    <audio controls src={ttsAudioUrl} className="w-full" />
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="av" className="space-y-4">
@@ -1681,8 +1904,8 @@ const AIHubPage = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="icon"
                     className="shrink-0 mb-0"
                     onClick={() => {
@@ -1718,13 +1941,13 @@ const AIHubPage = () => {
                   accept=".mp4,.webm,.mkv,video/*"
                   onChange={(e) => handleInputFileChange(e, setAvFile, setAvUploadProgress)}
                 />
-                <div 
+                <div
                   className={cn(
                     "flex flex-col gap-2 p-4 border-2 border-dashed rounded-lg transition-colors cursor-pointer",
-                    avDragActive 
-                      ? "border-primary bg-primary/10" 
-                      : avFile 
-                        ? "border-emerald-500/50 bg-emerald-500/10" 
+                    avDragActive
+                      ? "border-primary bg-primary/10"
+                      : avFile
+                        ? "border-emerald-500/50 bg-emerald-500/10"
                         : "border-border/50 hover:border-primary/50"
                   )}
                   onDragOver={(e) => handleDragOver(e, setAvDragActive)}
@@ -1748,9 +1971,9 @@ const AIHubPage = () => {
                       )}
                     </div>
                     {avFile ? (
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={(e) => { e.stopPropagation(); setAvFile(null); }}
                       >
                         <X className="h-4 w-4" />
@@ -1761,14 +1984,17 @@ const AIHubPage = () => {
                   </div>
                   {avUploadProgress > 0 && avUploadProgress < 100 && (
                     <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-primary transition-all duration-150 ease-out"
                         style={{ width: `${avUploadProgress}%` }}
                       />
                     </div>
                   )}
                 </div>
-                <Button className="w-full" disabled={!avFile}>Запустить дубляж</Button>
+                <Button className="w-full" disabled={!avFile || avLoading} onClick={handleAV}>
+                  {avLoading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
+                  Запустить дубляж
+                </Button>
               </TabsContent>
 
               <TabsContent value="clean" className="space-y-4">
@@ -1817,13 +2043,13 @@ const AIHubPage = () => {
                   accept=".mp4,.webm,video/*"
                   onChange={(e) => handleInputFileChange(e, setCleanFile, setCleanUploadProgress)}
                 />
-                <div 
+                <div
                   className={cn(
                     "flex flex-col gap-2 p-4 border-2 border-dashed rounded-lg transition-colors cursor-pointer",
-                    cleanDragActive 
-                      ? "border-primary bg-primary/10" 
-                      : cleanFile 
-                        ? "border-emerald-500/50 bg-emerald-500/10" 
+                    cleanDragActive
+                      ? "border-primary bg-primary/10"
+                      : cleanFile
+                        ? "border-emerald-500/50 bg-emerald-500/10"
                         : "border-border/50 hover:border-primary/50"
                   )}
                   onDragOver={(e) => handleDragOver(e, setCleanDragActive)}
@@ -1847,9 +2073,9 @@ const AIHubPage = () => {
                       )}
                     </div>
                     {cleanFile ? (
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={(e) => { e.stopPropagation(); setCleanFile(null); }}
                       >
                         <X className="h-4 w-4" />
@@ -1860,14 +2086,17 @@ const AIHubPage = () => {
                   </div>
                   {cleanUploadProgress > 0 && cleanUploadProgress < 100 && (
                     <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-primary transition-all duration-150 ease-out"
                         style={{ width: `${cleanUploadProgress}%` }}
                       />
                     </div>
                   )}
                 </div>
-                <Button className="w-full" disabled={!cleanFile}>Запустить очистку</Button>
+                <Button className="w-full" disabled={!cleanFile || cleanLoading} onClick={handleClean}>
+                  {cleanLoading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
+                  Запустить очистку
+                </Button>
               </TabsContent>
             </Tabs>
           </CardContent>
@@ -1882,9 +2111,9 @@ const AIHubPage = () => {
               <Activity className="h-4 w-4 text-primary" />
               <CardTitle className="text-base">Консоль</CardTitle>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setLogs([])}
               className="text-muted-foreground"
             >
@@ -1901,12 +2130,12 @@ const AIHubPage = () => {
             ) : (
               <div className="space-y-2">
                 {logs.map((log) => (
-                  <div 
-                    key={log.id} 
+                  <div
+                    key={log.id}
                     className={cn(
                       "p-3 rounded-lg border text-sm font-mono",
-                      log.error 
-                        ? "bg-destructive/10 border-destructive/30 text-destructive" 
+                      log.error
+                        ? "bg-destructive/10 border-destructive/30 text-destructive"
                         : "bg-muted/50 border-border/50"
                     )}
                   >

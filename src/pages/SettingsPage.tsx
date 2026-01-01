@@ -9,15 +9,16 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import TelegramBotsManager from '@/components/dashboard/TelegramBotsManager';
+import { supabase } from '@/integrations/supabase/client';
 
 const SettingsPage = () => {
   const { t, language, setLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
-  
+
   // Server IP state
   const [serverIp, setServerIp] = useState('');
   const [serverIpSaved, setServerIpSaved] = useState(false);
-  
+
   // API Keys state
   const [showApiKeys, setShowApiKeys] = useState<Record<string, boolean>>({});
   const [apiKeys, setApiKeys] = useState({
@@ -25,40 +26,115 @@ const SettingsPage = () => {
     telegram: '',
     openai: '',
   });
-  
+
   // Security state
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [sessionTimeout, setSessionTimeout] = useState(30);
-  
-  // Load saved settings
+  const [notificationSettings, setNotificationSettings] = useState({
+    email: true,
+    push: true,
+    security: true
+  });
+
+  // Load settings from database
   useEffect(() => {
-    const savedServerIp = localStorage.getItem('serverIp');
-    if (savedServerIp) setServerIp(savedServerIp);
-    
-    const savedApiKeys = localStorage.getItem('apiKeys');
-    if (savedApiKeys) setApiKeys(JSON.parse(savedApiKeys));
-    
-    const saved2FA = localStorage.getItem('twoFactorEnabled');
-    if (saved2FA) setTwoFactorEnabled(saved2FA === 'true');
+    const loadSettings = async () => {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('key, value');
+
+      if (!error && data) {
+        data.forEach((setting: any) => {
+          const val = setting.value;
+          switch (setting.key) {
+            case 'serverIp':
+              if (val?.ip) setServerIp(val.ip);
+              break;
+            case 'apiKeys':
+              if (val) setApiKeys(prev => ({ ...prev, ...val }));
+              break;
+            case 'security':
+              if (val?.twoFactor !== undefined) setTwoFactorEnabled(val.twoFactor);
+              if (val?.sessionTimeout) setSessionTimeout(val.sessionTimeout);
+              break;
+            case 'notifications':
+              if (val) setNotificationSettings(prev => ({ ...prev, ...val }));
+              break;
+          }
+        });
+      }
+    };
+
+    loadSettings();
   }, []);
-  
-  const handleSaveServerIp = () => {
-    localStorage.setItem('serverIp', serverIp);
-    setServerIpSaved(true);
-    toast.success('Server IP сохранён');
-    setTimeout(() => setServerIpSaved(false), 2000);
+
+  // Save setting to database
+  const saveSetting = async (key: string, value: any) => {
+    const { error } = await supabase
+      .from('app_settings')
+      .upsert({ key, value }, { onConflict: 'key' });
+
+    if (error) {
+      console.error('Save error:', error);
+      return false;
+    }
+    return true;
   };
-  
-  const handleSaveApiKey = (key: string) => {
-    const newKeys = { ...apiKeys };
-    localStorage.setItem('apiKeys', JSON.stringify(newKeys));
-    toast.success(`${key.toUpperCase()} API ключ сохранён`);
+
+  const handleSaveServerIp = async () => {
+    const success = await saveSetting('serverIp', { ip: serverIp });
+    if (success) {
+      setServerIpSaved(true);
+      toast.success('Server IP сохранён в базе');
+      setTimeout(() => setServerIpSaved(false), 2000);
+    } else {
+      toast.error('Ошибка сохранения');
+    }
   };
-  
+
+  const handleSaveApiKey = async (key: string) => {
+    const success = await saveSetting('apiKeys', apiKeys);
+    if (success) {
+      toast.success(`${key.toUpperCase()} API ключ сохранён`);
+    } else {
+      toast.error('Ошибка сохранения');
+    }
+  };
+
+  const handleSaveNotifications = async (newSettings: typeof notificationSettings) => {
+    setNotificationSettings(newSettings);
+    await saveSetting('notifications', newSettings);
+  };
+
+  const handleSaveSecurity = async (twoFactor: boolean, timeout: number) => {
+    setTwoFactorEnabled(twoFactor);
+    setSessionTimeout(timeout);
+    const success = await saveSetting('security', { twoFactor, sessionTimeout: timeout });
+    if (success) {
+      toast.success(twoFactor ? '2FA включена' : '2FA отключена');
+    }
+  };
+
   const toggleShowApiKey = (key: string) => {
     setShowApiKeys(prev => ({ ...prev, [key]: !prev[key] }));
   };
-  
+
+  const handleChangePassword = async () => {
+    const newPassword = prompt('Введите новый пароль (минимум 6 символов):');
+    if (!newPassword || newPassword.length < 6) {
+      if (newPassword) toast.error('Пароль слишком короткий');
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success('Пароль успешно изменен');
+    } catch (e: any) {
+      toast.error('Ошибка смены пароля: ' + e.message);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -67,10 +143,10 @@ const SettingsPage = () => {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-foreground">{t('settings')}</h1>
-          <p className="text-muted-foreground">Настройки приложения</p>
+          <p className="text-muted-foreground">Настройки приложения (сохраняются в БД)</p>
         </div>
       </div>
-      
+
       {/* Server IP - Full Width */}
       <Card className="bg-card/50 border-border/50 max-w-4xl">
         <CardHeader>
@@ -97,7 +173,7 @@ const SettingsPage = () => {
           </div>
         </CardContent>
       </Card>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-4xl">
         {/* Language */}
         <Card className="bg-card/50 border-border/50">
@@ -126,7 +202,7 @@ const SettingsPage = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         {/* Theme */}
         <Card className="bg-card/50 border-border/50">
           <CardHeader>
@@ -154,7 +230,7 @@ const SettingsPage = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         {/* Notifications */}
         <Card className="bg-card/50 border-border/50">
           <CardHeader>
@@ -166,19 +242,31 @@ const SettingsPage = () => {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <Label htmlFor="email-notif">Email уведомления</Label>
-              <Switch id="email-notif" defaultChecked />
+              <Switch
+                id="email-notif"
+                checked={notificationSettings.email}
+                onCheckedChange={(checked) => handleSaveNotifications({ ...notificationSettings, email: checked })}
+              />
             </div>
             <div className="flex items-center justify-between">
               <Label htmlFor="push-notif">Push уведомления</Label>
-              <Switch id="push-notif" defaultChecked />
+              <Switch
+                id="push-notif"
+                checked={notificationSettings.push}
+                onCheckedChange={(checked) => handleSaveNotifications({ ...notificationSettings, push: checked })}
+              />
             </div>
             <div className="flex items-center justify-between">
               <Label htmlFor="security-alerts">Оповещения безопасности</Label>
-              <Switch id="security-alerts" defaultChecked />
+              <Switch
+                id="security-alerts"
+                checked={notificationSettings.security}
+                onCheckedChange={(checked) => handleSaveNotifications({ ...notificationSettings, security: checked })}
+              />
             </div>
           </CardContent>
         </Card>
-        
+
         {/* Account */}
         <Card className="bg-card/50 border-border/50">
           <CardHeader>
@@ -203,7 +291,7 @@ const SettingsPage = () => {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* API Keys - Full Width */}
       <Card className="bg-card/50 border-border/50 max-w-4xl">
         <CardHeader>
@@ -214,9 +302,9 @@ const SettingsPage = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground mb-4">
-            Настройте API ключи для интеграции с внешними сервисами
+            Настройте API ключи для интеграции с внешними сервисами (сохраняются в БД)
           </p>
-          
+
           {/* YouTube API */}
           <div className="space-y-2">
             <Label>YouTube Data API</Label>
@@ -242,7 +330,7 @@ const SettingsPage = () => {
               </Button>
             </div>
           </div>
-          
+
           {/* Telegram API */}
           <div className="space-y-2">
             <Label>Telegram Bot Token</Label>
@@ -268,7 +356,7 @@ const SettingsPage = () => {
               </Button>
             </div>
           </div>
-          
+
           {/* OpenAI API */}
           <div className="space-y-2">
             <Label>OpenAI API Key</Label>
@@ -296,7 +384,7 @@ const SettingsPage = () => {
           </div>
         </CardContent>
       </Card>
-      
+
       {/* Security - Full Width */}
       <Card className="bg-card/50 border-border/50 max-w-4xl">
         <CardHeader>
@@ -311,17 +399,13 @@ const SettingsPage = () => {
               <Label htmlFor="2fa">Двухфакторная аутентификация</Label>
               <p className="text-xs text-muted-foreground">Дополнительная защита аккаунта</p>
             </div>
-            <Switch 
-              id="2fa" 
+            <Switch
+              id="2fa"
               checked={twoFactorEnabled}
-              onCheckedChange={(checked) => {
-                setTwoFactorEnabled(checked);
-                localStorage.setItem('twoFactorEnabled', String(checked));
-                toast.success(checked ? '2FA включена' : '2FA отключена');
-              }}
+              onCheckedChange={(checked) => handleSaveSecurity(checked, sessionTimeout)}
             />
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div>
               <Label htmlFor="session-lock">Автоблокировка сессии</Label>
@@ -333,19 +417,23 @@ const SettingsPage = () => {
               min={5}
               max={120}
               value={sessionTimeout}
-              onChange={(e) => setSessionTimeout(Number(e.target.value))}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                setSessionTimeout(val);
+              }}
+              onBlur={() => handleSaveSecurity(twoFactorEnabled, sessionTimeout)}
               className="w-20 text-center"
             />
           </div>
-          
+
           <div className="pt-2 border-t border-border/50">
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" className="w-full" onClick={handleChangePassword}>
               Сменить пароль
             </Button>
           </div>
         </CardContent>
       </Card>
-      
+
       {/* Telegram Bots */}
       <div className="max-w-4xl">
         <TelegramBotsManager />

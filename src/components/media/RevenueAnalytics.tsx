@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { 
-  TrendingUp, TrendingDown, Download, Calendar, 
+import {
+  TrendingUp, TrendingDown, Download, Calendar,
   DollarSign, ArrowUpRight, ArrowDownRight, Calculator,
   Target, Users, MousePointer, Percent, BarChart3
 } from 'lucide-react';
@@ -15,8 +15,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { 
-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, 
+import {
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
   CartesianGrid, Tooltip, BarChart, Bar, LineChart, Line, Legend
 } from 'recharts';
 
@@ -46,10 +46,10 @@ interface RevenueAnalyticsProps {
 }
 
 const formatCurrency = (num: number) => {
-  return new Intl.NumberFormat('ru-RU', { 
-    style: 'currency', 
-    currency: 'RUB', 
-    maximumFractionDigits: 0 
+  return new Intl.NumberFormat('ru-RU', {
+    style: 'currency',
+    currency: 'RUB',
+    maximumFractionDigits: 0
   }).format(num);
 };
 
@@ -92,23 +92,23 @@ export const RevenueAnalytics = ({ sales, purchases }: RevenueAnalyticsProps) =>
   // Generate chart data
   const chartData = useMemo(() => {
     const days = eachDayOfInterval({ start: dateRange.from, end: dateRange.to });
-    
+
     return days.map(day => {
       const dayStr = format(day, 'yyyy-MM-dd');
       const displayDate = format(day, 'dd.MM', { locale: ru });
-      
+
       const dayRevenue = sales
         .filter(s => s.is_paid && s.payment_date && format(parseISO(s.payment_date), 'yyyy-MM-dd') === dayStr)
         .reduce((sum, s) => sum + s.price, 0);
-      
+
       const dayExpenses = purchases
         .filter(p => format(parseISO(p.created_at), 'yyyy-MM-dd') === dayStr)
         .reduce((sum, p) => sum + p.cost, 0);
-      
+
       const daySales = sales
         .filter(s => format(parseISO(s.created_at), 'yyyy-MM-dd') === dayStr)
         .length;
-      
+
       const dayPurchases = purchases
         .filter(p => format(parseISO(p.created_at), 'yyyy-MM-dd') === dayStr)
         .length;
@@ -133,7 +133,7 @@ export const RevenueAnalytics = ({ sales, purchases }: RevenueAnalyticsProps) =>
     const totalNewSubs = filteredPurchases.reduce((sum, p) => sum + p.new_subscribers, 0);
     const avgCostPerSub = totalNewSubs > 0 ? totalExpenses / totalNewSubs : 0;
     const roi = totalExpenses > 0 ? ((totalRevenue - totalExpenses) / totalExpenses) * 100 : 0;
-    
+
     return {
       totalRevenue,
       totalExpenses,
@@ -149,17 +149,17 @@ export const RevenueAnalytics = ({ sales, purchases }: RevenueAnalyticsProps) =>
   // ROI Calculator results
   const roiResults = useMemo(() => {
     const { adCost, expectedSubscribers, revenuePerSubscriber, conversionRate, channelSubscribers } = roiCalculator;
-    
+
     const expectedRevenue = expectedSubscribers * revenuePerSubscriber;
     const expectedProfit = expectedRevenue - adCost;
     const roi = adCost > 0 ? ((expectedRevenue - adCost) / adCost) * 100 : 0;
     const costPerSubscriber = expectedSubscribers > 0 ? adCost / expectedSubscribers : 0;
     const breakEvenSubscribers = revenuePerSubscriber > 0 ? Math.ceil(adCost / revenuePerSubscriber) : 0;
-    
+
     // Прогноз на основе конверсии
     const expectedClicksFromChannel = Math.floor(channelSubscribers * (conversionRate / 100));
     const expectedSubscribersFromChannel = Math.floor(expectedClicksFromChannel * 0.15); // 15% конверсия кликов в подписки
-    
+
     return {
       expectedRevenue,
       expectedProfit,
@@ -183,23 +183,25 @@ export const RevenueAnalytics = ({ sales, purchases }: RevenueAnalyticsProps) =>
       d.sales,
       d.purchases,
     ]);
-    
+
     // Summary row
     rows.push([]);
     rows.push(['ИТОГО', summary.totalRevenue, summary.totalExpenses, summary.totalProfit, summary.salesCount, summary.purchasesCount]);
     rows.push(['ROI', `${summary.roi.toFixed(1)}%`, '', '', '', '']);
     rows.push(['Ср. стоимость подписчика', formatCurrency(summary.avgCostPerSub), '', '', '', '']);
-    
+
     const csvContent = [
       headers.join(';'),
       ...rows.map(row => row.join(';')),
     ].join('\n');
-    
+
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `revenue_report_${format(dateRange.from, 'yyyy-MM-dd')}_${format(dateRange.to, 'yyyy-MM-dd')}.csv`;
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -228,24 +230,24 @@ export const RevenueAnalytics = ({ sales, purchases }: RevenueAnalyticsProps) =>
               />
             </PopoverContent>
           </Popover>
-          
+
           <div className="flex gap-1">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
               onClick={() => setDateRange({ from: subDays(new Date(), 7), to: new Date() })}
             >
               7д
             </Button>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
               onClick={() => setDateRange({ from: subDays(new Date(), 30), to: new Date() })}
             >
               30д
             </Button>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
               onClick={() => setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })}
             >
@@ -253,7 +255,7 @@ export const RevenueAnalytics = ({ sales, purchases }: RevenueAnalyticsProps) =>
             </Button>
           </div>
         </div>
-        
+
         <Button onClick={exportToExcel} variant="outline" className="gap-2">
           <Download className="h-4 w-4" />
           Экспорт в Excel
@@ -286,8 +288,8 @@ export const RevenueAnalytics = ({ sales, purchases }: RevenueAnalyticsProps) =>
 
         <Card className={cn(
           "bg-gradient-to-br border",
-          summary.totalProfit >= 0 
-            ? "from-emerald-500/20 to-emerald-600/10 border-emerald-500/30" 
+          summary.totalProfit >= 0
+            ? "from-emerald-500/20 to-emerald-600/10 border-emerald-500/30"
             : "from-red-500/20 to-red-600/10 border-red-500/30"
         )}>
           <CardContent className="pt-4">
@@ -344,14 +346,14 @@ export const RevenueAnalytics = ({ sales, purchases }: RevenueAnalyticsProps) =>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                     <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} />
                     <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={(v) => formatNumber(v)} tickLine={false} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))', 
-                        borderRadius: '8px' 
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
                       }}
                       formatter={(value: number, name: string) => [
-                        formatCurrency(value), 
+                        formatCurrency(value),
                         name === 'revenue' ? 'Доход' : 'Расходы'
                       ]}
                     />
@@ -377,16 +379,16 @@ export const RevenueAnalytics = ({ sales, purchases }: RevenueAnalyticsProps) =>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                     <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} />
                     <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={(v) => formatNumber(v)} tickLine={false} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))', 
-                        borderRadius: '8px' 
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
                       }}
                       formatter={(value: number) => [formatCurrency(value), 'Прибыль']}
                     />
-                    <Bar 
-                      dataKey="profit" 
+                    <Bar
+                      dataKey="profit"
                       radius={[4, 4, 0, 0]}
                       fill="#3b82f6"
                     />
@@ -411,7 +413,7 @@ export const RevenueAnalytics = ({ sales, purchases }: RevenueAnalyticsProps) =>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Стоимость рекламы (₽)</Label>
-                  <Input 
+                  <Input
                     type="number"
                     value={roiCalculator.adCost}
                     onChange={e => setRoiCalculator({ ...roiCalculator, adCost: parseFloat(e.target.value) || 0 })}
@@ -419,7 +421,7 @@ export const RevenueAnalytics = ({ sales, purchases }: RevenueAnalyticsProps) =>
                 </div>
                 <div className="space-y-2">
                   <Label>Ожидаемое кол-во подписчиков</Label>
-                  <Input 
+                  <Input
                     type="number"
                     value={roiCalculator.expectedSubscribers}
                     onChange={e => setRoiCalculator({ ...roiCalculator, expectedSubscribers: parseInt(e.target.value) || 0 })}
@@ -427,7 +429,7 @@ export const RevenueAnalytics = ({ sales, purchases }: RevenueAnalyticsProps) =>
                 </div>
                 <div className="space-y-2">
                   <Label>Доход с подписчика (₽)</Label>
-                  <Input 
+                  <Input
                     type="number"
                     value={roiCalculator.revenuePerSubscriber}
                     onChange={e => setRoiCalculator({ ...roiCalculator, revenuePerSubscriber: parseFloat(e.target.value) || 0 })}
@@ -436,7 +438,7 @@ export const RevenueAnalytics = ({ sales, purchases }: RevenueAnalyticsProps) =>
                 </div>
                 <div className="space-y-2">
                   <Label>Подписчики канала где реклама</Label>
-                  <Input 
+                  <Input
                     type="number"
                     value={roiCalculator.channelSubscribers}
                     onChange={e => setRoiCalculator({ ...roiCalculator, channelSubscribers: parseInt(e.target.value) || 0 })}
@@ -444,7 +446,7 @@ export const RevenueAnalytics = ({ sales, purchases }: RevenueAnalyticsProps) =>
                 </div>
                 <div className="space-y-2">
                   <Label>Ожидаемый CTR (%)</Label>
-                  <Input 
+                  <Input
                     type="number"
                     step="0.1"
                     value={roiCalculator.conversionRate}
@@ -458,8 +460,8 @@ export const RevenueAnalytics = ({ sales, purchases }: RevenueAnalyticsProps) =>
             {/* Calculator Results */}
             <Card className={cn(
               "bg-gradient-to-br border",
-              roiResults.isProfitable 
-                ? "from-emerald-500/10 to-emerald-600/5 border-emerald-500/30" 
+              roiResults.isProfitable
+                ? "from-emerald-500/10 to-emerald-600/5 border-emerald-500/30"
                 : "from-red-500/10 to-red-600/5 border-red-500/30"
             )}>
               <CardHeader>

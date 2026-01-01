@@ -20,3 +20,9 @@ verify_jwt = false
 
 [functions.ai-image]
 verify_jwt = false
+
+[functions.record-system-metrics]
+verify_jwt = false
+
+[functions.check-services]
+verify_jwt = false

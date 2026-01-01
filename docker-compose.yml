@@ -1,34 +1,153 @@
 services:
+  # ===========================================
+  # Frontend Dashboard
+  # ===========================================
   creationhub:
-    build: .
+    build: 
+      context: .
+      args:
+        - VITE_SUPABASE_URL=/api/v1
+        - VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoicG9zdGdyZXMiLCJleHAiOjIwODE2NzIxNTF9.230cB1C85ECp3N5eXO4xOXabWYbA7bEVqDQ87tM1ZJ4
     container_name: creationhub
     ports:
       - "7777:80"
     restart: always
+    depends_on:
+      postgrest:
+        condition: service_started
     environment:
-      - VITE_SUPABASE_URL=http://192.168.1.220:7777/api/v1
-      - VITE_SUPABASE_ANON_KEY=my-secret-anon-key
+      - VITE_SUPABASE_URL=/api/v1
+      - VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoicG9zdGdyZXMiLCJleHAiOjIwODE2NzIxNTF9.230cB1C85ECp3N5eXO4xOXabWYbA7bEVqDQ87tM1ZJ4
+    networks:
+      - default
+      - creationhub-backend
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-    restart: always
-
+  # ===========================================
+  # PostgREST API
+  # ===========================================
   postgrest:
     image: postgrest/postgrest
     container_name: creationhub_api
     ports:
       - "7778:3000"
-    env_file: .env
     environment:
-      PGRST_DB_URI: "${DATABASE_URL}"
+      PGRST_DB_URI: "postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@creationhub-postgres:5432/${POSTGRES_DB:-postgres}"
       PGRST_DB_SCHEMA: public
-      PGRST_DB_ANON_ROLE: postgres
-      PGRST_JWT_SECRET: "${PGRST_JWT_SECRET}"
+      PGRST_DB_ANON_ROLE: ${POSTGRES_USER:-postgres}
+      PGRST_JWT_SECRET: "${JWT_SECRET:-super-secret-jwt-key-for-creationhub-2024}"
     restart: always
+    networks:
+      - default
+      - creationhub-backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ===========================================
+  # Stats Recorder (System Metrics)
+  # ===========================================
   stats-recorder:
     build: ./stats-recorder
     container_name: creationhub_stats
     restart: always
-    env_file: .env
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - GLANCES_URL=${GLANCES_URL}
+      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@creationhub-postgres:5432/${POSTGRES_DB:-postgres}
+      - GLANCES_URL=${GLANCES_URL:-http://host.docker.internal:61208/api/4}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - default
+      - creationhub-backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================
+  # System API (Docker Monitoring)
+  # ===========================================
+  system-api:
+    build: ./system-api
+    container_name: creationhub_system_api
+    restart: always
+    ports:
+      - "9191:9191"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc:/host-etc:ro
+      - /etc/wireguard:/etc/wireguard
+    environment:
+      - WG_CONFIG_DIR=/etc/wireguard
+      - OS_RELEASE_PATH=/host-etc/os-release
+      - RESOLV_CONF_PATH=/host-etc/resolv.conf
+    networks:
+      - default
+      - creationhub-backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================
+  # Ollama (AI Chat)
+  # ===========================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: creationhub_ollama
+    restart: always
+    ports:
+      - "11434:11434"
+    volumes:
+      - ${AI_DATA_PATH:-./ai_data}:/root/.ollama
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 2G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================
+  # AI Gateway (On-Demand Service Manager)
+  # ===========================================
+  ai-gateway:
+    build: ./ai-gateway
+    container_name: creationhub_ai_gateway
+    restart: always
+    ports:
+      - "9292:9292"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-Tarantul1310}
+      - JWT_SECRET=${JWT_SECRET:-super-secret-jwt-key-for-creationhub-2024}
+    networks:
+      - default
+      - creationhub-backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  creationhub-backend:
+    external: true
+
+volumes:
+  postgres_data:

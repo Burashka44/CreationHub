@@ -1,17 +1,18 @@
-import { Server, Clock, Cpu, HardDrive, Thermometer, Power } from 'lucide-react';
+import { Server, Clock, Cpu, HardDrive, Thermometer, Container } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useEffect } from 'react';
 
 const ServerStats = () => {
   const { t } = useLanguage();
   const [currentTime, setCurrentTime] = useState(new Date());
-  // Default values while loading
   const [statsData, setStatsData] = useState({
     cpu: 0,
     ram_used: 0,
     ram_total: 0,
     uptime: 'Loading...',
-    cpu_temp: 'N/A'
+    cpu_temp: 'N/A',
+    containers: 0,
+    osInfo: 'Linux Server'
   });
 
   useEffect(() => {
@@ -22,12 +23,13 @@ const ServerStats = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Fetch in parallel
-        const [cpuRes, memRes, uptimeRes, sensorsRes] = await Promise.allSettled([
+        const [cpuRes, memRes, uptimeRes, sensorsRes, containersRes, systemRes] = await Promise.allSettled([
           fetch('/api/glances/cpu'),
           fetch('/api/glances/mem'),
           fetch('/api/glances/uptime'),
-          fetch('/api/glances/sensors')
+          fetch('/api/glances/sensors'),
+          fetch('/api/system/docker'),
+          fetch('/api/system/os')  // Our system-api for real host OS
         ]);
 
         const newData = { ...statsData };
@@ -40,25 +42,58 @@ const ServerStats = () => {
         if (memRes.status === 'fulfilled' && memRes.value.ok) {
           const mem = await memRes.value.json();
           newData.ram_used = mem.percent;
-          newData.ram_total = Math.round(mem.total / 1024 / 1024 / 1024); // GB
+          newData.ram_total = Math.round(mem.total / 1024 / 1024 / 1024);
         }
 
-        if (uptimeRes.status === 'fulfilled' && uptimeRes.value.json) {
-          const uptime = await uptimeRes.value.json();
-          // Glances returns seconds string or object
-          const seconds = typeof uptime === 'string' ? parseFloat(uptime) : parseFloat(uptime.seconds);
-          if (!isNaN(seconds)) {
-            const days = Math.floor(seconds / 86400);
-            const hours = Math.floor((seconds % 86400) / 3600);
-            newData.uptime = `${days}d ${hours}h`;
+        // Glances returns uptime as "1 day, 2:32:58" or "2:32:58"
+        if (uptimeRes.status === 'fulfilled' && uptimeRes.value.ok) {
+          const uptimeStr = await uptimeRes.value.json();
+          if (typeof uptimeStr === 'string') {
+            const clean = uptimeStr.replace(/"/g, '').trim();
+            // Check for "X day(s), HH:MM:SS" format
+            const dayMatch = clean.match(/(\d+)\s+day/);
+            const timeMatch = clean.match(/(\d+):(\d+):(\d+)/);
+
+            let days = dayMatch ? parseInt(dayMatch[1], 10) : 0;
+            let hours = timeMatch ? parseInt(timeMatch[1], 10) : 0;
+            let minutes = timeMatch ? parseInt(timeMatch[2], 10) : 0;
+
+            if (days > 0) {
+              newData.uptime = `${days}d ${hours}h`;
+            } else if (hours > 0) {
+              newData.uptime = `${hours}h ${minutes}m`;
+            } else {
+              newData.uptime = `${minutes}m`;
+            }
           }
         }
 
-        // Simple temp check (first sensor)
         if (sensorsRes.status === 'fulfilled' && sensorsRes.value.ok) {
           const sensors = await sensorsRes.value.json();
           if (Array.isArray(sensors) && sensors.length > 0) {
-            newData.cpu_temp = `${Math.round(sensors[0].value)}°C`;
+            // Find CPU temp sensor
+            const cpuSensor = sensors.find((s: any) =>
+              s.label?.toLowerCase().includes('cpu') ||
+              s.label?.toLowerCase().includes('core') ||
+              s.label?.toLowerCase().includes('package')
+            ) || sensors[0];
+            newData.cpu_temp = `${Math.round(cpuSensor.value)}°C`;
+          }
+        }
+
+        // Count running containers via System API
+        if (containersRes.status === 'fulfilled' && containersRes.value.ok) {
+          const result = await containersRes.value.json();
+          if (result.success) {
+            newData.containers = result.running || 0;
+          }
+        }
+
+        // Get system info (OS) - from our system-api (real host OS)
+        if (systemRes.status === 'fulfilled' && systemRes.value.ok) {
+          const result = await systemRes.value.json();
+          if (result.success && result.data) {
+            newData.osInfo = result.data.pretty_name || result.data.name || 'Linux';
           }
         }
 
@@ -69,7 +104,7 @@ const ServerStats = () => {
     };
 
     fetchStats();
-    const interval = setInterval(fetchStats, 5000); // Update every 5s
+    const interval = setInterval(fetchStats, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -78,7 +113,7 @@ const ServerStats = () => {
       icon: Clock,
       label: t('uptime'),
       value: statsData.uptime,
-      subValue: 'Linux 6.8', // Kernel
+      subValue: statsData.osInfo,
       color: 'text-success'
     },
     {
@@ -99,15 +134,15 @@ const ServerStats = () => {
       icon: Thermometer,
       label: t('temperature'),
       value: statsData.cpu_temp,
-      subValue: 'System',
+      subValue: 'CPU',
       color: 'text-success'
     },
     {
-      icon: Power,
-      label: t('powerConsumption'),
-      value: 'N/A', // Glances usually doesn't give power unless IPMI
-      subValue: 'Est.',
-      color: 'text-warning'
+      icon: Container,
+      label: 'Containers',
+      value: `${statsData.containers}`,
+      subValue: 'Running',
+      color: 'text-blue-500'
     },
     {
       icon: Server,

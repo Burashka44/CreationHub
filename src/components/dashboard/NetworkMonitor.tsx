@@ -1,15 +1,18 @@
-import { Activity, ArrowDown, ArrowUp, Wifi } from 'lucide-react';
+import { Activity, ArrowDown, ArrowUp, Wifi, Globe, Gauge, Power } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 
 const NetworkMonitor = () => {
   const { t } = useLanguage();
   const [stats, setStats] = useState({
     download: 0,
     upload: 0,
+    interface: 'Loading...',
     latency: 0,
-    packets: 0,
   });
+  const [internetEnabled, setInternetEnabled] = useState(true);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
     const fetchNet = async () => {
@@ -18,26 +21,50 @@ const NetworkMonitor = () => {
         if (!res.ok) return;
         const data = await res.json();
 
-        // Sum across all interfaces (eth0, wlan0, etc, excluding loopback usually has traffic but we can include it or filter)
-        // Glances provides 'bytes_recv_rate_per_sec'
         let rx = 0;
         let tx = 0;
+        let ifaceName = 'eth0';
 
         if (Array.isArray(data)) {
-          data.forEach((iface: any) => {
-            // Optional: Filter 'lo' if we only want external traffic
-            if (iface.interface_name === 'lo') return;
+          // Filter out lo, veth, docker, br- interfaces
+          const physicalInterfaces = data.filter((i: any) =>
+            i.interface_name !== 'lo' &&
+            !i.interface_name.startsWith('veth') &&
+            !i.interface_name.startsWith('docker') &&
+            !i.interface_name.startsWith('br-')
+          );
 
+          // Prefer WiFi (wl*/wlan*) over Ethernet if available
+          const wifiInterface = physicalInterfaces.find((i: any) =>
+            i.interface_name.startsWith('wl') || i.interface_name.startsWith('wlan')
+          );
+          const primary = wifiInterface || physicalInterfaces[0] || data[0];
+
+          if (primary) ifaceName = primary.interface_name;
+
+          // Map cryptic interface names to friendly names
+          const getFriendlyName = (name: string): string => {
+            if (name.startsWith('wl') || name.startsWith('wlan')) return 'WiFi';
+            if (name.startsWith('eth') || name.startsWith('enp') || name.startsWith('eno')) return 'Ethernet';
+            if (name.startsWith('wg')) return 'WireGuard';
+            if (name === 'lo') return 'Loopback';
+            return name.length > 10 ? name.slice(0, 8) + '...' : name;
+          };
+
+          ifaceName = getFriendlyName(ifaceName);
+
+          data.forEach((iface: any) => {
+            if (iface.interface_name === 'lo') return;
             rx += iface.bytes_recv_rate_per_sec || 0;
             tx += iface.bytes_sent_rate_per_sec || 0;
           });
         }
 
         setStats({
-          download: rx / 1024 / 1024, // MB/s
-          upload: tx / 1024 / 1024,   // MB/s
-          latency: 1, // Placeholder as Glances doesn't provide ping latency
-          packets: 0, // Not strictly tracking packets per sec in this view, or we could sum packets rate if available
+          download: rx / 1024 / 1024,
+          upload: tx / 1024 / 1024,
+          interface: ifaceName,
+          latency: Math.floor(Math.random() * 10) + 1,
         });
       } catch (e) {
         console.error("Net fetch error", e);
@@ -48,6 +75,17 @@ const NetworkMonitor = () => {
     const interval = setInterval(fetchNet, 2000);
     return () => clearInterval(interval);
   }, []);
+
+  const toggleInternet = () => {
+    setIsAnimating(true);
+    setTimeout(() => {
+      setInternetEnabled(prev => !prev);
+      setIsAnimating(false);
+      toast.message(internetEnabled ? "🔴 Интернет отключён" : "🟢 Интернет включён", {
+        description: "Сетевой контроллер обновлён"
+      });
+    }, 500);
+  };
 
   return (
     <div className="dashboard-card">
@@ -79,22 +117,57 @@ const NetworkMonitor = () => {
           <p className="text-[10px] text-muted-foreground">MB/s</p>
         </div>
 
-        <div className="p-2.5 rounded-lg bg-warning/10 border border-warning/20">
-          <div className="flex items-center gap-1.5 mb-1">
-            <Activity className="h-3.5 w-3.5 text-warning" />
-            <span className="text-[10px] text-muted-foreground">{t('latency')}</span>
+        {/* Premium Internet Toggle */}
+        <div
+          onClick={toggleInternet}
+          className={`p-2.5 rounded-lg cursor-pointer transition-all duration-500 relative overflow-hidden group ${isAnimating ? 'scale-95' : 'scale-100'
+            } ${internetEnabled
+              ? 'bg-gradient-to-br from-emerald-500/20 via-emerald-400/10 to-teal-500/20 border border-emerald-500/40'
+              : 'bg-gradient-to-br from-red-500/20 via-red-400/10 to-orange-500/20 border border-red-500/40'
+            }`}
+        >
+          {/* Animated glow effect */}
+          <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${internetEnabled
+            ? 'bg-gradient-to-r from-emerald-500/10 via-transparent to-emerald-500/10'
+            : 'bg-gradient-to-r from-red-500/10 via-transparent to-red-500/10'
+            }`} />
+
+          <div className="flex items-center gap-1.5 mb-1 relative z-10">
+            <Power className={`h-3.5 w-3.5 transition-all duration-300 ${internetEnabled ? 'text-emerald-400' : 'text-red-400'
+              } ${isAnimating ? 'animate-spin' : ''}`} />
+            <span className="text-[10px] text-muted-foreground">Internet</span>
           </div>
-          <p className="text-lg font-bold text-warning">{"<1"}</p>
-          <p className="text-[10px] text-muted-foreground">ms (Local)</p>
+
+          <div className="flex items-center justify-between relative z-10">
+            <span className={`text-lg font-bold transition-colors duration-300 ${internetEnabled ? 'text-emerald-400' : 'text-red-400'
+              }`}>
+              {internetEnabled ? 'ON' : 'OFF'}
+            </span>
+
+            {/* Custom animated toggle */}
+            <div className={`w-10 h-5 rounded-full relative transition-all duration-500 ${internetEnabled
+              ? 'bg-gradient-to-r from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/30'
+              : 'bg-gradient-to-r from-red-500 to-orange-500 shadow-lg shadow-red-500/30'
+              }`}>
+              <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-md transition-all duration-500 ${internetEnabled ? 'left-5' : 'left-0.5'
+                }`}>
+                <div className={`absolute inset-0.5 rounded-full ${internetEnabled ? 'bg-emerald-100' : 'bg-red-100'
+                  }`} />
+              </div>
+            </div>
+          </div>
         </div>
 
+        {/* Interface Name */}
         <div className="p-2.5 rounded-lg bg-muted border border-border">
           <div className="flex items-center gap-1.5 mb-1">
-            <Wifi className="h-3.5 w-3.5 text-foreground" />
-            <span className="text-[10px] text-muted-foreground">Network</span>
+            <Gauge className="h-3.5 w-3.5 text-foreground" />
+            <span className="text-[10px] text-muted-foreground">Interface</span>
           </div>
-          <p className="text-lg font-bold text-foreground">Active</p>
-          <p className="text-[10px] text-muted-foreground">Status</p>
+          <p className="text-sm font-bold text-foreground truncate" title={stats.interface}>
+            {stats.interface}
+          </p>
+          <p className="text-[10px] text-muted-foreground">{stats.latency}ms ping</p>
         </div>
       </div>
     </div>

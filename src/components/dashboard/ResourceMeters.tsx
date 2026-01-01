@@ -15,7 +15,7 @@ interface ResourceMeterProps {
 
 const ResourceMeter = ({ icon: Icon, label, value, max, unit, color, warning = 70, critical = 90 }: ResourceMeterProps) => {
   const percent = (value / max) * 100;
-  
+
   const getColor = () => {
     if (percent >= critical) return 'bg-destructive';
     if (percent >= warning) return 'bg-warning';
@@ -31,16 +31,16 @@ const ResourceMeter = ({ icon: Icon, label, value, max, unit, color, warning = 7
           </div>
           <span className="text-sm font-medium text-foreground">{label}</span>
         </div>
-        <span className="text-lg font-bold text-foreground">{percent.toFixed(1)}%</span>
+        <span className="text-lg font-bold text-foreground">{value.toFixed(1)}{unit}</span>
       </div>
-      
+
       <div className="relative h-2.5 bg-muted rounded-full overflow-hidden">
-        <div 
+        <div
           className={`h-full ${getColor()} rounded-full transition-all duration-500`}
-          style={{ width: `${percent}%` }}
+          style={{ width: `${Math.min(percent, 100)}%` }}
         />
       </div>
-      
+
       <div className="flex justify-between mt-2 text-xs text-muted-foreground">
         <span>{value.toFixed(1)} {unit}</span>
         <span>{max} {unit}</span>
@@ -52,23 +52,71 @@ const ResourceMeter = ({ icon: Icon, label, value, max, unit, color, warning = 7
 const ResourceMeters = () => {
   const { t } = useLanguage();
   const [metrics, setMetrics] = useState({
-    cpu: 45.3,
-    memory: 82.4,
-    disk: 67.2,
-    cpuTemp: 52,
-    gpuTemp: 61,
+    cpu: 0,
+    memory: 0,
+    disk: 0,
+    cpuTemp: 0,
+    gpuTemp: 0,
   });
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setMetrics({
-        cpu: Math.random() * 40 + 30,
-        memory: Math.random() * 25 + 60,
-        disk: 67.2 + Math.random() * 2,
-        cpuTemp: Math.random() * 15 + 45,
-        gpuTemp: Math.random() * 20 + 50,
-      });
-    }, 3000);
+    const fetchMetrics = async () => {
+      try {
+        const [cpuRes, memRes, fsRes, sensorsRes] = await Promise.allSettled([
+          fetch('/api/glances/cpu'),
+          fetch('/api/glances/mem'),
+          fetch('/api/glances/fs'),
+          fetch('/api/glances/sensors'),
+        ]);
+
+        const newMetrics = { ...metrics };
+
+        // CPU
+        if (cpuRes.status === 'fulfilled' && cpuRes.value.ok) {
+          const cpu = await cpuRes.value.json();
+          newMetrics.cpu = cpu.total;
+        }
+
+        // Memory
+        if (memRes.status === 'fulfilled' && memRes.value.ok) {
+          const mem = await memRes.value.json();
+          newMetrics.memory = mem.percent;
+        }
+
+        // Disk (Find root /)
+        if (fsRes.status === 'fulfilled' && fsRes.value.ok) {
+          const fs = await fsRes.value.json();
+          const root = Array.isArray(fs) ? fs.find((f: any) => f.mnt_point === '/') : fs;
+          newMetrics.disk = root ? root.percent : 0;
+        }
+
+        // Temperatures
+        if (sensorsRes.status === 'fulfilled' && sensorsRes.value.ok) {
+          const sensors = await sensorsRes.value.json();
+          if (Array.isArray(sensors)) {
+            // Try to find CPU/Package temp
+            const cpuSensor = sensors.find((s: any) =>
+              s.label.toLowerCase().includes('package') ||
+              s.label.toLowerCase().includes('core') ||
+              s.label.toLowerCase().includes('cpu')
+            );
+            newMetrics.cpuTemp = cpuSensor ? cpuSensor.value : (sensors[0]?.value || 0);
+
+            // Try to find GPU temp (often labeled as edge, junction, or nvme/composite if iGPU)
+            // Or look for dedicated gpu plugin. For now, check standard sensors.
+            const gpuSensor = sensors.find((s: any) => s.label.toLowerCase().includes('gpu') || s.label.toLowerCase().includes('edge'));
+            newMetrics.gpuTemp = gpuSensor ? gpuSensor.value : 0;
+          }
+        }
+
+        setMetrics(newMetrics);
+      } catch (error) {
+        console.error("Failed to fetch resource metrics", error);
+      }
+    };
+
+    fetchMetrics();
+    const interval = setInterval(fetchMetrics, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -78,7 +126,7 @@ const ResourceMeters = () => {
         <Gauge className="h-5 w-5 text-primary" />
         <h3 className="font-semibold text-foreground">{t('resourceMeters')}</h3>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <ResourceMeter
           icon={Cpu}
@@ -116,16 +164,18 @@ const ResourceMeters = () => {
           critical={85}
           color="bg-warning"
         />
-        <ResourceMeter
-          icon={Thermometer}
-          label="GPU Temp"
-          value={metrics.gpuTemp}
-          max={100}
-          unit="°C"
-          warning={75}
-          critical={90}
-          color="bg-destructive"
-        />
+        {metrics.gpuTemp > 0 && (
+          <ResourceMeter
+            icon={Thermometer}
+            label="GPU Temp"
+            value={metrics.gpuTemp}
+            max={100}
+            unit="°C"
+            warning={75}
+            critical={90}
+            color="bg-destructive"
+          />
+        )}
       </div>
     </div>
   );

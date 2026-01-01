@@ -51,6 +51,7 @@ const AdminsPage = () => {
     telegram_username: '',
     is_active: true,
     receive_notifications: true,
+    password: '',
   });
 
   const fetchAdmins = async () => {
@@ -82,6 +83,7 @@ const AdminsPage = () => {
       telegram_username: '',
       is_active: true,
       receive_notifications: true,
+      password: '',
     });
     setEditingAdmin(null);
   };
@@ -136,18 +138,34 @@ const AdminsPage = () => {
         resetForm();
       }
     } else {
-      const { error } = await supabase
-        .from('admins')
-        .insert(adminData);
+      // Create new admin via Gateway API
+      try {
+        const response = await fetch('/api/auth/register-admin', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          },
+          body: JSON.stringify({
+            ...adminData,
+            password: (formData as any).password
+          })
+        });
 
-      if (error) {
-        toast.error('Ошибка создания');
-        console.error(error);
-      } else {
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to create admin');
+        }
+
         toast.success('Администратор добавлен');
         fetchAdmins();
         setIsDialogOpen(false);
         resetForm();
+
+      } catch (error: any) {
+        toast.error(error.message);
+        console.error(error);
       }
     }
   };
@@ -388,8 +406,8 @@ const AdminsPage = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1">
-                        <Badge className={admin.is_active 
-                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" 
+                        <Badge className={admin.is_active
+                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
                           : "bg-red-500/20 text-red-400 border-red-500/30"
                         }>
                           {admin.is_active ? t('active') : t('inactive')}

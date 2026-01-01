@@ -27,7 +27,9 @@ const translations: Translations = {
   mediaAnalyticsDescription: { ru: 'Статистика по каналам и подписчикам', en: 'Channel and subscriber statistics' },
   aiHub: { ru: 'AI Hub', en: 'AI Hub' },
   aiHubDescription: { ru: 'Управление AI сервисами', en: 'AI services management' },
-  
+  videoPipeline: { ru: 'Видео обработка', en: 'Video Pipeline' },
+  videoPipelineDescription: { ru: 'Настройка обработки видео и удаления водяных знаков', en: 'Video processing and watermark removal settings' },
+
   // Stats
   cpuUsage: { ru: 'Загрузка CPU', en: 'CPU Usage' },
   memoryUsage: { ru: 'Память', en: 'Memory' },
@@ -38,19 +40,19 @@ const translations: Translations = {
   gpuUsage: { ru: 'Загрузка GPU', en: 'GPU Usage' },
   fanSpeed: { ru: 'Скорость вентилятора', en: 'Fan Speed' },
   power: { ru: 'Мощность', en: 'Power' },
-  
+
   // VPN/Location
   vpnLocation: { ru: 'VPN Локация', en: 'VPN Location' },
   currentIp: { ru: 'Текущий IP', en: 'Current IP' },
   country: { ru: 'Страна', en: 'Country' },
   city: { ru: 'Город', en: 'City' },
-  
+
   // Services
   services: { ru: 'Сервисы', en: 'Services' },
   online: { ru: 'Онлайн', en: 'Online' },
   offline: { ru: 'Офлайн', en: 'Offline' },
   open: { ru: 'Открыть', en: 'Open' },
-  
+
   // Channels
   addChannel: { ru: 'Добавить канал', en: 'Add Channel' },
   channelName: { ru: 'Название канала', en: 'Channel Name' },
@@ -59,7 +61,7 @@ const translations: Translations = {
   connectGoogle: { ru: 'Войти через Google', en: 'Connect with Google' },
   apiKey: { ru: 'API Ключ', en: 'API Key' },
   noChannels: { ru: 'Нет подключённых каналов', en: 'No connected channels' },
-  
+
   // Quick Actions
   quickActions: { ru: 'Быстрые действия', en: 'Quick Actions' },
   restartServer: { ru: 'Перезапуск сервера', en: 'Restart Server' },
@@ -68,7 +70,7 @@ const translations: Translations = {
   checkUpdates: { ru: 'Проверить обновления', en: 'Check Updates' },
   securityScan: { ru: 'Сканирование', en: 'Security Scan' },
   openTerminal: { ru: 'Терминал', en: 'Terminal' },
-  
+
   // Network
   networkMonitor: { ru: 'Мониторинг сети', en: 'Network Monitor' },
   download: { ru: 'Загрузка', en: 'Download' },
@@ -76,12 +78,12 @@ const translations: Translations = {
   latency: { ru: 'Задержка', en: 'Latency' },
   packetsPerSec: { ru: 'Пакетов/с', en: 'Packets/s' },
   live: { ru: 'Живой', en: 'Live' },
-  
+
   // Notifications
   notifications: { ru: 'Уведомления', en: 'Notifications' },
   markAllRead: { ru: 'Прочитать все', en: 'Mark all read' },
   noNotifications: { ru: 'Нет уведомлений', en: 'No notifications' },
-  
+
   // Activity Log
   activityLog: { ru: 'Журнал активности', en: 'Activity Log' },
   loggedIn: { ru: 'Вход выполнен', en: 'Logged in' },
@@ -90,7 +92,7 @@ const translations: Translations = {
   firewallRuleAdded: { ru: 'Правило файрволла добавлено', en: 'Firewall rule added' },
   configUpdated: { ru: 'Конфигурация обновлена', en: 'Config updated' },
   cacheCleared: { ru: 'Кэш очищен', en: 'Cache cleared' },
-  
+
   // Backup Status
   backupStatus: { ru: 'Статус бэкапов', en: 'Backup Status' },
   storageUsed: { ru: 'Использовано', en: 'Storage Used' },
@@ -100,7 +102,7 @@ const translations: Translations = {
   configBackup: { ru: 'Бэкап конфига', en: 'Config Backup' },
   inProgress: { ru: 'Выполняется...', en: 'In progress...' },
   completed: { ru: 'Завершено', en: 'Completed' },
-  
+
   // Security
   securityStatus: { ru: 'Статус безопасности', en: 'Security Status' },
   securityScore: { ru: 'Уровень защиты', en: 'Security Score' },
@@ -111,12 +113,12 @@ const translations: Translations = {
   malwareScan: { ru: 'Сканирование на вирусы', en: 'Malware Scan' },
   failedLoginAttempts: { ru: 'Неудачные попытки входа', en: 'Failed Login Attempts' },
   twoFactorAuth: { ru: '2FA Включена', en: '2FA Enabled' },
-  
+
   // System Charts
   systemPerformance: { ru: 'Производительность системы (24ч)', en: 'System Performance (24h)' },
   cpu: { ru: 'CPU', en: 'CPU' },
   memory: { ru: 'Память', en: 'Memory' },
-  
+
   // Admin Management
   addAdmin: { ru: 'Добавить админа', en: 'Add Admin' },
   editAdmin: { ru: 'Редактировать админа', en: 'Edit Admin' },
@@ -130,7 +132,7 @@ const translations: Translations = {
   active: { ru: 'Активен', en: 'Active' },
   inactive: { ru: 'Неактивен', en: 'Inactive' },
   receiveNotifications: { ru: 'Получать уведомления', en: 'Receive Notifications' },
-  
+
   // Media Analytics
   totalSubscribers: { ru: 'Всего подписчиков', en: 'Total Subscribers' },
   totalViews: { ru: 'Всего просмотров', en: 'Total Views' },
@@ -142,12 +144,12 @@ const translations: Translations = {
   subscribers: { ru: 'Подписчики', en: 'Subscribers' },
   views: { ru: 'Просмотры', en: 'Views' },
   engagement: { ru: 'Вовлечённость', en: 'Engagement' },
-  
+
   // Online Users
   onlineUsers: { ru: 'Пользователи онлайн', en: 'Online Users' },
   adminsOnline: { ru: 'Админы', en: 'Admins' },
   usersOnline: { ru: 'Пользователи', en: 'Users' },
-  
+
   // General
   save: { ru: 'Сохранить', en: 'Save' },
   cancel: { ru: 'Отмена', en: 'Cancel' },
@@ -160,19 +162,19 @@ const translations: Translations = {
   light: { ru: 'Светлая', en: 'Light' },
   today: { ru: 'Сегодня', en: 'Today' },
   yesterday: { ru: 'Вчера', en: 'Yesterday' },
-  
+
   // Time
   days: { ru: 'дней', en: 'days' },
   hours: { ru: 'часов', en: 'hours' },
   minutes: { ru: 'минут', en: 'minutes' },
   ago: { ru: 'назад', en: 'ago' },
-  
+
   // Misc
   by: { ru: 'от', en: 'by' },
   total: { ru: 'всего', en: 'total' },
   pending: { ru: 'Ожидание', en: 'Pending' },
   error: { ru: 'Ошибка', en: 'Error' },
-  
+
   // Services Page
   servicesDescription: { ru: 'Каталог всех сервисов сервера', en: 'Server services catalog' },
   serverIp: { ru: 'IP сервера', en: 'Server IP' },
@@ -183,7 +185,7 @@ const translations: Translations = {
   dataServices: { ru: 'Данные', en: 'Data' },
   aiStudio: { ru: 'AI Студия', en: 'AI Studio' },
   noServicesFound: { ru: 'Сервисы не найдены', en: 'No services found' },
-  
+
   // Network Page
   networkDescription: { ru: 'WireGuard VPN, DNS и сетевые настройки', en: 'WireGuard VPN, DNS and network settings' },
   presets: { ru: 'Пресеты', en: 'Presets' },
@@ -201,7 +203,7 @@ const translations: Translations = {
   addDns: { ru: 'Добавить DNS', en: 'Add DNS' },
   primaryDns: { ru: 'Основной DNS', en: 'Primary DNS' },
   secondaryDns: { ru: 'Резервный DNS', en: 'Secondary DNS' },
-  
+
   // Service descriptions
   dockerManagement: { ru: 'Управление Docker контейнерами', en: 'Docker Container Management' },
   reverseProxy: { ru: 'Обратный прокси и SSL', en: 'Reverse Proxy & SSL Management' },
@@ -225,7 +227,7 @@ const translations: Translations = {
   neuralTranslation: { ru: 'Нейронный машинный перевод', en: 'Neural Machine Translation' },
   videoDubbing: { ru: 'Конвейер дубляжа видео', en: 'Video Dubbing Pipeline' },
   videoInpainting: { ru: 'Удаление объектов (ProPainter/LaMa)', en: 'Object Removal (ProPainter/LaMa)' },
-  
+
   // New Dashboard translations
   serverInfo: { ru: 'Информация о сервере', en: 'Server Info' },
   cpuModel: { ru: 'Процессор', en: 'CPU Model' },

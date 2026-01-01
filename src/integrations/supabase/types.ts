@@ -350,6 +350,74 @@ export type Database = {
           },
         ]
       }
+      dns_configs: {
+        Row: {
+          created_at: string
+          dns_type: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          primary_dns: string
+          secondary_dns: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dns_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          primary_dns: string
+          secondary_dns?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dns_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          primary_dns?: string
+          secondary_dns?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      host_check_history: {
+        Row: {
+          checked_at: string
+          host_id: string
+          id: string
+          packet_loss: number | null
+          response_time_ms: number | null
+          status: string
+        }
+        Insert: {
+          checked_at?: string
+          host_id: string
+          id?: string
+          packet_loss?: number | null
+          response_time_ms?: number | null
+          status: string
+        }
+        Update: {
+          checked_at?: string
+          host_id?: string
+          id?: string
+          packet_loss?: number | null
+          response_time_ms?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "host_check_history_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "monitored_hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media_channels: {
         Row: {
           avg_view_duration: number | null
@@ -425,6 +493,194 @@ export type Database = {
           videos_count?: number | null
           views?: number | null
           watch_hours?: number | null
+        }
+        Relationships: []
+      }
+      monitored_hosts: {
+        Row: {
+          check_type: string | null
+          created_at: string
+          host: string
+          id: string
+          is_active: boolean | null
+          last_check_at: string | null
+          name: string
+          response_time_ms: number | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          check_type?: string | null
+          created_at?: string
+          host: string
+          id?: string
+          is_active?: boolean | null
+          last_check_at?: string | null
+          name: string
+          response_time_ms?: number | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          check_type?: string | null
+          created_at?: string
+          host?: string
+          id?: string
+          is_active?: boolean | null
+          last_check_at?: string | null
+          name?: string
+          response_time_ms?: number | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      network_traffic: {
+        Row: {
+          id: string
+          interface_name: string | null
+          recorded_at: string
+          rx_bytes: number | null
+          rx_rate: number | null
+          tx_bytes: number | null
+          tx_rate: number | null
+        }
+        Insert: {
+          id?: string
+          interface_name?: string | null
+          recorded_at?: string
+          rx_bytes?: number | null
+          rx_rate?: number | null
+          tx_bytes?: number | null
+          tx_rate?: number | null
+        }
+        Update: {
+          id?: string
+          interface_name?: string | null
+          recorded_at?: string
+          rx_bytes?: number | null
+          rx_rate?: number | null
+          tx_bytes?: number | null
+          tx_rate?: number | null
+        }
+        Relationships: []
+      }
+      service_uptime: {
+        Row: {
+          checked_at: string
+          id: string
+          response_time_ms: number | null
+          service_id: string
+          status: string
+        }
+        Insert: {
+          checked_at?: string
+          id?: string
+          response_time_ms?: number | null
+          service_id: string
+          status: string
+        }
+        Update: {
+          checked_at?: string
+          id?: string
+          response_time_ms?: number | null
+          service_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_uptime_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      services: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          last_check_at: string | null
+          name: string
+          port: string
+          response_time_ms: number | null
+          status: string | null
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          last_check_at?: string | null
+          name: string
+          port: string
+          response_time_ms?: number | null
+          status?: string | null
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          last_check_at?: string | null
+          name?: string
+          port?: string
+          response_time_ms?: number | null
+          status?: string | null
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
+      system_metrics: {
+        Row: {
+          cpu_percent: number | null
+          cpu_temp: number | null
+          created_at: string
+          disk_percent: number | null
+          gpu_temp: number | null
+          id: string
+          net_rx_bytes: number | null
+          net_tx_bytes: number | null
+          ram_percent: number | null
+          timestamp: string
+        }
+        Insert: {
+          cpu_percent?: number | null
+          cpu_temp?: number | null
+          created_at?: string
+          disk_percent?: number | null
+          gpu_temp?: number | null
+          id?: string
+          net_rx_bytes?: number | null
+          net_tx_bytes?: number | null
+          ram_percent?: number | null
+          timestamp?: string
+        }
+        Update: {
+          cpu_percent?: number | null
+          cpu_temp?: number | null
+          created_at?: string
+          disk_percent?: number | null
+          gpu_temp?: number | null
+          id?: string
+          net_rx_bytes?: number | null
+          net_tx_bytes?: number | null
+          ram_percent?: number | null
+          timestamp?: string
         }
         Relationships: []
       }
@@ -519,6 +775,51 @@ export type Database = {
           is_active?: boolean
           name?: string
           token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      vpn_profiles: {
+        Row: {
+          address: string | null
+          allowed_ips: string | null
+          config_content: string | null
+          created_at: string
+          dns: string | null
+          endpoint: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          private_key: string | null
+          public_key: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          allowed_ips?: string | null
+          config_content?: string | null
+          created_at?: string
+          dns?: string | null
+          endpoint?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          private_key?: string | null
+          public_key?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          allowed_ips?: string | null
+          config_content?: string | null
+          created_at?: string
+          dns?: string | null
+          endpoint?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          private_key?: string | null
+          public_key?: string | null
           updated_at?: string
         }
         Relationships: []
