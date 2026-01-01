@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 interface AuthContextType {
     user: any | null;
     isLoading: boolean;
-    login: (email: string, pass: string) => Promise<void>;
+    login: (email: string, pass: string, remember?: boolean) => Promise<void>;
     logout: () => void;
     isAuthenticated: boolean;
 }
@@ -28,9 +28,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const location = useLocation();
 
     useEffect(() => {
-        // Check local storage for token
-        const token = localStorage.getItem('access_token');
-        const userData = localStorage.getItem('user_data');
+        // Check local storage then session storage for token
+        let token = localStorage.getItem('access_token');
+        let userData = localStorage.getItem('user_data');
+
+        if (!token || !userData) {
+            token = sessionStorage.getItem('access_token');
+            userData = sessionStorage.getItem('user_data');
+        }
+
         if (token && userData) {
             try {
                 setUser(JSON.parse(userData));
@@ -38,26 +44,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 console.error("Failed to parse user data", e);
                 localStorage.removeItem('user_data');
                 localStorage.removeItem('access_token');
+                sessionStorage.removeItem('user_data');
+                sessionStorage.removeItem('access_token');
             }
-            // Set supabase auth header manually if using postgrest directly
-            // But supabase-js might need a session. 
-            // We are using custom auth, so we might need to inject token into calls.
-
-            // For now, let's assume the backend validates the token passed in headers
-            // Supabase client automatically handles headers if we set session?
-            // Actually, since we are mimicking Supabase Auth but using our own /api/auth/login,
-            // we can set the global headers for supabase client here.
-            // Or just store it.
         }
         setIsLoading(false);
     }, []);
 
-    const login = async (email: string, pass: string) => {
+    const login = async (email: string, pass: string, remember: boolean = false) => {
         try {
             const response = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password: pass }), // gateway expects 'password'
+                body: JSON.stringify({ email, password: pass }),
             });
 
             const data = await response.json();
@@ -66,24 +65,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 throw new Error(data.error || 'Login failed');
             }
 
-            // Save token
-            localStorage.setItem('access_token', data.token);
-            localStorage.setItem('user_data', JSON.stringify(data.user));
+            // Save token based on remember me preference
+            if (remember) {
+                localStorage.setItem('access_token', data.token);
+                localStorage.setItem('user_data', JSON.stringify(data.user));
+                // Clear session to avoid confusion
+                sessionStorage.removeItem('access_token');
+                sessionStorage.removeItem('user_data');
+            } else {
+                sessionStorage.setItem('access_token', data.token);
+                sessionStorage.setItem('user_data', JSON.stringify(data.user));
+                // Clear local
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('user_data');
+            }
 
             setUser(data.user);
-
-            // Update supabase client headers to include our fresh token?
-            // Supabase client uses its own auth state.
-            // If we want RLS to work for this user, we need to pass this JWT to supabase calls.
-            // Since we are using anon key usually, we need to override Authorization header.
-            // But allow supabase-js to manage it might be tricky if we bypass GoTrue.
-            // We can use: supabase.auth.setSession (if we had a real session).
-            // Since we don't, we might need a custom client or interceptor.
-            // Ideally, we replace supabase client usage with a custom one, OR we just set the header.
-
-            // Hack: simply set the token in a way that our requests use it.
-            // But standard supabase client reads from storage. 
-            // If we use `supabase.functions.invoke`, it uses the token.
 
             toast.success('Welcome back!');
             navigate('/');
@@ -97,6 +94,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const logout = () => {
         localStorage.removeItem('access_token');
         localStorage.removeItem('user_data');
+        sessionStorage.removeItem('access_token');
+        sessionStorage.removeItem('user_data');
         setUser(null);
         navigate('/login');
         toast.info('Logged out');

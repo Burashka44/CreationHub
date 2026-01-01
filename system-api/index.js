@@ -3,9 +3,110 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const http = require('http');
+const axios = require('axios');
+
+// Security constants
+const JWT_SECRET = process.env.JWT_SECRET || 'CHANGE_THIS_IN_PRODUCTION_64_CHAR_SECRET';
+const JWT_EXPIRES_IN = '7d';
+const POSTGREST_URL = 'http://creationhub_api:3000';
+
+// CORS configuration
+const CORS_ORIGINS = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
+    : ['http://localhost:5173', 'http://localhost:7777', 'http://localhost:9191'];
+
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin) return callback(null, true);
+
+        if (CORS_ORIGINS.includes(origin) || CORS_ORIGINS.includes('*')) {
+            callback(null, true);
+        } else {
+            console.warn(`CORS blocked origin: ${origin}`);
+            callback(null, false);
+        }
+    },
+    credentials: true
+};
+
+// Simple rate limiter
+const RATE_LIMIT_RPM = parseInt(process.env.RATE_LIMIT_RPM) || 100;
+const rateLimitStore = new Map();
+
+const rateLimiter = (req, res, next) => {
+    const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    const now = Date.now();
+    const windowMs = 60000; // 1 minute
+
+    if (!rateLimitStore.has(ip)) {
+        rateLimitStore.set(ip, { count: 1, resetTime: now + windowMs });
+        return next();
+    }
+
+    const record = rateLimitStore.get(ip);
+
+    if (now > record.resetTime) {
+        record.count = 1;
+        record.resetTime = now + windowMs;
+        return next();
+    }
+
+    record.count++;
+
+    if (record.count > RATE_LIMIT_RPM) {
+        res.setHeader('Retry-After', Math.ceil((record.resetTime - now) / 1000));
+        return res.status(429).json({
+            error: 'Too many requests',
+            retryAfter: Math.ceil((record.resetTime - now) / 1000)
+        });
+    }
+
+    next();
+};
+
+// Clean up rate limit store every 5 minutes
+setInterval(() => {
+    const now = Date.now();
+    for (const [ip, record] of rateLimitStore.entries()) {
+        if (now > record.resetTime + 300000) {
+            rateLimitStore.delete(ip);
+        }
+    }
+}, 300000);
 
 const app = express();
-app.use(cors());
+app.use(cors(corsOptions));
+app.use(rateLimiter);
+
+// Request logging middleware
+app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+        const duration = Date.now() - start;
+        const log = {
+            timestamp: new Date().toISOString(),
+            method: req.method,
+            path: req.path,
+            status: res.statusCode,
+            duration: `${duration}ms`,
+            ip: req.ip || req.connection.remoteAddress
+        };
+        // Only log non-health check requests or errors
+        if (req.path !== '/health' && req.path !== '/api/system/glances/cpu') {
+            if (res.statusCode >= 400) {
+                console.error(JSON.stringify({ level: 'error', ...log }));
+            } else if (duration > 1000) {
+                console.warn(JSON.stringify({ level: 'slow', ...log }));
+            }
+        }
+    });
+    next();
+});
+
 app.use(express.json());
 app.use(express.text({ type: 'text/plain' }));
 
@@ -14,10 +115,13 @@ const aiRoutes = require('./routes/ai');
 const backupRoutes = require('./routes/backups');
 const glancesRoutes = require('./routes/glances');
 const servicesRoutes = require('./routes/services');
+const mediaRoutes = require('./routes/media');
+
 app.use('/api/ai', aiRoutes);
 app.use('/api/system/backups', backupRoutes);
 app.use('/api/system/glances', glancesRoutes);
 app.use('/api/services', servicesRoutes);
+app.use('/api/media', mediaRoutes);
 
 const PORT = process.env.PORT || 9191;
 
@@ -274,7 +378,37 @@ app.put('/api/system/wireguard/:name', (req, res) => {
 // ==================== DNS CONFIG ====================
 app.get('/api/system/dns', (req, res) => {
     try {
-        const content = fs.readFileSync(RESOLV_CONF_PATH, 'utf-8');
+        // Try multiple possible paths for resolv.conf
+        const paths = [
+            RESOLV_CONF_PATH,
+            '/etc/resolv.conf',
+            '/host-etc/resolv.conf'
+        ];
+
+        let content = null;
+        for (const p of paths) {
+            try {
+                if (fs.existsSync(p)) {
+                    content = fs.readFileSync(p, 'utf-8');
+                    break;
+                }
+            } catch (e) {
+                // Try next path
+            }
+        }
+
+        if (!content) {
+            // Return default DNS if no file found
+            return res.json({
+                success: true,
+                data: {
+                    nameservers: ['8.8.8.8', '8.8.4.4'],
+                    search: [],
+                    raw: '# resolv.conf not accessible, showing defaults'
+                }
+            });
+        }
+
         const nameservers = [];
         const search = [];
 
@@ -300,8 +434,6 @@ app.get('/api/system/dns', (req, res) => {
     }
 });
 
-const axios = require('axios');
-
 // ==================== GEO LOCATION ====================
 app.get('/api/system/public-ip', async (req, res) => {
     try {
@@ -324,6 +456,16 @@ app.post('/api/system/ping', async (req, res) => {
         return res.status(400).json({ success: false, error: 'host required' });
     }
 
+    // SECURITY: Sanitize host to prevent command injection
+    // Allow only: alphanumeric, dots, hyphens, colons (for ports), forward slashes (for paths)
+    const safeHost = host.replace(/[^a-zA-Z0-9.\-:\/]/g, '');
+
+    // Additional validation: must look like a valid hostname/IP
+    const hostPattern = /^[a-zA-Z0-9][a-zA-Z0-9.\-:\/]*[a-zA-Z0-9]$|^[a-zA-Z0-9]$/;
+    if (!hostPattern.test(safeHost) || safeHost.length > 253) {
+        return res.status(400).json({ success: false, error: 'Invalid host format' });
+    }
+
     try {
         const startTime = Date.now();
         let status = 'unknown';
@@ -331,7 +473,9 @@ app.post('/api/system/ping', async (req, res) => {
 
         if (method === 'ping') {
             try {
-                execSync(`ping -c 1 -W 2 ${host}`, { encoding: 'utf-8' });
+                // Extract just hostname/IP for ping (no port or path)
+                const pingTarget = safeHost.split(':')[0].split('/')[0];
+                execSync(`ping -c 1 -W 2 ${pingTarget}`, { encoding: 'utf-8' });
                 status = 'online';
                 latency = Date.now() - startTime;
             } catch (e) {
@@ -339,7 +483,7 @@ app.post('/api/system/ping', async (req, res) => {
             }
         } else if (method === 'http') {
             try {
-                execSync(`curl -s -o /dev/null -w "%{http_code}" --connect-timeout 2 http://${host}`, { encoding: 'utf-8' });
+                execSync(`curl -s -o /dev/null -w "%{http_code}" --connect-timeout 2 http://${safeHost}`, { encoding: 'utf-8' });
                 status = 'online';
                 latency = Date.now() - startTime;
             } catch (e) {
@@ -349,16 +493,21 @@ app.post('/api/system/ping', async (req, res) => {
 
         res.json({
             success: true,
-            data: { host, status, latency, method }
+            data: { host: safeHost, status, latency, method }
         });
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
     }
 });
 
-// Health check
+// Health check alias
+app.get('/api/system/health', (req, res) => {
+    res.json({ status: 'ok', service: 'system-api', uptime: process.uptime() });
+});
+
+// Main Health check
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', service: 'system-api' });
+    res.json({ status: 'ok', service: 'system-api', uptime: process.uptime() });
 });
 
 // ==================== DOCKER CONTAINERS ====================
@@ -398,6 +547,403 @@ app.get('/api/system/docker', (req, res) => {
     });
 
     dockerReq.end();
+});
+
+// ==================== AUTH ====================
+// Helper to query PostgREST
+const queryPostgrest = (path) => {
+    return new Promise((resolve, reject) => {
+        http.get(`${POSTGREST_URL}${path}`, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+                try {
+                    resolve(JSON.parse(data));
+                } catch (e) {
+                    reject(new Error('Invalid JSON response'));
+                }
+            });
+        }).on('error', reject);
+    });
+};
+
+// Secure login endpoint
+app.post('/api/auth/login', async (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password required' });
+    }
+
+    try {
+        // Query database for admin by email
+        const admins = await queryPostgrest(`/admins?email=eq.${encodeURIComponent(email)}&limit=1`);
+
+        if (!admins || admins.length === 0) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        const admin = admins[0];
+
+        // Check if account is active
+        if (!admin.is_active) {
+            return res.status(401).json({ error: 'Account disabled' });
+        }
+
+        // If no password hash in DB, allow legacy login with default creds
+        // This is temporary for migration - should be removed after setting passwords
+        if (!admin.password_hash) {
+            if (email === 'admin@example.com' && password === 'admin') {
+                console.warn('WARNING: Using legacy hardcoded credentials - please set password in database');
+                const token = jwt.sign(
+                    { id: admin.id, email: admin.email, role: admin.role || 'admin' },
+                    JWT_SECRET,
+                    { expiresIn: JWT_EXPIRES_IN }
+                );
+                return res.json({
+                    token,
+                    user: { id: admin.id, email: admin.email, role: admin.role || 'admin', name: admin.name }
+                });
+            }
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        // Verify password with bcrypt
+        const isValid = await bcrypt.compare(password, admin.password_hash);
+
+        if (!isValid) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        // Generate JWT token
+        const token = jwt.sign(
+            { id: admin.id, email: admin.email, role: admin.role || 'admin' },
+            JWT_SECRET,
+            { expiresIn: JWT_EXPIRES_IN }
+        );
+
+        res.json({
+            token,
+            user: { id: admin.id, email: admin.email, role: admin.role || 'admin', name: admin.name }
+        });
+
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Auth middleware for protected routes
+const authMiddleware = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+};
+
+// Endpoint to set/change password (protected)
+app.post('/api/auth/set-password', authMiddleware, async (req, res) => {
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+
+    try {
+        const hash = await bcrypt.hash(newPassword, 12);
+
+        // Update password in database via PostgREST
+        const updateReq = http.request(`${POSTGREST_URL}/admins?id=eq.${req.user.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        updateReq.write(JSON.stringify({ password_hash: hash }));
+        updateReq.end();
+
+        res.json({ success: true, message: 'Password updated' });
+    } catch (error) {
+        console.error('Set password error:', error);
+        res.status(500).json({ error: 'Failed to update password' });
+    }
+});
+
+// Verify token endpoint
+app.get('/api/auth/verify', authMiddleware, (req, res) => {
+    res.json({ valid: true, user: req.user });
+});
+
+// ==================== SERVER ACTIONS (Quick Actions) ====================
+app.post('/api/system/actions', async (req, res) => {
+    const { action } = req.body;
+    let result = { success: true };
+
+    try {
+        switch (action) {
+            case 'nginx':
+                // Reload Nginx container
+                try {
+                    execSync('docker exec creationhub nginx -s reload', { timeout: 10000 });
+                    result.message = 'Nginx configuration reloaded';
+                } catch (e) {
+                    throw new Error('Failed to reload Nginx: ' + e.message);
+                }
+                break;
+
+            case 'cache':
+                // Clear system caches using privileged alpine container to access host
+                try {
+                    execSync('docker run --rm --privileged --pid=host alpine nsenter -t 1 -m -u -n -i -- sh -c "sync && echo 3 > /proc/sys/vm/drop_caches"', { timeout: 10000 });
+                    result.message = 'System RAM cache cleared';
+                } catch (e) {
+                    throw new Error('Failed to clear cache: ' + e.message);
+                }
+                break;
+
+            case 'backup':
+                // Handled via /api/system/backups/run, but basic stub here just in case
+                result.message = 'Please use Backup button';
+                break;
+
+            case 'update':
+                // Check for updates on host
+                try {
+                    // This runs apt list on HOST via nsenter
+                    const updates = execSync('docker run --rm --privileged --pid=host ubuntu:latest nsenter -t 1 -m -u -n -i -- sh -c "apt update >/dev/null && apt list --upgradable 2>/dev/null | grep -v Listing | wc -l"').toString().trim();
+                    const count = parseInt(updates);
+                    result.message = count > 0 ? `${count} system updates available` : 'System is up to date';
+                } catch (e) {
+                    // Fallback if ubuntu image failing or network issues
+                    result.message = 'Update check failed (Network/Image error)';
+                }
+                break;
+
+            case 'scan':
+                // Basic system health scan
+                try {
+                    // Check failed systemd units on host
+                    const failedUnits = execSync('docker run --rm --privileged --pid=host alpine nsenter -t 1 -m -u -n -i -- sh -c "systemctl list-units --state=failed --no-legend | wc -l"').toString().trim();
+                    const count = parseInt(failedUnits);
+                    if (count === 0) {
+                        result.message = 'Security Scan: System Healthy (No failed services)';
+                    } else {
+                        result.message = `Security Scan: ${count} failed services found on host`;
+                    }
+                } catch (e) {
+                    result.message = 'Scan failed';
+                }
+                break;
+
+            case 'restart':
+                // REBOOT HOST via nsenter
+                try {
+                    // Trigger reboot in 1 minute using 'shutdown -r +1' to allow response to return
+                    execSync('docker run --rm --privileged --pid=host alpine nsenter -t 1 -m -u -n -i -- sh -c "shutdown -r +1"');
+                    result.message = 'Server creating reboot task (1 min delay)...';
+                } catch (e) {
+                    result.message = 'Reboot command failed';
+                }
+                break;
+
+            default:
+                result.message = 'Action queued';
+        }
+
+        res.json(result);
+    } catch (error) {
+        console.error('Action error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ==================== TELEGRAM NOTIFICATIONS ====================
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+
+app.post('/api/telegram/send', async (req, res) => {
+    const { chat_id, message } = req.body;
+
+    if (!TELEGRAM_BOT_TOKEN) {
+        return res.status(500).json({ error: 'TELEGRAM_BOT_TOKEN not configured' });
+    }
+
+    if (!chat_id || !message) {
+        return res.status(400).json({ error: 'chat_id and message required' });
+    }
+
+    try {
+        const response = await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            chat_id: chat_id,
+            text: message,
+            parse_mode: 'HTML'
+        });
+
+        res.json({ success: true, result: response.data });
+    } catch (error) {
+        console.error('Telegram error:', error.response?.data || error.message);
+        res.status(500).json({ error: error.response?.data?.description || error.message });
+    }
+});
+
+// Verify Telegram bot token and get bot info
+app.post('/api/telegram/verify-bot', async (req, res) => {
+    const { token } = req.body;
+
+    if (!token) {
+        return res.status(400).json({ error: 'Token required' });
+    }
+
+    try {
+        const response = await axios.get(`https://api.telegram.org/bot${token}/getMe`);
+
+        if (response.data.ok) {
+            res.json({
+                success: true,
+                bot: {
+                    id: response.data.result.id,
+                    username: response.data.result.username,
+                    first_name: response.data.result.first_name,
+                    can_join_groups: response.data.result.can_join_groups,
+                    can_read_all_group_messages: response.data.result.can_read_all_group_messages
+                }
+            });
+        } else {
+            res.status(400).json({ error: 'Invalid token' });
+        }
+    } catch (error) {
+        res.status(400).json({ error: error.response?.data?.description || 'Invalid token' });
+    }
+});
+
+// Get channel/chat info using bot token
+app.post('/api/telegram/get-channel', async (req, res) => {
+    const { token, channel_id } = req.body;
+
+    if (!token || !channel_id) {
+        return res.status(400).json({ error: 'Token and channel_id required' });
+    }
+
+    try {
+        // Get chat info
+        const chatResponse = await axios.get(`https://api.telegram.org/bot${token}/getChat`, {
+            params: { chat_id: channel_id }
+        });
+
+        // Get member count
+        let memberCount = 0;
+        try {
+            const countResponse = await axios.get(`https://api.telegram.org/bot${token}/getChatMemberCount`, {
+                params: { chat_id: channel_id }
+            });
+            memberCount = countResponse.data.result || 0;
+        } catch (e) {
+            console.log('Could not get member count:', e.message);
+        }
+
+        if (chatResponse.data.ok) {
+            res.json({
+                success: true,
+                channel: {
+                    id: chatResponse.data.result.id,
+                    type: chatResponse.data.result.type,
+                    title: chatResponse.data.result.title,
+                    username: chatResponse.data.result.username,
+                    subscribers: memberCount,
+                    description: chatResponse.data.result.description
+                }
+            });
+        } else {
+            res.status(400).json({ error: 'Channel not found or bot not admin' });
+        }
+    } catch (error) {
+        res.status(400).json({ error: error.response?.data?.description || 'Failed to get channel' });
+    }
+});
+
+// Sync all channel stats - gets subscriber counts
+app.post('/api/telegram/sync-channels', async (req, res) => {
+    const { token, channels } = req.body;
+
+    if (!token || !channels || !Array.isArray(channels)) {
+        return res.status(400).json({ error: 'Token and channels array required' });
+    }
+
+    const results = [];
+
+    for (const channel of channels) {
+        try {
+            const countResponse = await axios.get(`https://api.telegram.org/bot${token}/getChatMemberCount`, {
+                params: { chat_id: channel.username ? '@' + channel.username : channel.id }
+            });
+
+            results.push({
+                id: channel.id,
+                name: channel.name,
+                success: true,
+                subscribers: countResponse.data.result || 0
+            });
+        } catch (error) {
+            results.push({
+                id: channel.id,
+                name: channel.name,
+                success: false,
+                error: error.response?.data?.description || error.message
+            });
+        }
+    }
+
+    res.json({ success: true, results });
+});
+
+// Publish post to channel
+app.post('/api/telegram/publish', async (req, res) => {
+    const { token, channel_id, text, parse_mode, disable_notification, buttons } = req.body;
+
+    if (!token || !channel_id || !text) {
+        return res.status(400).json({ error: 'Token, channel_id and text required' });
+    }
+
+    try {
+        const payload = {
+            chat_id: channel_id,
+            text: text,
+            parse_mode: parse_mode || 'HTML',
+            disable_notification: disable_notification || false
+        };
+
+        // Add inline keyboard if buttons provided
+        if (buttons && Array.isArray(buttons) && buttons.length > 0) {
+            payload.reply_markup = {
+                inline_keyboard: [
+                    buttons.map(btn => ({ text: btn.text, url: btn.url }))
+                ]
+            };
+        }
+
+        const response = await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, payload);
+
+        if (response.data.ok) {
+            res.json({
+                success: true,
+                message_id: response.data.result.message_id,
+                chat_id: response.data.result.chat.id
+            });
+        } else {
+            res.status(400).json({ error: 'Failed to send message' });
+        }
+    } catch (error) {
+        res.status(400).json({ error: error.response?.data?.description || error.message });
+    }
 });
 
 // Start server

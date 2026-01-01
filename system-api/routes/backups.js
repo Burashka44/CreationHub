@@ -1,5 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
 // Mock backup data
 let schedules = [
@@ -34,12 +37,78 @@ router.delete('/schedules/:id', (req, res) => {
 });
 
 // POST /api/system/backups/run (Backup Now)
-router.post('/run', (req, res) => {
-    // Stub - pretend to run
-    setTimeout(() => {
-        console.log('Backup finished');
-    }, 2000);
-    res.json({ success: true, message: 'Backup started successfully (Stub)' });
+router.post('/run', async (req, res) => {
+    const { type = 'database' } = req.body;
+    const backupDir = process.env.BACKUP_DIR || '/backups';
+
+    // Ensure backup dir exists
+    if (!fs.existsSync(backupDir)) {
+        try {
+            fs.mkdirSync(backupDir, { recursive: true });
+        } catch (e) {
+            return res.status(500).json({ success: false, error: 'Cannot create backup directory: ' + e.message });
+        }
+    }
+
+    const timestamp = new Date().toISOString().replace(/:/g, '-').split('.')[0];
+    const filename = `backup_${type}_${timestamp}.${type === 'database' ? 'sql.gz' : 'tar.gz'}`;
+    const filePath = path.join(backupDir, filename);
+
+    try {
+        if (type === 'database') {
+            const dbUrl = process.env.POSTGRES_URL;
+            if (!dbUrl) {
+                return res.status(500).json({ success: false, error: 'POSTGRES_URL not configured' });
+            }
+
+            // Run pg_dump, pipe to gzip, write to file
+            const command = `pg_dump "${dbUrl}" | gzip > "${filePath}"`;
+            execSync(command, { stdio: 'inherit' });
+
+            res.json({
+                success: true,
+                message: 'Backup created successfully',
+                data: {
+                    file: filename,
+                    path: filePath,
+                    size: fs.statSync(filePath).size,
+                    created_at: new Date()
+                }
+            });
+        } else {
+            res.status(400).json({ success: false, error: 'Only database backups supported currently' });
+        }
+    } catch (error) {
+        console.error('Backup failed:', error);
+        res.status(500).json({ success: false, error: 'Backup failed: ' + error.message });
+    }
+});
+
+// GET /api/system/backups/list
+router.get('/list', (req, res) => {
+    const backupDir = process.env.BACKUP_DIR || '/backups';
+    try {
+        if (!fs.existsSync(backupDir)) {
+            return res.json({ success: true, data: [] });
+        }
+
+        const files = fs.readdirSync(backupDir)
+            .filter(f => f.startsWith('backup_'))
+            .map(f => {
+                const stat = fs.statSync(path.join(backupDir, f));
+                return {
+                    name: f,
+                    size: stat.size,
+                    created_at: stat.birthtime,
+                    type: f.includes('database') ? 'database' : 'full'
+                };
+            })
+            .sort((a, b) => b.created_at - a.created_at);
+
+        res.json({ success: true, data: files });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
 });
 
 // GET /api/system/backups/check-updates

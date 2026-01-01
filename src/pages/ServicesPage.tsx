@@ -192,24 +192,29 @@ const ServicesPage = () => {
   };
 
   const checkServiceStatus = async (service: Service): Promise<string> => {
-    // Construct local docker target for server-side ping
-    // If running in docker, using internal hostname/IP is better, but window.location.hostname works if ports mapped
-    // Actually, AI Gateway runs in docker network, so we can check internal IPs or external.
-    // Let's use the port and current hostname (which is reachable from container?)
-    // Wait, AI Gateway is in container. Server IP 192.168.1.220 is reachable.
-
-    const target = `${serverIp}:${service.port}`;
-    const checkUrl = `/api/ping?target=${target}`;
+    // Determine target host
+    const port = service.port.toString().split(/\D/)[0]; // Extract numeric port
+    // If running in docker, using internal hostname might be better? 
+    // Ideally we ping the IP defined in settings (serverIp)
+    const target = `${serverIp}:${port}`;
 
     try {
-      const response = await fetch(checkUrl, { cache: 'no-store' });
+      const response = await fetch('/api/v1/system/ping', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ host: target, method: 'ping' }), // Use 'ping' (ICMP) or 'http'
+      });
+
       if (response.ok) {
-        const data = await response.json();
-        return data.ok ? 'online' : 'offline';
+        const result = await response.json();
+        // Result format: { success: true, data: { status: 'online', ... } }
+        if (result.success && result.data?.status === 'online') {
+          return 'online';
+        }
       }
       return 'offline';
     } catch (error) {
-      // Fallback to client-side check if API fails? No, API is robust.
+      console.error(`Check failed for ${service.name}:`, error);
       return 'offline';
     }
   };
@@ -259,14 +264,22 @@ const ServicesPage = () => {
   };
 
   const checkSingleService = async (serviceId: string) => {
-    try {
-      await supabase.functions.invoke('check-services', {
-        body: { service_id: serviceId, server_ip: serverIp }
-      });
-      fetchServices();
-    } catch (error: any) {
-      toast({ title: 'Ошибка', description: error.message, variant: 'destructive' });
-    }
+    const service = services.find(s => s.id === serviceId);
+    if (!service) return;
+
+    const status = await checkServiceStatus(service);
+
+    // Update local state
+    setServices(prev => prev.map(s =>
+      s.id === serviceId
+        ? { ...s, status, last_check_at: new Date().toISOString() }
+        : s
+    ));
+
+    toast({
+      title: status === 'online' ? 'Онлайн' : 'Офлайн',
+      description: `${service.name}: ${status}`,
+    });
   };
 
   const handleAddService = async () => {
@@ -751,7 +764,7 @@ const ServicesPage = () => {
 
       {/* Add Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
+        <DialogContent className="min-h-[500px] flex flex-col">
           <DialogHeader>
             <DialogTitle>Добавить сервис</DialogTitle>
             <DialogDescription>Заполните информацию о новом сервисе</DialogDescription>
@@ -762,7 +775,7 @@ const ServicesPage = () => {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="min-h-[500px] flex flex-col">
           <DialogHeader>
             <DialogTitle>Редактировать сервис</DialogTitle>
             <DialogDescription>Измените информацию о сервисе</DialogDescription>
@@ -773,7 +786,7 @@ const ServicesPage = () => {
 
       {/* Stats Dialog */}
       <Dialog open={isStatsDialogOpen} onOpenChange={setIsStatsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl h-[600px] flex flex-col">
           <DialogHeader>
             <DialogTitle>Статистика: {selectedService?.name}</DialogTitle>
             <DialogDescription>История доступности и время отклика</DialogDescription>

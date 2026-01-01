@@ -170,6 +170,73 @@ const NetworkMonitor = () => {
           <p className="text-[10px] text-muted-foreground">{stats.latency}ms ping</p>
         </div>
       </div>
+
+      {/* Connection Info */}
+      <div className="grid grid-cols-2 gap-2 mt-2">
+        <GlobalIpDisplay
+          label="Public IP"
+          endpoint="/api/system/public-ip"
+          icon={Globe}
+          t={t}
+        />
+        <div className="p-2.5 rounded-lg bg-muted border border-border">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Gauge className="h-3.5 w-3.5 text-foreground" />
+            <span className="text-[10px] text-muted-foreground">Interface</span>
+          </div>
+          <p className="text-sm font-bold text-foreground truncate" title={stats.interface}>
+            {stats.interface}
+          </p>
+          <p className="text-[10px] text-muted-foreground">{stats.latency}ms latency</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const GlobalIpDisplay = ({ label, endpoint, icon: Icon, t }: any) => {
+  const [ip, setIp] = useState('Loading...');
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    fetch(endpoint)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data) {
+          setIp(data.data.ip || data.data.city || 'Unknown');
+        } else {
+          setIp('Unavailable');
+        }
+      })
+      .catch(() => setIp('Error'));
+  }, [endpoint]);
+
+  const handleCopy = () => {
+    if (ip !== 'Loading...' && ip !== 'Error') {
+      navigator.clipboard.writeText(ip);
+      setCopied(true);
+      toast.success('IP Copied');
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <div
+      className="p-2.5 rounded-lg bg-muted border border-border cursor-pointer hover:bg-muted/80 transition-colors relative group"
+      onClick={handleCopy}
+    >
+      <div className="flex items-center gap-1.5 mb-1">
+        <Icon className="h-3.5 w-3.5 text-blue-500" />
+        <span className="text-[10px] text-muted-foreground">{label}</span>
+      </div>
+      <p className="text-sm font-bold text-foreground truncate">{ip}</p>
+
+      {/* Copy Overlay */}
+      <div className={`absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center transition-opacity duration-200 ${copied ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+        <span className="text-xs font-medium text-primary">
+          {copied ? 'Copied!' : 'Copy'}
+        </span>
+      </div>
     </div>
   );
 };

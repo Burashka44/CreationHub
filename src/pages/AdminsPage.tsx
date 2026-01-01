@@ -192,18 +192,22 @@ const AdminsPage = () => {
     }
 
     try {
-      const { error } = await supabase.functions.invoke('send-telegram-notification', {
-        body: {
+      const response = await fetch('/api/telegram/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           chat_id: admin.telegram_chat_id,
           message: `🔔 Тестовое уведомление\n\nПривет, ${admin.name}! Уведомления работают.`,
-        },
+        }),
       });
 
-      if (error) throw error;
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.error);
       toast.success('Тестовое сообщение отправлено');
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error('Ошибка отправки');
+      toast.error(error.message || 'Ошибка отправки');
     }
   };
 

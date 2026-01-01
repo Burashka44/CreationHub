@@ -53,13 +53,13 @@ const SecurityPage = () => {
   // Time ago helper
   const timeAgo = (date: string) => {
     const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
-    if (seconds < 60) return `${seconds} сек назад`;
+    if (seconds < 60) return `${seconds} ${t('secondsAgo')}`;
     const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes} мин назад`;
+    if (minutes < 60) return `${minutes} ${t('minutesAgo')}`;
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} ч назад`;
+    if (hours < 24) return `${hours} ${t('hoursAgo')}`;
     const days = Math.floor(hours / 24);
-    return `${days} дн назад`;
+    return `${days} ${t('daysAgo')}`;
   };
 
   // Load security events from activity_logs
@@ -211,7 +211,7 @@ const SecurityPage = () => {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">{t('security')}</h1>
-            <p className="text-muted-foreground">Защита и мониторинг безопасности</p>
+            <p className="text-muted-foreground">{t('securityDescription')}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -233,7 +233,7 @@ const SecurityPage = () => {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Flame className="h-5 w-5 text-orange-500" />
-              Правила файрвола (UFW)
+              {t('firewallRules')} (UFW)
             </CardTitle>
             <div className="flex gap-2">
               <Button variant="ghost" size="icon" onClick={loadSecurityData} disabled={isLoading}>
@@ -242,12 +242,12 @@ const SecurityPage = () => {
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
                   <Button size="sm" className="gap-1">
-                    <Plus className="h-4 w-4" /> Добавить
+                    <Plus className="h-4 w-4" /> {t('add')}
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="h-[500px] flex flex-col">
                   <DialogHeader>
-                    <DialogTitle>Добавить правило UFW</DialogTitle>
+                    <DialogTitle>{t('addUfwRule')}</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4 pt-4">
                     <RadioGroup defaultValue="app" value={ruleType} onValueChange={(v: 'custom' | 'app') => setRuleType(v)} className="flex gap-4 mb-4">
@@ -315,7 +315,7 @@ const SecurityPage = () => {
             <div className="space-y-2 max-h-80 overflow-y-auto">
               {firewallRules.length === 0 ? (
                 <p className="text-center text-muted-foreground py-4 text-sm">
-                  Нет правил в базе. Добавьте правила или синхронизируйте с UFW.
+                  {t('noRulesInDb')}
                 </p>
               ) : (
                 firewallRules.map((rule) => {
@@ -467,14 +467,14 @@ const SecurityPage = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-warning" />
-            Последние события
+            {t('recentEvents')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {recentEvents.length === 0 ? (
               <div className="col-span-2 text-center text-muted-foreground py-4">
-                Нет событий безопасности
+                {t('noSecurityEvents')}
               </div>
             ) : (
               recentEvents.map((event, index) => (

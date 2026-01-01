@@ -3,7 +3,7 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Install tools for ping, curl, wg
-RUN apk add --no-cache iputils curl wireguard-tools
+RUN apk add --no-cache iputils curl wireguard-tools postgresql-client docker-cli
 
 COPY package*.json ./
 RUN npm install --production

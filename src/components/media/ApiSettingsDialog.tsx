@@ -106,15 +106,15 @@ export const ApiSettingsDialog = () => {
       return;
     }
 
-    toast({ 
-      title: 'Информация', 
-      description: `Для сохранения ${config.keyName} используйте Supabase Dashboard → Settings → Secrets` 
+    toast({
+      title: 'Информация',
+      description: `Для сохранения ${config.keyName} используйте Supabase Dashboard → Settings → Secrets`
     });
   };
 
   const handleSyncData = async (platform: string) => {
     setIsSyncing(prev => ({ ...prev, [platform]: true }));
-    
+
     try {
       let functionName = '';
       switch (platform) {
@@ -129,24 +129,24 @@ export const ApiSettingsDialog = () => {
       }
 
       const { data, error } = await supabase.functions.invoke(functionName);
-      
+
       if (error) throw error;
-      
+
       if (data?.configured === false) {
-        toast({ 
-          title: 'API не настроен', 
+        toast({
+          title: 'API не настроен',
           description: `Добавьте API ключ для ${platform}`,
           variant: 'destructive'
         });
       } else {
-        toast({ 
-          title: 'Синхронизация завершена', 
-          description: `Данные ${platform} обновлены` 
+        toast({
+          title: 'Синхронизация завершена',
+          description: `Данные ${platform} обновлены`
         });
       }
     } catch (error: any) {
-      toast({ 
-        title: 'Ошибка синхронизации', 
+      toast({
+        title: 'Ошибка синхронизации',
         description: error.message,
         variant: 'destructive'
       });
@@ -163,7 +163,7 @@ export const ApiSettingsDialog = () => {
           Настройки API
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl h-[600px] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Key className="h-5 w-5" />
@@ -174,161 +174,163 @@ export const ApiSettingsDialog = () => {
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="video" className="mt-4">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue="video" className="mt-4 flex-1 flex flex-col min-h-0">
+          <TabsList className="grid w-full grid-cols-2 shrink-0">
             <TabsTrigger value="video">Видеоплатформы</TabsTrigger>
             <TabsTrigger value="messaging">Мессенджеры</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="video" className="space-y-4 mt-4">
-            {apiConfigs
-              .filter(c => ['youtube', 'twitch', 'twitch_secret', 'vk'].includes(c.id))
-              .map(config => (
-                <Card key={config.id} className="bg-card/50">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-base flex items-center gap-2">
-                          {config.name}
-                          {configuredApis[config.id] ? (
-                            <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
-                              <Check className="h-3 w-3 mr-1" />
-                              Настроен
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-muted-foreground">
-                              <AlertCircle className="h-3 w-3 mr-1" />
-                              Не настроен
-                            </Badge>
-                          )}
-                        </CardTitle>
-                        <CardDescription className="text-xs mt-1">
-                          {config.description}
-                        </CardDescription>
-                      </div>
-                      {configuredApis[config.id] && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleSyncData(config.id)}
-                          disabled={isSyncing[config.id]}
-                        >
-                          {isSyncing[config.id] ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <RefreshCw className="h-4 w-4" />
-                          )}
-                        </Button>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">{config.keyName}</Label>
-                      <div className="flex gap-2">
-                        <div className="relative flex-1">
-                          <Input
-                            type={showKeys[config.id] ? 'text' : 'password'}
-                            placeholder={config.placeholder}
-                            value={apiKeys[config.id] || ''}
-                            onChange={(e) => setApiKeys(prev => ({ ...prev, [config.id]: e.target.value }))}
-                            className="pr-10"
-                          />
+          <div className="flex-1 overflow-y-auto min-h-0 text-sm mt-2 pr-1">
+            <TabsContent value="video" className="space-y-4 m-0 p-1">
+              {apiConfigs
+                .filter(c => ['youtube', 'twitch', 'twitch_secret', 'vk'].includes(c.id))
+                .map(config => (
+                  <Card key={config.id} className="bg-card/50">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="text-base flex items-center gap-2">
+                            {config.name}
+                            {configuredApis[config.id] ? (
+                              <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                                <Check className="h-3 w-3 mr-1" />
+                                Настроен
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-muted-foreground">
+                                <AlertCircle className="h-3 w-3 mr-1" />
+                                Не настроен
+                              </Badge>
+                            )}
+                          </CardTitle>
+                          <CardDescription className="text-xs mt-1">
+                            {config.description}
+                          </CardDescription>
+                        </div>
+                        {configuredApis[config.id] && (
                           <Button
-                            type="button"
-                            variant="ghost"
                             size="sm"
-                            className="absolute right-0 top-0 h-full px-3"
-                            onClick={() => toggleShowKey(config.id)}
+                            variant="ghost"
+                            onClick={() => handleSyncData(config.id)}
+                            disabled={isSyncing[config.id]}
                           >
-                            {showKeys[config.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            {isSyncing[config.id] ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">{config.keyName}</Label>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <Input
+                              type={showKeys[config.id] ? 'text' : 'password'}
+                              placeholder={config.placeholder}
+                              value={apiKeys[config.id] || ''}
+                              onChange={(e) => setApiKeys(prev => ({ ...prev, [config.id]: e.target.value }))}
+                              className="pr-10"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3"
+                              onClick={() => toggleShowKey(config.id)}
+                            >
+                              {showKeys[config.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                          <Button onClick={() => handleSaveKey(config)} disabled={!apiKeys[config.id]}>
+                            Сохранить
                           </Button>
                         </div>
-                        <Button onClick={() => handleSaveKey(config)} disabled={!apiKeys[config.id]}>
-                          Сохранить
-                        </Button>
                       </div>
-                    </div>
-                    <a 
-                      href={config.docsUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-xs text-primary hover:underline"
-                    >
-                      Получить API ключ →
-                    </a>
-                  </CardContent>
-                </Card>
-              ))}
-          </TabsContent>
+                      <a
+                        href={config.docsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Получить API ключ →
+                      </a>
+                    </CardContent>
+                  </Card>
+                ))}
+            </TabsContent>
 
-          <TabsContent value="messaging" className="space-y-4 mt-4">
-            {apiConfigs
-              .filter(c => ['telegram_bot'].includes(c.id))
-              .map(config => (
-                <Card key={config.id} className="bg-card/50">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-base flex items-center gap-2">
-                          {config.name}
-                          {configuredApis[config.id] ? (
-                            <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
-                              <Check className="h-3 w-3 mr-1" />
-                              Настроен
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-muted-foreground">
-                              <AlertCircle className="h-3 w-3 mr-1" />
-                              Не настроен
-                            </Badge>
-                          )}
-                        </CardTitle>
-                        <CardDescription className="text-xs mt-1">
-                          {config.description}
-                        </CardDescription>
+            <TabsContent value="messaging" className="space-y-4 mt-4">
+              {apiConfigs
+                .filter(c => ['telegram_bot'].includes(c.id))
+                .map(config => (
+                  <Card key={config.id} className="bg-card/50">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="text-base flex items-center gap-2">
+                            {config.name}
+                            {configuredApis[config.id] ? (
+                              <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                                <Check className="h-3 w-3 mr-1" />
+                                Настроен
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-muted-foreground">
+                                <AlertCircle className="h-3 w-3 mr-1" />
+                                Не настроен
+                              </Badge>
+                            )}
+                          </CardTitle>
+                          <CardDescription className="text-xs mt-1">
+                            {config.description}
+                          </CardDescription>
+                        </div>
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">{config.keyName}</Label>
-                      <div className="flex gap-2">
-                        <div className="relative flex-1">
-                          <Input
-                            type={showKeys[config.id] ? 'text' : 'password'}
-                            placeholder={config.placeholder}
-                            value={apiKeys[config.id] || ''}
-                            onChange={(e) => setApiKeys(prev => ({ ...prev, [config.id]: e.target.value }))}
-                            className="pr-10"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3"
-                            onClick={() => toggleShowKey(config.id)}
-                          >
-                            {showKeys[config.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">{config.keyName}</Label>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <Input
+                              type={showKeys[config.id] ? 'text' : 'password'}
+                              placeholder={config.placeholder}
+                              value={apiKeys[config.id] || ''}
+                              onChange={(e) => setApiKeys(prev => ({ ...prev, [config.id]: e.target.value }))}
+                              className="pr-10"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3"
+                              onClick={() => toggleShowKey(config.id)}
+                            >
+                              {showKeys[config.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                          <Button onClick={() => handleSaveKey(config)} disabled={!apiKeys[config.id]}>
+                            Сохранить
                           </Button>
                         </div>
-                        <Button onClick={() => handleSaveKey(config)} disabled={!apiKeys[config.id]}>
-                          Сохранить
-                        </Button>
                       </div>
-                    </div>
-                    <a 
-                      href={config.docsUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-xs text-primary hover:underline"
-                    >
-                      Получить API ключ →
-                    </a>
-                  </CardContent>
-                </Card>
-              ))}
-          </TabsContent>
+                      <a
+                        href={config.docsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Получить API ключ →
+                      </a>
+                    </CardContent>
+                  </Card>
+                ))}
+            </TabsContent>
+          </div>
         </Tabs>
 
         <div className="mt-4 p-4 rounded-lg bg-muted/50 border border-border/50">

@@ -49,14 +49,14 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
   const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
   const [editingBot, setEditingBot] = useState<TelegramBot | null>(null);
   const [showTokens, setShowTokens] = useState<Record<string, boolean>>({});
-  
+
   const [autoSyncSettings, setAutoSyncSettings] = useState<AutoSyncSettings>({
     enabled: false,
     interval: 6,
     unit: 'hours',
   });
   const autoSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   const [botFormData, setBotFormData] = useState({
     name: '',
     token: '',
@@ -86,10 +86,10 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
     }
 
     if (autoSyncSettings.enabled && channels.length > 0) {
-      const intervalMs = autoSyncSettings.unit === 'hours' 
-        ? autoSyncSettings.interval * 60 * 60 * 1000 
+      const intervalMs = autoSyncSettings.unit === 'hours'
+        ? autoSyncSettings.interval * 60 * 60 * 1000
         : autoSyncSettings.interval * 60 * 1000;
-      
+
       autoSyncIntervalRef.current = setInterval(() => {
         handleSyncSubscribers();
       }, intervalMs);
@@ -108,7 +108,7 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
       .select('value')
       .eq('key', 'telegram_auto_sync')
       .maybeSingle();
-    
+
     if (data?.value) {
       const value = data.value as unknown as AutoSyncSettings;
       if (value.enabled !== undefined && value.interval !== undefined && value.unit !== undefined) {
@@ -119,13 +119,13 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
 
   const saveAutoSyncSettings = async (settings: AutoSyncSettings) => {
     setAutoSyncSettings(settings);
-    
+
     const { data: existing } = await supabase
       .from('app_settings')
       .select('id')
       .eq('key', 'telegram_auto_sync')
       .maybeSingle();
-    
+
     if (existing) {
       await supabase
         .from('app_settings')
@@ -136,7 +136,7 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
         .from('app_settings')
         .insert({ key: 'telegram_auto_sync', value: settings as any });
     }
-    
+
     toast({ title: 'Настройки сохранены' });
   };
 
@@ -150,22 +150,47 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
   const handleSyncSubscribers = async () => {
     setIsSyncing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('fetch-telegram-stats');
-      
-      if (error) throw error;
-      
-      if (data.configured === false) {
-        toast({ 
-          title: 'Бот не настроен', 
+      // Get active bot token
+      const activeBot = bots.find(b => b.is_active);
+      if (!activeBot) {
+        toast({
+          title: 'Бот не настроен',
           description: 'Добавьте активный Telegram бот для синхронизации',
           variant: 'destructive'
         });
-      } else if (data.success) {
-        toast({ 
-          title: 'Синхронизация завершена', 
-          description: `Обновлено каналов: ${data.results?.filter((r: any) => r.success).length || 0}`
+        setIsSyncing(false);
+        return;
+      }
+
+      const response = await fetch('/api/telegram/sync-channels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: activeBot.token,
+          channels: channels.map(c => ({ id: c.id, name: c.name, username: c.username }))
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update subscribers in database
+        for (const result of data.results) {
+          if (result.success) {
+            await supabase
+              .from('media_channels')
+              .update({ subscribers: result.subscribers, last_synced_at: new Date().toISOString() })
+              .eq('id', result.id);
+          }
+        }
+
+        toast({
+          title: 'Синхронизация завершена',
+          description: `Обновлено каналов: ${data.results.filter((r: any) => r.success).length}`
         });
         onSync?.();
+      } else {
+        throw new Error(data.error);
       }
     } catch (error: any) {
       toast({ title: 'Ошибка синхронизации', description: error.message, variant: 'destructive' });
@@ -179,10 +204,18 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
       return;
     }
 
+    // Get active bot
+    const activeBot = bots.find(b => b.is_active);
+    if (!activeBot) {
+      toast({ title: 'Бот не настроен', description: 'Добавьте активный Telegram бот', variant: 'destructive' });
+      return;
+    }
+
     setIsPublishing(true);
     try {
       const payload: any = {
-        channel_username: postFormData.channel_username,
+        token: activeBot.token,
+        channel_id: '@' + postFormData.channel_username,
         text: postFormData.text,
         parse_mode: postFormData.parse_mode,
         disable_notification: postFormData.disable_notification,
@@ -192,17 +225,15 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
         payload.buttons = [{ text: postFormData.button_text, url: postFormData.button_url }];
       }
 
-      const { data, error } = await supabase.functions.invoke('publish-telegram-post', { body: payload });
-      
-      if (error) throw error;
-      
-      if (data.configured === false) {
-        toast({ 
-          title: 'Бот не настроен', 
-          description: 'Добавьте активный Telegram бот',
-          variant: 'destructive'
-        });
-      } else if (data.success) {
+      const response = await fetch('/api/telegram/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
         toast({ title: 'Пост опубликован', description: `Message ID: ${data.message_id}` });
         setIsPostDialogOpen(false);
         setPostFormData({
@@ -233,7 +264,7 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
         .from('telegram_bots')
         .update(botFormData)
         .eq('id', editingBot.id);
-      
+
       if (error) {
         toast({ title: 'Ошибка', description: error.message, variant: 'destructive' });
       } else {
@@ -244,7 +275,7 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
       const { error } = await supabase
         .from('telegram_bots')
         .insert(botFormData);
-      
+
       if (error) {
         toast({ title: 'Ошибка', description: error.message, variant: 'destructive' });
       } else {
@@ -306,7 +337,7 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
           <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
           Синхронизировать
         </Button>
-        
+
         <Dialog open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" className="gap-2">
@@ -321,8 +352,8 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label>Канал *</Label>
-                <Select 
-                  value={postFormData.channel_username} 
+                <Select
+                  value={postFormData.channel_username}
                   onValueChange={(v) => setPostFormData({ ...postFormData, channel_username: v })}
                 >
                   <SelectTrigger>
@@ -337,7 +368,7 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
                 <Label>Текст сообщения *</Label>
                 <Textarea
@@ -350,8 +381,8 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
 
               <div className="space-y-2">
                 <Label>Формат</Label>
-                <Select 
-                  value={postFormData.parse_mode} 
+                <Select
+                  value={postFormData.parse_mode}
                   onValueChange={(v: any) => setPostFormData({ ...postFormData, parse_mode: v })}
                 >
                   <SelectTrigger>
@@ -411,7 +442,7 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
             <DialogHeader>
               <DialogTitle>{editingBot ? 'Редактировать бота' : 'Telegram Боты'}</DialogTitle>
             </DialogHeader>
-            
+
             {editingBot ? (
               <div className="space-y-4 pt-4">
                 <div className="space-y-2">
@@ -464,7 +495,7 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
                     Добавить бота
                   </Button>
                 </div>
-                
+
                 {isLoading ? (
                   <div className="text-center text-muted-foreground py-4">Загрузка...</div>
                 ) : bots.length === 0 ? (
@@ -532,7 +563,7 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
               <p className="text-xs text-muted-foreground">Автоматически каждые 6 часов, даже когда страница закрыта</p>
             </div>
           </div>
-          
+
           {/* Client-side sync settings */}
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-3">
@@ -545,7 +576,7 @@ const TelegramIntegration = ({ channels, onSync }: TelegramIntegrationProps) => 
               />
               <Label className="text-sm">Дополнительная синхронизация в браузере</Label>
             </div>
-            
+
             {autoSyncSettings.enabled && (
               <div className="flex items-center gap-2">
                 <Label className="text-sm text-muted-foreground">Каждые</Label>

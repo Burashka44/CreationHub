@@ -245,6 +245,53 @@ const translations: Translations = {
   thisMonth: { ru: 'В этом месяце', en: 'This month' },
   now: { ru: 'Сейчас', en: 'Now' },
   processes: { ru: 'Процессы', en: 'Processes' },
+
+  // Additional UI translations
+  addPreset: { ru: 'Добавить пресет', en: 'Add Preset' },
+  addHost: { ru: 'Добавить хост', en: 'Add Host' },
+  addRule: { ru: 'Добавить правило', en: 'Add Rule' },
+  addService: { ru: 'Добавить сервис', en: 'Add Service' },
+  addBot: { ru: 'Добавить бота', en: 'Add Bot' },
+  addVpnProfile: { ru: 'Добавить VPN профиль', en: 'Add VPN Profile' },
+  addVpnLocation: { ru: 'Добавить VPN локацию', en: 'Add VPN Location' },
+  addProfile: { ru: 'Добавить профиль', en: 'Add Profile' },
+  addTelegramChannel: { ru: 'Добавить Telegram канал', en: 'Add Telegram Channel' },
+  addUfwRule: { ru: 'Добавить правило UFW', en: 'Add UFW Rule' },
+  editBot: { ru: 'Редактировать бота', en: 'Edit Bot' },
+
+  // Dialog titles
+  addDialogTitle: { ru: 'Добавить', en: 'Add' },
+
+  // Security page
+  firewallRules: { ru: 'Правила файрвола', en: 'Firewall Rules' },
+  noRulesInDb: { ru: 'Нет правил в базе', en: 'No rules in database' },
+  syncWithUfw: { ru: 'Синхронизировать с UFW', en: 'Sync with UFW' },
+
+  // Additional common
+  port: { ru: 'Порт', en: 'Port' },
+  description: { ru: 'Описание', en: 'Description' },
+  loading: { ru: 'Загрузка...', en: 'Loading...' },
+  findingLocation: { ru: 'Определение локации...', en: 'Finding location...' },
+  unknown: { ru: 'Неизвестно', en: 'Unknown' },
+  health: { ru: 'Здоровье', en: 'Health' },
+  noActivityRecorded: { ru: 'Нет записей активности', en: 'No activity recorded' },
+
+  // Time ago
+  secondsAgo: { ru: 'сек назад', en: 'sec ago' },
+  minutesAgo: { ru: 'мин назад', en: 'min ago' },
+  hoursAgo: { ru: 'ч назад', en: 'h ago' },
+  daysAgo: { ru: 'дн назад', en: 'd ago' },
+
+  // Security page
+  securityDescription: { ru: 'Защита и мониторинг безопасности', en: 'Security monitoring and protection' },
+  recentEvents: { ru: 'Последние события', en: 'Recent Events' },
+  noSecurityEvents: { ru: 'Нет событий безопасности', en: 'No security events' },
+  application: { ru: 'Приложение', en: 'Application' },
+  customPort: { ru: 'Свой порт', en: 'Custom Port' },
+  selectApp: { ru: 'Выберите приложение...', en: 'Select application...' },
+  comment: { ru: 'Комментарий', en: 'Comment' },
+  accessibleFromInternet: { ru: 'Доступен из Интернет (WAN)', en: 'Accessible from Internet (WAN)' },
+  localNetworkOnly: { ru: 'Только локальная сеть (LAN)', en: 'Local network only (LAN)' },
 };
 
 interface LanguageContextType {

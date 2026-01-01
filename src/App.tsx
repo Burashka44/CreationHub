@@ -23,17 +23,20 @@ import VideoPipelinePage from "./pages/VideoPipelinePage";
 import ServicesPage from "./pages/ServicesPage";
 import NotFound from "./pages/NotFound";
 
+import OfflineIndicator from "./components/common/OfflineIndicator";
+
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <LanguageProvider>
-        <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <OfflineIndicator />
+          <BrowserRouter>
+            <AuthProvider>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
 
@@ -53,9 +56,9 @@ const App = () => (
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
-        </AuthProvider>
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
       </LanguageProvider>
     </ThemeProvider>
   </QueryClientProvider>

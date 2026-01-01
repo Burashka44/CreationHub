@@ -40,7 +40,7 @@ const QuickActions = () => {
 
     try {
       if (id === 'cache') {
-        // Real implementation: Clear Frontend Cache
+        // Clear Frontend Cache
         localStorage.clear();
         sessionStorage.clear();
         await logActivity('cacheCleared', 'Browser Storage');
@@ -54,22 +54,37 @@ const QuickActions = () => {
         return;
       }
 
-      // Backend Actions
-      // We attempt to call the edge function, or fallback to logging request
-      const { error } = await supabase.functions.invoke('server-actions', {
-        body: { action: id }
+      // Special handling for backup
+      if (id === 'backup') {
+        const response = await fetch('/api/system/backups/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'database' })
+        });
+        const data = await response.json();
+        if (data.success) {
+          await logActivity(id, 'System Database');
+          toast.success('Бэкап успешно запущен', { description: `Файл: ${data.data.file}` });
+        } else {
+          toast.error(data.error || 'Backup failed');
+        }
+        return;
+      }
+
+      // Backend Actions via system-api
+      const response = await fetch('/api/system/actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: id })
       });
 
-      if (error) {
-        // Fallback for Honest UI if function not found
-        // We log that we TRIED, and tell user it was queued
-        await logActivity(id + 'Requested', 'Server Queue');
-        toast.info('Action requested', {
-          description: `Command "${t(labelKey)}" sent to server queue`
-        });
-      } else {
+      const data = await response.json();
+
+      if (data.success) {
         await logActivity(id, 'System');
-        toast.success(`${t(labelKey)} - Success`);
+        toast.success(data.message || `${t(labelKey)} - Success`);
+      } else {
+        toast.error(data.error || 'Action failed');
       }
 
     } catch (error) {
