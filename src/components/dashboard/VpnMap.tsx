@@ -48,7 +48,6 @@ const VpnMap = () => {
           country: 'Russia',
           countryCode: 'RU',
           ip: 'Unknown',
-          ip: 'Unknown',
           org: 'ISP Unknown',
           source: 'Error (Offline)'
         });

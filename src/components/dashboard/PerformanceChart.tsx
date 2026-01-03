@@ -176,7 +176,7 @@ const PerformanceChart = () => {
           net_rx_total: Math.round(netSpeed / 2),
           net_tx_total: Math.round(netSpeed / 2),
         }).then(({ error }) => {
-          if (error) console.log('Metrics save error:', error);
+          // Error is expected when using mock data in development
         });
 
         setData(prev => {

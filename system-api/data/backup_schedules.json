@@ -1,0 +1,16 @@
+[
+  {
+    "id": "1",
+    "name": "Ежедневный бэкап",
+    "time": "03:00",
+    "type": "full",
+    "status": "active"
+  },
+  {
+    "id": "2",
+    "name": "Бэкап БД",
+    "time": "*/6 часов",
+    "type": "database",
+    "status": "active"
+  }
+]

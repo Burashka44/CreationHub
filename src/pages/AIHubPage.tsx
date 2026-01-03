@@ -218,7 +218,7 @@ const AIHubPage = () => {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('llama3');
+  const [selectedModel, setSelectedModel] = useState('qwen2.5:14b');
   const [streamingContent, setStreamingContent] = useState('');
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
@@ -227,7 +227,7 @@ const AIHubPage = () => {
 
   // Image generation state
   const [imagePrompt, setImagePrompt] = useState('');
-  const [imageStyle, setImageStyle] = useState('');
+  const [imageStyle, setImageStyle] = useState('none');
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
 
@@ -732,7 +732,7 @@ const AIHubPage = () => {
         },
         body: JSON.stringify({
           messages: [...chatMessages, userMessage],
-          model: (selectedModel && selectedModel.includes('llama')) ? selectedModel : 'llama3', // Force valid model
+          model: selectedModel || 'qwen2.5:14b', // Force valid model
           stream: true
         }),
       });
@@ -935,7 +935,7 @@ const AIHubPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [{ role: 'user', content: `Пожалуйста, суммаризируй следующий текст:\n\n${summarizeText}` }],
-          model: 'llama3.2',
+          model: 'qwen2.5:14b',
           stream: false // Non-streaming for summary
         }),
       });
@@ -946,7 +946,7 @@ const AIHubPage = () => {
       const content = data.message?.content || data.response || "Ошибка получения ответа";
 
       setSummarizeResult(content);
-      await saveToHistory('summarize', { text: summarizeText }, { summary: content }, 'llama3.2', 'completed');
+      await saveToHistory('summarize', { text: summarizeText }, { summary: content }, 'qwen2.5:14b', 'completed');
       pushLog('Text summarized', { inputLength: summarizeText.length, outputLength: content.length });
       toast.success('Текст суммаризирован!');
     } catch (e: unknown) {
@@ -1497,12 +1497,14 @@ const AIHubPage = () => {
                         <SelectValue placeholder="Без стиля (обычный промпт)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Без стиля</SelectItem>
-                        {imageStylePresets.map(preset => (
-                          <SelectItem key={preset.id} value={preset.payload.style}>
-                            {preset.name}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="none">Без стиля</SelectItem>
+                        {imageStylePresets
+                          .filter(preset => preset.payload?.style && preset.payload.style.trim() !== '')
+                          .map(preset => (
+                            <SelectItem key={preset.id} value={preset.payload.style}>
+                              {preset.name}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                     {imageStyle && (

@@ -22,6 +22,14 @@ interface BackupPreset {
   compression: boolean;
 }
 
+
+const cronToText = (cron: string) => {
+  if (cron === '0 3 * * *') return 'Ежедневно в 03:00';
+  if (cron === '0 * * * *') return 'Каждый час';
+  if (cron === '0 */6 * * *') return 'Каждые 6 часов';
+  return 'По расписанию';
+};
+
 const BackupsPage = () => {
   const { t } = useLanguage();
 
@@ -32,26 +40,26 @@ const BackupsPage = () => {
   const [presets, setPresets] = useState<BackupPreset[]>([
     {
       id: '1',
-      name: 'Ежедневный полный',
+      name: 'dailyFullBackup',
       schedule: '0 3 * * *',
       type: 'full',
-      retention: '30 дней',
+      retention: '30days',
       compression: true,
     },
     {
       id: '2',
-      name: 'Почасовой инкремент',
+      name: 'hourlyIncremental',
       schedule: '0 * * * *',
       type: 'incremental',
-      retention: '7 дней',
+      retention: '7days',
       compression: false,
     },
     {
       id: '3',
-      name: 'БД каждые 6ч',
+      name: 'dbEvery6h',
       schedule: '0 */6 * * *',
       type: 'database',
-      retention: '14 дней',
+      retention: '14days',
       compression: true,
     },
   ]);
@@ -176,7 +184,7 @@ const BackupsPage = () => {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">{t('backups')}</h1>
-            <p className="text-muted-foreground">Управление резервными копиями</p>
+            <p className="text-muted-foreground">{t('backupsDescription')}</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -197,10 +205,10 @@ const BackupsPage = () => {
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <Settings className="h-4 w-4 text-primary" />
-              <CardTitle className="text-base">Пресеты бэкапов</CardTitle>
+              <CardTitle className="text-base">{t('backupPresets')}</CardTitle>
             </div>
             <CardDescription>
-              Шаблоны расписаний
+              {t('backupPresetsDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -212,13 +220,13 @@ const BackupsPage = () => {
                     className="p-3 rounded-lg border border-border/50 bg-background/50 space-y-2"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-medium text-sm">{preset.name}</span>
+                      <span className="font-medium text-sm">{t(preset.name) || preset.name}</span>
                       <Badge variant="outline" className={cn("text-xs", getTypeBadgeColor(preset.type))}>
                         {preset.type}
                       </Badge>
                     </div>
                     <div className="text-xs text-muted-foreground space-y-1">
-                      <p>Cron: <span className="font-mono">{preset.schedule}</span></p>
+                      <p>Cron: <span className="font-mono">{cronToText(preset.schedule)}</span> ({preset.schedule})</p>
                       <p>Хранить: {preset.retention} • {preset.compression ? 'Сжатие' : 'Без сжатия'}</p>
                     </div>
                     <div className="flex gap-2">

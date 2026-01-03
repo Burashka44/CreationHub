@@ -660,7 +660,7 @@ const ServicesPage = () => {
           <Card
             key={service.id}
             className={cn(
-              "border-border/50 bg-card/50 backdrop-blur hover:bg-card/80 transition-all group",
+              "border-border/50 bg-card/50 backdrop-blur hover:bg-card/80 hover:shadow-lg hover:scale-[1.02] transition-all duration-300 group cursor-pointer",
               !service.is_active && "opacity-60"
             )}
           >

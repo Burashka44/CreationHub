@@ -32,7 +32,12 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
   );
 };
 
-const Sidebar = () => {
+interface SidebarProps {
+  mobile?: boolean;
+  onNavigate?: () => void;
+}
+
+const Sidebar = ({ mobile = false, onNavigate }: SidebarProps = {}) => {
   const { t } = useLanguage();
   const { isOpen, setIsOpen } = useSidebar();
   const location = useLocation();
@@ -51,18 +56,23 @@ const Sidebar = () => {
     { path: '/settings', icon: Settings, labelKey: 'settings' },
   ];
 
+  // For mobile, always show expanded view and close on navigation
+  const showExpanded = mobile || isOpen;
+
   return (
     <aside className={cn(
-      "fixed inset-y-0 left-0 z-50 flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300",
-      isOpen ? "w-64" : "w-16"
+      "flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300",
+      mobile ? "w-full h-full" : "fixed inset-y-0 left-0 z-50",
+      !mobile && (isOpen ? "w-64" : "w-16")
     )}>
       {/* Logo */}
       <div className="h-16 flex items-center border-b border-sidebar-border px-4">
         <Link
           to="/"
+          onClick={mobile ? onNavigate : undefined}
           className={cn(
             "flex items-center gap-3 transition-all duration-300",
-            !isOpen && "justify-center w-full"
+            !showExpanded && "justify-center w-full"
           )}
         >
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
@@ -70,7 +80,7 @@ const Sidebar = () => {
           </div>
           <span className={cn(
             "font-bold text-foreground transition-all duration-300 whitespace-nowrap overflow-hidden",
-            isOpen ? "opacity-100 w-auto" : "opacity-0 w-0"
+            showExpanded ? "opacity-100 w-auto" : "opacity-0 w-0"
           )}>
             CreationHub
           </span>
@@ -85,18 +95,19 @@ const Sidebar = () => {
             <Link
               key={item.path}
               to={item.path}
+              onClick={mobile ? onNavigate : undefined}
               className={cn(
                 "flex items-center gap-3 w-full px-3 py-3 rounded-lg text-muted-foreground transition-all duration-200",
                 "hover:text-foreground hover:bg-secondary/50",
                 isActive && "text-primary bg-primary/10 hover:bg-primary/15",
-                !isOpen && "justify-center px-2"
+                !showExpanded && "justify-center px-2"
               )}
-              title={!isOpen ? t(item.labelKey) : undefined}
+              title={!showExpanded ? t(item.labelKey) : undefined}
             >
               <item.icon className="h-5 w-5 shrink-0" />
               <span className={cn(
                 "whitespace-nowrap transition-all duration-200 overflow-hidden",
-                isOpen ? "opacity-100 w-auto" : "opacity-0 w-0"
+                showExpanded ? "opacity-100 w-auto" : "opacity-0 w-0"
               )}>
                 {t(item.labelKey)}
               </span>
@@ -108,18 +119,18 @@ const Sidebar = () => {
       {/* User section */}
       <div className={cn(
         "p-3 border-t border-sidebar-border",
-        !isOpen && "flex justify-center"
+        !showExpanded && "flex justify-center"
       )}>
         <div className={cn(
           "flex items-center gap-3 p-2 rounded-lg bg-muted/50 transition-all",
-          !isOpen && "p-2 bg-transparent justify-center"
+          !showExpanded && "p-2 bg-transparent justify-center"
         )}>
           <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
             <span className="text-sm font-medium text-primary">A</span>
           </div>
           <div className={cn(
             "transition-all duration-200 overflow-hidden",
-            isOpen ? "opacity-100 w-auto" : "opacity-0 w-0"
+            showExpanded ? "opacity-100 w-auto" : "opacity-0 w-0"
           )}>
             <p className="text-sm font-medium text-foreground">Admin</p>
             <p className="text-xs text-muted-foreground">admin@server.com</p>
@@ -127,13 +138,15 @@ const Sidebar = () => {
         </div>
       </div>
 
-      {/* Collapse button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-center h-12 border-t border-sidebar-border text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-      >
-        {isOpen ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-      </button>
+      {/* Collapse button - only on desktop */}
+      {!mobile && (
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center justify-center h-12 border-t border-sidebar-border text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+        >
+          {isOpen ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+        </button>
+      )}
     </aside>
   );
 };

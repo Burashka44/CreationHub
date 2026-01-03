@@ -10,6 +10,8 @@ const upload = multer({ dest: '/tmp/uploads/' });
 // Service URLs (internal docker network)
 const SERVICES = {
     CHAT: 'http://creationhub_ollama:11434/api/chat',
+    GENERATE: 'http://creationhub_ollama:11434/api/generate',
+    MODELS: 'http://creationhub_ollama:11434/api/tags',
     TRANSCRIBE: 'http://creationhub-ai-transcribe:8000/v1/audio/transcriptions',
     TTS: 'http://creationhub-ai-tts:10200/process',
     TRANSLATE: 'http://creationhub-ai-translate:5000/translate'
@@ -18,6 +20,17 @@ const SERVICES = {
 // Health Check
 router.get('/healthz', (req, res) => {
     res.json({ status: 'ok', services: SERVICES });
+});
+
+// Get available models
+router.get('/models', async (req, res) => {
+    try {
+        const response = await axios.get(SERVICES.MODELS);
+        res.json(response.data);
+    } catch (error) {
+        console.error('Models Error:', error.message);
+        res.status(502).json({ error: 'Failed to fetch models', details: error.message });
+    }
 });
 
 // Chat Proxy (Ollama)

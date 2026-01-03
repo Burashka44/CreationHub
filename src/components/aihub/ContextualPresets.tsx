@@ -36,77 +36,97 @@ const tabFieldConfigs: Record<string, { key: string; label: string; type: 'text'
     { key: 'style', label: 'Стиль изображения', type: 'textarea', placeholder: 'photorealistic, anime, illustration...' },
   ],
   asr: [
-    { key: 'task', label: 'Задача', type: 'select', options: [
-      { value: 'transcribe', label: 'Транскрибация' },
-      { value: 'translate', label: 'Перевод' },
-    ]},
-    { key: 'language', label: 'Язык', type: 'select', options: [
-      { value: 'auto', label: 'Авто' },
-      { value: 'ru', label: 'Русский' },
-      { value: 'en', label: 'Английский' },
-      { value: 'de', label: 'Немецкий' },
-      { value: 'fr', label: 'Французский' },
-      { value: 'es', label: 'Испанский' },
-      { value: 'zh', label: 'Китайский' },
-    ]},
+    {
+      key: 'task', label: 'Задача', type: 'select', options: [
+        { value: 'transcribe', label: 'Транскрибация' },
+        { value: 'translate', label: 'Перевод' },
+      ]
+    },
+    {
+      key: 'language', label: 'Язык', type: 'select', options: [
+        { value: 'auto', label: 'Авто' },
+        { value: 'ru', label: 'Русский' },
+        { value: 'en', label: 'Английский' },
+        { value: 'de', label: 'Немецкий' },
+        { value: 'fr', label: 'Французский' },
+        { value: 'es', label: 'Испанский' },
+        { value: 'zh', label: 'Китайский' },
+      ]
+    },
   ],
   translate: [
-    { key: 'src_lang', label: 'Исходный язык', type: 'select', options: [
-      { value: 'auto', label: 'Авто' },
-      { value: 'ru', label: 'Русский' },
-      { value: 'en', label: 'Английский' },
-      { value: 'de', label: 'Немецкий' },
-      { value: 'fr', label: 'Французский' },
-    ]},
-    { key: 'tgt_lang', label: 'Целевой язык', type: 'select', options: [
-      { value: 'ru', label: 'Русский' },
-      { value: 'en', label: 'Английский' },
-      { value: 'de', label: 'Немецкий' },
-      { value: 'fr', label: 'Французский' },
-    ]},
+    {
+      key: 'src_lang', label: 'Исходный язык', type: 'select', options: [
+        { value: 'auto', label: 'Авто' },
+        { value: 'ru', label: 'Русский' },
+        { value: 'en', label: 'Английский' },
+        { value: 'de', label: 'Немецкий' },
+        { value: 'fr', label: 'Французский' },
+      ]
+    },
+    {
+      key: 'tgt_lang', label: 'Целевой язык', type: 'select', options: [
+        { value: 'ru', label: 'Русский' },
+        { value: 'en', label: 'Английский' },
+        { value: 'de', label: 'Немецкий' },
+        { value: 'fr', label: 'Французский' },
+      ]
+    },
   ],
   tts: [
-    { key: 'language', label: 'Язык', type: 'select', options: [
-      { value: 'ru', label: 'Русский' },
-      { value: 'en', label: 'Английский' },
-      { value: 'de', label: 'Немецкий' },
-      { value: 'fr', label: 'Французский' },
-    ]},
-    { key: 'voice', label: 'Голос', type: 'select', options: [
-      { value: 'default', label: 'По умолчанию' },
-      { value: 'male', label: 'Мужской' },
-      { value: 'female', label: 'Женский' },
-    ]},
+    {
+      key: 'language', label: 'Язык', type: 'select', options: [
+        { value: 'ru', label: 'Русский' },
+        { value: 'en', label: 'Английский' },
+        { value: 'de', label: 'Немецкий' },
+        { value: 'fr', label: 'Французский' },
+      ]
+    },
+    {
+      key: 'voice', label: 'Голос', type: 'select', options: [
+        { value: 'default', label: 'По умолчанию' },
+        { value: 'male', label: 'Мужской' },
+        { value: 'female', label: 'Женский' },
+      ]
+    },
   ],
   av: [
-    { key: 'src_lang', label: 'Исходный язык', type: 'select', options: [
-      { value: 'auto', label: 'Авто' },
-      { value: 'ru', label: 'Русский' },
-      { value: 'en', label: 'Английский' },
-    ]},
-    { key: 'tgt_lang', label: 'Целевой язык', type: 'select', options: [
-      { value: 'ru', label: 'Русский' },
-      { value: 'en', label: 'Английский' },
-      { value: 'de', label: 'Немецкий' },
-      { value: 'fr', label: 'Французский' },
-      { value: 'es', label: 'Испанский' },
-      { value: 'zh', label: 'Китайский' },
-    ]},
+    {
+      key: 'src_lang', label: 'Исходный язык', type: 'select', options: [
+        { value: 'auto', label: 'Авто' },
+        { value: 'ru', label: 'Русский' },
+        { value: 'en', label: 'Английский' },
+      ]
+    },
+    {
+      key: 'tgt_lang', label: 'Целевой язык', type: 'select', options: [
+        { value: 'ru', label: 'Русский' },
+        { value: 'en', label: 'Английский' },
+        { value: 'de', label: 'Немецкий' },
+        { value: 'fr', label: 'Французский' },
+        { value: 'es', label: 'Испанский' },
+        { value: 'zh', label: 'Китайский' },
+      ]
+    },
   ],
   clean: [
-    { key: 'method', label: 'Метод', type: 'select', options: [
-      { value: 'propainter', label: 'ProPainter (рекомендуется)' },
-      { value: 'deepfill', label: 'DeepFill v2' },
-      { value: 'lama', label: 'LaMa' },
-    ]},
+    {
+      key: 'method', label: 'Метод', type: 'select', options: [
+        { value: 'propainter', label: 'ProPainter (рекомендуется)' },
+        { value: 'deepfill', label: 'DeepFill v2' },
+        { value: 'lama', label: 'LaMa' },
+      ]
+    },
     { key: 'objects', label: 'Объекты для удаления', type: 'text', placeholder: 'logo, face, watermark' },
   ],
   summarize: [
-    { key: 'length', label: 'Длина резюме', type: 'select', options: [
-      { value: 'short', label: 'Короткое (1-2 предложения)' },
-      { value: 'medium', label: 'Среднее (абзац)' },
-      { value: 'long', label: 'Подробное' },
-    ]},
+    {
+      key: 'length', label: 'Длина резюме', type: 'select', options: [
+        { value: 'short', label: 'Короткое (1-2 предложения)' },
+        { value: 'medium', label: 'Среднее (абзац)' },
+        { value: 'long', label: 'Подробное' },
+      ]
+    },
   ],
 };
 
@@ -134,7 +154,7 @@ const ContextualPresets: React.FC<ContextualPresetsProps> = ({
 
   const handleAddPreset = () => {
     if (!newPresetName.trim()) return;
-    
+
     // Собираем payload из полей
     const payload: Record<string, string> = {};
     fieldConfig.forEach(field => {
@@ -193,15 +213,15 @@ const ContextualPresets: React.FC<ContextualPresetsProps> = ({
           {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </Button>
       </CollapsibleTrigger>
-      
+
       <CollapsibleContent className="mt-3 space-y-3">
         {/* Существующие пресеты */}
         {filteredPresets.length > 0 ? (
           <div className="grid gap-2 sm:grid-cols-2">
             {filteredPresets.map((preset) => (
-              <div 
-                key={preset.id} 
-                className="p-2.5 rounded-lg border border-border/50 bg-background/50 space-y-1.5"
+              <div
+                key={preset.id}
+                className="p-2.5 rounded-lg border border-border/50 bg-background/50 space-y-1.5 hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 cursor-pointer"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
@@ -211,18 +231,18 @@ const ContextualPresets: React.FC<ContextualPresetsProps> = ({
                     )}
                   </div>
                   <div className="flex gap-1 shrink-0">
-                    <Button 
-                      size="sm" 
-                      variant="default" 
-                      className="h-7 gap-1 text-xs px-2"
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="h-7 gap-1 text-xs px-2 hover:scale-105 transition-transform"
                       onClick={() => onApplyPreset(preset)}
                     >
                       <Play className="h-3 w-3" />
                     </Button>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
                       onClick={() => onDeletePreset(preset.id)}
                     >
                       <Trash2 className="h-3 w-3" />
@@ -255,14 +275,14 @@ const ContextualPresets: React.FC<ContextualPresetsProps> = ({
             placeholder="Название пресета"
             className="h-8 text-sm"
           />
-          
+
           {/* Динамические поля для текущей вкладки */}
           {fieldConfig.map(field => (
             <div key={field.key}>
               <Label className="text-xs text-muted-foreground mb-1 block">{field.label}</Label>
               {field.type === 'select' && field.options ? (
-                <Select 
-                  value={fieldValues[field.key] || ''} 
+                <Select
+                  value={fieldValues[field.key] || ''}
                   onValueChange={(v) => handleFieldChange(field.key, v)}
                 >
                   <SelectTrigger className="h-8 text-sm">
@@ -291,20 +311,20 @@ const ContextualPresets: React.FC<ContextualPresetsProps> = ({
               )}
             </div>
           ))}
-          
+
           <div className="flex gap-2">
-            <Button 
-              onClick={handleAddPreset} 
-              size="sm" 
+            <Button
+              onClick={handleAddPreset}
+              size="sm"
               className="flex-1 gap-1.5 h-8"
               disabled={!newPresetName.trim() || Object.keys(fieldValues).length === 0}
             >
               <Plus className="h-3 w-3" />
               Сохранить
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="gap-1 h-8"
               onClick={onExport}
               title="Экспорт пресетов"
@@ -318,9 +338,9 @@ const ContextualPresets: React.FC<ContextualPresetsProps> = ({
               onChange={onImport}
               className="hidden"
             />
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="gap-1 h-8"
               onClick={() => importInputRef.current?.click()}
               title="Импорт пресетов"

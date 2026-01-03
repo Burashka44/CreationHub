@@ -1,13 +1,13 @@
-import {
-  Eye, Users, Play, Clock, TrendingUp, TrendingDown,
-  ThumbsUp, MessageSquare, Share2, DollarSign,
+import { 
+  Eye, Users, Play, Clock, TrendingUp, TrendingDown, 
+  ThumbsUp, MessageSquare, Share2, DollarSign, 
   Video, Heart, Zap, Star, Activity
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import {
-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
-  CartesianGrid, Tooltip, PieChart as RechartsPieChart, Pie, Cell
+import { 
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, 
+  CartesianGrid, Tooltip, PieChart as RechartsPieChart, Pie, Cell 
 } from 'recharts';
 
 // RuTube and TikTok don't have public APIs for analytics
@@ -38,10 +38,10 @@ const formatNumber = (num: number) => {
 };
 
 const formatCurrency = (num: number, currency: string = 'RUB') => {
-  return new Intl.NumberFormat('ru-RU', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0
+  return new Intl.NumberFormat('ru-RU', { 
+    style: 'currency', 
+    currency, 
+    maximumFractionDigits: 0 
   }).format(num);
 };
 
@@ -52,17 +52,31 @@ const formatDuration = (seconds: number) => {
 };
 
 // Generate mock data for charts
-// Generate mock data for charts
 const generateViewsData = (baseViews: number) => {
-  // TODO: Connect to real stats table
-  return [];
+  const data = [];
+  for (let i = 29; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    data.push({
+      date: date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }),
+      views: Math.floor(baseViews + Math.random() * baseViews * 0.4 - baseViews * 0.2),
+      watchTime: Math.floor(Math.random() * 5000) + 1000,
+    });
+  }
+  return data;
 };
 
 // ============== YouTube Analytics ==============
 export const YouTubeAnalytics = ({ channel }: { channel: MediaChannel }) => {
   const viewsData = generateViewsData(channel.views / 30);
-
-  const trafficSources = [];
+  
+  const trafficSources = [
+    { name: 'Рекомендации', value: 45, color: '#FF6B6B' },
+    { name: 'Поиск', value: 25, color: '#4ECDC4' },
+    { name: 'Внешние', value: 15, color: '#45B7D1' },
+    { name: 'Прямой', value: 10, color: '#96CEB4' },
+    { name: 'Подписки', value: 5, color: '#FFEAA7' },
+  ];
 
   const requirements = {
     subscribers: { current: channel.subscribers, required: 1000 },
@@ -159,7 +173,7 @@ export const YouTubeAnalytics = ({ channel }: { channel: MediaChannel }) => {
 // ============== Twitch Analytics ==============
 export const TwitchAnalytics = ({ channel }: { channel: MediaChannel }) => {
   const viewsData = generateViewsData(channel.views / 30);
-
+  
   // Twitch-specific metrics
   const twitchMetrics = {
     averageViewers: Math.floor(channel.views / 30 / 24), // Estimate
@@ -240,7 +254,7 @@ export const TwitchAnalytics = ({ channel }: { channel: MediaChannel }) => {
 // ============== VK Video Analytics ==============
 export const VKVideoAnalytics = ({ channel }: { channel: MediaChannel }) => {
   const viewsData = generateViewsData(channel.views / 30);
-
+  
   const vkMetrics = {
     clipsViews: Math.floor(channel.views * 0.3),
     clipsLikes: Math.floor(channel.likes * 0.4),
@@ -370,23 +384,23 @@ export const RuTubeAnalytics = ({ channel }: { channel: MediaChannel }) => {
 // ============== Telegram Analytics ==============
 export const TelegramAnalytics = ({ channel, subscriberData }: { channel: MediaChannel; subscriberData?: any[] }) => {
   const viewsData = generateViewsData(channel.views / 30);
-
+  
   // Telegram monetization:
   // 1. Telegram Premium revenue sharing (50% от подписок Premium в канале)
   // 2. Telegram Ads (для каналов с 1000+ подписчиков)
   // 3. Продажа рекламы напрямую
-
+  
   const requirements = {
     subscribers: { current: channel.subscribers, required: 1000 },
   };
 
   const subscribersProgress = Math.min((requirements.subscribers.current / requirements.subscribers.required) * 100, 100);
   const isEligibleForAds = subscribersProgress >= 100;
-
+  
   // Estimated Premium revenue (based on subscribers with Premium)
   const estimatedPremiumUsers = Math.floor(channel.subscribers * 0.08); // ~8% пользователей с Premium
   const estimatedPremiumRevenue = estimatedPremiumUsers * 2.5; // ~$2.5 за Premium пользователя в месяц (50% от $5)
-
+  
   // Estimated Ad revenue 
   const estimatedCPM = channel.subscribers >= 10000 ? 3 : channel.subscribers >= 5000 ? 2 : 1; // $/1000 просмотров
   const estimatedAdRevenue = (channel.views / 1000) * estimatedCPM * 0.5; // 50% от рекламы
@@ -629,7 +643,7 @@ export const TikTokAnalytics = ({ channel }: { channel: MediaChannel }) => {
 
 // ============== Helper Components ==============
 
-const MetricCard = ({ icon: Icon, label, value, trend, positive }: {
+const MetricCard = ({ icon: Icon, label, value, trend, positive }: { 
   icon: any; label: string; value: string; trend: string; positive: boolean;
 }) => (
   <div className="p-3 rounded-lg bg-background/50 border border-border/50">
@@ -681,7 +695,7 @@ const ViewsChart = ({ data, color, title }: { data: any[]; color: string; title:
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
           <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
           <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={formatNumber} tickLine={false} axisLine={false} />
-          <Tooltip
+          <Tooltip 
             contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
             formatter={(value: number) => [formatNumber(value), 'Просмотры']}
           />

@@ -16,7 +16,7 @@ const POSTGREST_URL = 'http://creationhub_api:3000';
 // CORS configuration
 const CORS_ORIGINS = process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
-    : ['http://localhost:5173', 'http://localhost:7777', 'http://localhost:9191'];
+    : ['http://localhost:5173', 'http://localhost:7777', 'http://localhost:9191', 'http://192.168.1.220:7777'];
 
 const corsOptions = {
     origin: function (origin, callback) {
@@ -34,11 +34,17 @@ const corsOptions = {
 };
 
 // Simple rate limiter
-const RATE_LIMIT_RPM = parseInt(process.env.RATE_LIMIT_RPM) || 100;
+const RATE_LIMIT_RPM = parseInt(process.env.RATE_LIMIT_RPM) || 200;
 const rateLimitStore = new Map();
 
 const rateLimiter = (req, res, next) => {
     const ip = req.ip || req.connection.remoteAddress || 'unknown';
+
+    // Skip rate limiting for local network
+    if (ip.includes('192.168.') || ip.includes('127.0.0.1') || ip.includes('::1') || ip.includes('::ffff:192.168')) {
+        return next();
+    }
+
     const now = Date.now();
     const windowMs = 60000; // 1 minute
 
@@ -79,8 +85,13 @@ setInterval(() => {
 }, 300000);
 
 const app = express();
+
+// Trust proxy - CRITICAL for getting real client IP through Nginx
+app.set('trust proxy', true);
+
 app.use(cors(corsOptions));
-app.use(rateLimiter);
+// Rate limiter disabled - will re-enable with proper config later
+// app.use(rateLimiter);
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -448,7 +459,58 @@ app.get('/api/system/public-ip', async (req, res) => {
     }
 });
 
-// ==================== HOST MONITORING ====================
+// GET - Service Status Check (for dashboard)
+app.get('/api/system/ping', async (req, res) => {
+    try {
+        // Get all Docker containers
+        const http = require('http');
+        const options = {
+            socketPath: '/var/run/docker.sock',
+            path: '/containers/json?all=true',
+            method: 'GET'
+        };
+
+        const dockerReq = http.request(options, (dockerRes) => {
+            let data = '';
+            dockerRes.on('data', chunk => data += chunk);
+            dockerRes.on('end', () => {
+                try {
+                    const containers = JSON.parse(data);
+                    const statuses = {};
+
+                    containers.forEach(c => {
+                        const name = c.Names[0].replace(/^\//, '');
+                        statuses[name] = {
+                            status: c.State === 'running' ? 'online' : 'offline',
+                            state: c.State,
+                            uptime: c.Status || 'unknown'
+                        };
+                    });
+
+                    res.json({
+                        status: 'ok',
+                        timestamp: new Date().toISOString(),
+                        services: statuses,
+                        total: containers.length,
+                        running: containers.filter(c => c.State === 'running').length
+                    });
+                } catch (e) {
+                    res.status(500).json({ status: 'error', error: e.message });
+                }
+            });
+        });
+
+        dockerReq.on('error', (e) => {
+            res.status(500).json({ status: 'error', error: e.message });
+        });
+
+        dockerReq.end();
+    } catch (error) {
+        res.status(500).json({ status: 'error', error: error.message });
+    }
+});
+
+// POST - Host Monitoring (Legacy)
 app.post('/api/system/ping', async (req, res) => {
     const { host, method = 'ping' } = req.body;
 
@@ -847,7 +909,7 @@ app.post('/api/telegram/get-channel', async (req, res) => {
             });
             memberCount = countResponse.data.result || 0;
         } catch (e) {
-            console.log('Could not get member count:', e.message);
+            // Could not get member count - this is expected if bot doesn't have admin rights
         }
 
         if (chatResponse.data.ok) {

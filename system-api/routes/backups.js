@@ -4,15 +4,40 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-// Mock backup data
-let schedules = [
-    { id: '1', name: 'Ежедневный бэкап', time: '03:00', type: 'full', status: 'active' },
-    { id: '2', name: 'Бэкап БД', time: '*/6 часов', type: 'database', status: 'active' },
-];
+// Persistence
+const DATA_DIR = path.join(__dirname, '../data');
+const SCHEDULES_FILE = path.join(DATA_DIR, 'backup_schedules.json');
 
-let presets = [
-    { id: '1', name: 'Ежедневный полный', schedule: '0 3 * * *', type: 'full', retention: '30 дней', compression: true }
-];
+// Ensure data dir exists
+if (!fs.existsSync(DATA_DIR)) {
+    try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (e) { }
+}
+
+// Load schedules
+const loadSchedules = () => {
+    try {
+        if (fs.existsSync(SCHEDULES_FILE)) {
+            return JSON.parse(fs.readFileSync(SCHEDULES_FILE));
+        }
+    } catch (e) { console.error('Failed to load schedules', e); }
+    return [];
+};
+
+// Save schedules
+const saveSchedules = (data) => {
+    try {
+        fs.writeFileSync(SCHEDULES_FILE, JSON.stringify(data, null, 2));
+    } catch (e) { console.error('Failed to save schedules', e); }
+};
+
+let schedules = loadSchedules();
+if (schedules.length === 0) {
+    schedules = [
+        { id: '1', name: 'Ежедневный бэкап', time: '03:00', type: 'full', status: 'active' },
+        { id: '2', name: 'Бэкап БД', time: '*/6 часов', type: 'database', status: 'active' }
+    ];
+    saveSchedules(schedules);
+}
 
 // GET /api/system/backups/schedules
 router.get('/schedules', (req, res) => {
@@ -27,12 +52,14 @@ router.post('/schedules', (req, res) => {
         status: 'active'
     };
     schedules.push(newSchedule);
+    saveSchedules(schedules);
     res.json({ success: true, data: newSchedule });
 });
 
 // DELETE /api/system/backups/schedules/:id
 router.delete('/schedules/:id', (req, res) => {
     schedules = schedules.filter(s => s.id !== req.params.id);
+    saveSchedules(schedules);
     res.json({ success: true, message: 'Deleted' });
 });
 
@@ -93,20 +120,24 @@ router.get('/list', (req, res) => {
         }
 
         const files = fs.readdirSync(backupDir)
-            .filter(f => f.startsWith('backup_'))
+            .filter(f => f.endsWith('.sql.gz') || f.endsWith('.tar.gz'))  // Any compressed backup
             .map(f => {
                 const stat = fs.statSync(path.join(backupDir, f));
                 return {
+                    id: f,
                     name: f,
-                    size: stat.size,
-                    created_at: stat.birthtime,
-                    type: f.includes('database') ? 'database' : 'full'
+                    size_bytes: stat.size,
+                    created_at: stat.birthtime || stat.mtime,
+                    type: f.includes('database') ? 'database' : 'full',
+                    path: path.join(backupDir, f),
+                    status: 'completed'
                 };
             })
             .sort((a, b) => b.created_at - a.created_at);
 
         res.json({ success: true, data: files });
     } catch (e) {
+        console.error('Backup list error:', e);
         res.status(500).json({ success: false, error: e.message });
     }
 });
