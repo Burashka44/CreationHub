@@ -31,9 +31,7 @@ const DashboardPage = () => {
     const { data: servicesData, error } = await supabase
       .from('services')
       .select('id, name, port, status, icon')
-      .eq('is_active', true)
-      .order('category', { ascending: true })
-      .limit(10);
+      .order('category', { ascending: true });
 
     if (!error && servicesData) {
       setServices(servicesData.map(s => ({
@@ -43,37 +41,26 @@ const DashboardPage = () => {
     }
   };
 
-  // Check service status by pinging
-  const checkServiceStatus = async (port: string): Promise<'online' | 'offline'> => {
-    const host = typeof window !== 'undefined' ? window.location.hostname : '192.168.1.220';
-    const targetUrl = `http://${host}:${port}`;
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
-      await fetch(targetUrl, { mode: 'no-cors', signal: controller.signal });
-      clearTimeout(timeoutId);
-      return 'online';
-    } catch {
-      return 'offline';
-    }
-  };
-
-  // Update statuses
+  // Update statuses via System API
   const updateServiceStatuses = async () => {
     if (services.length === 0) return;
 
-    const statusPromises = services.map(async (service) => {
-      const port = service.port.toString().split(/\D/)[0];
-      const status = await checkServiceStatus(port);
-      return { id: service.id, status };
-    });
+    try {
+      const res = await fetch('/api/services/status-by-port');
+      if (res.ok) {
+        const statuses = await res.json();
 
-    const results = await Promise.all(statusPromises);
-
-    setServices(prev => prev.map(s => {
-      const result = results.find(r => r.id === s.id);
-      return result ? { ...s, status: result.status } : s;
-    }));
+        setServices(prev => prev.map(s => {
+          // Extract port number from string (e.g. "8080/tcp" -> "8080")
+          const portKey = s.port.toString().split(/\D/)[0];
+          // Default to 'offline' if not found in the map, unless unknown
+          const status = statuses[portKey] || 'offline';
+          return { ...s, status: status as 'online' | 'offline' };
+        }));
+      }
+    } catch (e) {
+      console.error("Failed to fetch service statuses", e);
+    }
   };
 
   useEffect(() => {
@@ -83,7 +70,7 @@ const DashboardPage = () => {
   useEffect(() => {
     if (services.length > 0) {
       updateServiceStatuses();
-      const interval = setInterval(updateServiceStatuses, 30000);
+      const interval = setInterval(updateServiceStatuses, 10000); // 10s interval
       return () => clearInterval(interval);
     }
   }, [services.length]);

@@ -118,7 +118,8 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.text({ type: 'text/plain' }));
 
 // Mount AI routes
@@ -446,16 +447,65 @@ app.get('/api/system/dns', (req, res) => {
 });
 
 // ==================== GEO LOCATION ====================
+// ==================== GEO LOCATION ====================
 app.get('/api/system/public-ip', async (req, res) => {
+    // Helper to normalize data
+    const normalize = (data, source) => {
+        if (source === 'ipapi') {
+            return {
+                ip: data.ip,
+                city: data.city,
+                region: data.region,
+                country: data.country_name,
+                country_code: data.country_code,
+                latitude: data.latitude,
+                longitude: data.longitude,
+                org: data.org,
+                source: 'ipapi.co'
+            };
+        }
+        if (source === 'ipwhois') {
+            return {
+                ip: data.ip,
+                city: data.city,
+                region: data.region,
+                country: data.country,
+                country_code: data.country_code,
+                latitude: data.latitude,
+                longitude: data.longitude,
+                org: data.connection?.org || data.org,
+                source: 'ipwho.is'
+            };
+        }
+        return data;
+    };
+
     try {
-        const response = await axios.get('https://ipapi.co/json/', {
-            headers: { 'User-Agent': 'CreationHub-SystemAPI/1.0' },
-            timeout: 5000
-        });
-        res.json(response.data);
+        // Try Primary: ipapi.co
+        try {
+            const response = await axios.get('https://ipapi.co/json/', {
+                headers: { 'User-Agent': 'CreationHub-SystemAPI/1.0' },
+                timeout: 3000
+            });
+            if (response.data && response.data.ip) {
+                return res.json(normalize(response.data, 'ipapi'));
+            }
+        } catch (e) {
+            console.warn('Primary GeoIP failed, trying fallback:', e.message);
+        }
+
+        // Try Fallback: ipwho.is (No SSL requirement, very rate-limit friendly)
+        const response = await axios.get('http://ipwho.is/', { timeout: 3000 });
+        if (response.data && response.data.success) {
+            return res.json(normalize(response.data, 'ipwhois'));
+        } else {
+            throw new Error('Fallback provider returned error');
+        }
+
     } catch (e) {
-        console.error('GeoIP fetch failed:', e.message);
-        res.status(500).json({ error: true, reason: e.message });
+        console.error('All GeoIP providers failed:', e.message);
+        // Last resort: Return bare minimum if possible, or error
+        res.status(500).json({ error: true, reason: 'Unable to determine public IP' });
     }
 });
 

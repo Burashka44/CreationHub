@@ -6,12 +6,16 @@ import {
   MessageSquare, Image, FileText, History, Send, Loader2, Download, Paperclip, X
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { ChevronsUpDown } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -41,8 +45,9 @@ interface LogItem {
 }
 
 interface ChatMessage {
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system';
   content: string;
+  images?: string[];
 }
 
 interface AIRequest {
@@ -61,9 +66,11 @@ const AIHubPage = () => {
   const { t } = useLanguage();
 
   // Config state
-  // FIX: Use relative path for Nginx proxy instead of hardcoded localhost:8088
   const [apiBase, setApiBase] = useState('/api/v1/ai');
   const [apiKey, setApiKey] = useState('');
+  const [openaiKey, setOpenaiKey] = useState(localStorage.getItem('openai_key') || '');
+  const [geminiKey, setGeminiKey] = useState(localStorage.getItem('gemini_key') || '');
+  const [open, setOpen] = useState(false);
   const [health, setHealth] = useState<'ok' | 'error' | 'checking' | 'unknown'>('unknown');
 
   // Presets
@@ -219,6 +226,8 @@ const AIHubPage = () => {
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState('qwen2.5:14b');
+  const [availableModels, setAvailableModels] = useState<{ name: string, details?: any }[]>([]);
+  const [gpuStatus, setGpuStatus] = useState<any>(null);
   const [streamingContent, setStreamingContent] = useState('');
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
@@ -266,16 +275,62 @@ const AIHubPage = () => {
   const asrInputRef = useRef<HTMLInputElement>(null);
   const avInputRef = useRef<HTMLInputElement>(null);
   const cleanInputRef = useRef<HTMLInputElement>(null);
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
 
+  // Smart Auto-Scroll
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages]);
+    const viewport = scrollViewportRef.current;
+    if (!viewport) return;
+
+    // Check if user is near bottom (Stricter threshold: 50px)
+    // If the distance to bottom is small, we assume user follows the chat.
+    const isAtBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= 50;
+
+    // Only auto-scroll if user is already at the bottom or if it's a fresh chat
+    // Use 'auto' behavior to prevent "fighting" or jitter during rapid streaming
+    if (isAtBottom || chatMessages.length <= 1) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'auto' });
+    }
+  }, [chatMessages, streamingContent]);
 
   useEffect(() => {
     if (activeTab === 'history') {
       loadHistory();
     }
   }, [activeTab]);
+
+  // Fetch Models and Status
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        const res = await fetch(`${apiBase}/models`);
+        if (res.ok) {
+          const data = await res.json();
+          setAvailableModels(data.models || []);
+        }
+      } catch (e) {
+        console.error('Failed to fetch models', e);
+      }
+    };
+
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch(`${apiBase}/status`);
+        if (res.ok) {
+          const data = await res.json();
+          setGpuStatus(data);
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+
+    fetchModels();
+    fetchStatus();
+    // Poll status every 5s
+    const interval = setInterval(fetchStatus, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const pushLog = (title: string, body?: unknown, downloadUrl?: string, error?: string) => {
     setLogs(prev => [{
@@ -335,6 +390,12 @@ const AIHubPage = () => {
     const p = preset.payload;
 
     switch (preset.target) {
+      case 'chat':
+        if (p.system_prompt) {
+          setChatMessages([{ role: 'system', content: p.system_prompt }]);
+          toast.success(`Применён пресет: ${preset.name}`);
+        }
+        break;
       case 'asr':
         if (p.task) setAsrTask(p.task);
         if (p.lang) setAsrLang(p.lang);
@@ -556,24 +617,39 @@ const AIHubPage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check file size (max 1MB for text files)
-    if (file.size > 1024 * 1024) {
-      toast.error('Файл слишком большой (макс. 1MB)');
+    // Check file size (max 5MB for images, 1MB for text)
+    const isImage = file.type.startsWith('image/');
+    const maxSize = isImage ? 5 * 1024 * 1024 : 1024 * 1024;
+
+    if (file.size > maxSize) {
+      toast.error(`Файл слишком большой (макс. ${isImage ? 5 : 1}MB)`);
       return;
     }
 
-    // Check if it's a text-based file
+    // Check supported types
     const textTypes = ['text/', 'application/json', 'application/xml', 'application/javascript'];
     const isTextFile = textTypes.some(type => file.type.startsWith(type)) ||
       /\.(txt|md|json|xml|csv|js|ts|tsx|py|html|css|yaml|yml|log)$/i.test(file.name);
 
-    if (!isTextFile) {
-      toast.error('Поддерживаются только текстовые файлы');
+    if (!isTextFile && !isImage) {
+      toast.error('Поддерживаются только текст и изображения');
       return;
     }
 
     try {
-      const content = await file.text();
+      let content = '';
+      if (isImage) {
+        // Read as Base64 for images
+        content = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      } else {
+        content = await file.text();
+      }
+
       setAttachedFile(file);
       setFileContent(content);
       toast.success(`Файл ${file.name} прикреплён`);
@@ -712,27 +788,89 @@ const AIHubPage = () => {
     if ((!chatInput.trim() && !fileContent) || chatLoading) return;
 
     let messageContent = chatInput.trim();
-    if (fileContent) {
-      messageContent = `${messageContent}\n\n[Прикреплённый файл: ${attachedFile?.name}]\n\`\`\`\n${fileContent}\n\`\`\``;
+    let messageImages: string[] | undefined;
+
+    // Handle attachments
+    if (fileContent && attachedFile) {
+      if (attachedFile.type.startsWith('image/')) {
+        // Remove data:image/...;base64, prefix for Ollama if needed, but OpenAI needs URL. 
+        // Ollama usually takes base64 (without prefix) in 'images' array.
+        // Let's try sending full DataURL first, usually libraries handle it, or we strip it.
+        // Ollama API expects BASE64 STRING without prefix.
+        const base64Data = fileContent.split(',')[1];
+        messageImages = [base64Data];
+        messageContent = messageContent || 'Describe this image';
+      } else {
+        messageContent = `${messageContent}\n\n[Прикреплённый файл: ${attachedFile?.name}]\n\`\`\`\n${fileContent}\n\`\`\``;
+      }
     }
 
-    const userMessage: ChatMessage = { role: 'user', content: messageContent };
+    const userMessage: ChatMessage = {
+      role: 'user',
+      content: messageContent,
+      images: messageImages
+    };
+
     setChatMessages(prev => [...prev, userMessage]);
     setChatInput('');
     removeAttachment();
     setChatLoading(true);
     setStreamingContent('');
 
+    // Force scroll to bottom when sending
+    setTimeout(() => {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+
     try {
+      // Prepare messages for API (Adapt for Provider)
+      const currentModel = selectedModel || 'qwen2.5:14b';
+      const isOpenAI = currentModel.startsWith('gpt-') || currentModel.startsWith('o1-');
+
+      const apiMessages = [...chatMessages, userMessage].map(msg => {
+        // If OpenAI and has images, transform to content array
+        if (isOpenAI && msg.images && msg.images.length > 0) {
+          return {
+            role: msg.role,
+            content: [
+              { type: 'text', text: msg.content },
+              {
+                type: 'image_url',
+                image_url: {
+                  // OpenAI needs full data URL
+                  url: `data:image/jpeg;base64,${msg.images[0]}`
+                }
+              }
+            ]
+          };
+        }
+        // If Local/Ollama and has images
+        if (!isOpenAI && msg.images && msg.images.length > 0) {
+          return {
+            role: msg.role,
+            content: msg.content,
+            images: msg.images // Base64 without prefix
+          };
+        }
+
+        // Standard text message
+        return {
+          role: msg.role,
+          content: msg.content
+        };
+      });
+
       // Use streaming via System API (Ollama)
       const response = await fetch(`${apiBase}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-OpenAI-Key': openaiKey,
+          'X-Gemini-Key': geminiKey,
         },
         body: JSON.stringify({
-          messages: [...chatMessages, userMessage],
-          model: selectedModel || 'qwen2.5:14b', // Force valid model
+          messages: apiMessages,
+          model: currentModel,
           stream: true
         }),
       });
@@ -1084,72 +1222,83 @@ const AIHubPage = () => {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">AI Hub</h1>
-            <p className="text-sm text-muted-foreground">Единый центр управления AI-сервисами: чат, генерация изображений, перевод, озвучка и обработка видео</p>
+            <p className="text-sm text-muted-foreground">Единый центр управления AI-сервисами</p>
           </div>
         </div>
-        <Badge
-          variant="outline"
-          className={cn(
-            "gap-1.5 px-3 py-1",
-            health === 'ok' && 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30',
-            health === 'error' && 'bg-destructive/10 text-destructive border-destructive/30',
-            health === 'checking' && 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
-            health === 'unknown' && 'bg-muted text-muted-foreground'
-          )}
-        >
-          {health === 'ok' && <Check className="h-3.5 w-3.5" />}
-          {health === 'error' && <AlertCircle className="h-3.5 w-3.5" />}
-          {health === 'checking' && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
-          {health === 'unknown' && <Activity className="h-3.5 w-3.5" />}
-          Health: {health}
-        </Badge>
-      </div>
+        <div className="flex items-center gap-2">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Settings className="h-4 w-4" />
+                <span className="hidden sm:inline">API Ключи</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Настройки API</DialogTitle>
+                <DialogDescription>
+                  Ключи сохраняются локально в вашем браузере.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>OpenAI API Key</Label>
+                  <Input
+                    type="password"
+                    value={openaiKey}
+                    onChange={(e) => {
+                      setOpenaiKey(e.target.value);
+                      localStorage.setItem('openai_key', e.target.value);
+                    }}
+                    placeholder="sk-..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Google Gemini API Key</Label>
+                  <Input
+                    type="password"
+                    value={geminiKey}
+                    onChange={(e) => {
+                      setGeminiKey(e.target.value);
+                      localStorage.setItem('gemini_key', e.target.value);
+                    }}
+                    placeholder="AIza..."
+                  />
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
 
-      {/* API Configuration */}
-      <Card className="border-border/50 bg-card/50 backdrop-blur">
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <Server className="h-4 w-4 text-primary" />
-            <CardTitle className="text-base">API Конфигурация</CardTitle>
-          </div>
-          <CardDescription>
-            Укажите адрес бэкенда и ключ доступа. Сохраняется локально.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4 items-end">
-            <div className="flex-1 min-w-[200px]">
-              <Label className="text-sm">
-                API Base URL
-                <HintTooltip text="Адрес FastAPI сервиса" example="https://aihub.example.com" />
-              </Label>
-              <Input
-                value={apiBase}
-                onChange={(e) => setApiBase(e.target.value)}
-                placeholder="http://localhost:8088"
-                className="mt-1.5"
-              />
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <Label className="text-sm">
-                API Key (X-API-Key)
-                <HintTooltip text="Токен авторизации" example="скопируй из .env → API_KEY" />
-              </Label>
-              <Input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="optional"
-                className="mt-1.5"
-              />
-            </div>
-            <Button onClick={checkHealth} className="gap-2">
-              <RefreshCw className="h-4 w-4" />
-              Проверить
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          <Badge
+            variant="outline"
+            className={cn(
+              "gap-1.5 px-3 py-1",
+              health === 'ok' && 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30',
+              health === 'error' && 'bg-destructive/10 text-destructive border-destructive/30',
+              health === 'checking' && 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
+              health === 'unknown' && 'bg-muted text-muted-foreground'
+            )}
+          >
+            {health === 'ok' && <Check className="h-3.5 w-3.5" />}
+            {health === 'error' && <AlertCircle className="h-3.5 w-3.5" />}
+            {health === 'checking' && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+            {health === 'unknown' && <Activity className="h-3.5 w-3.5" />}
+            <span className="hidden sm:inline">System: {health}</span>
+          </Badge>
+
+          {/* GPU Status Badge */}
+          {gpuStatus && (
+            <Badge variant="outline" className={cn(
+              "gap-1.5 px-3 py-1 border-purple-500/30 text-purple-500 bg-purple-500/10"
+            )}>
+              <Activity className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">
+                GPU: {gpuStatus.models?.length > 0 ? `Busy (${gpuStatus.models.length})` : 'Idle'}
+              </span>
+            </Badge>
+          )}
+        </div>
+      </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* API Endpoints */}
@@ -1280,108 +1429,140 @@ const AIHubPage = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border/50">
                   <div className="flex items-center gap-3">
                     <Label className="text-sm whitespace-nowrap">Модель:</Label>
-                    <Select value={selectedModel} onValueChange={setSelectedModel}>
-                      <SelectTrigger className="w-[280px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="w-[320px]">
-                        <SelectItem value="gemini-flash">
-                          <div className="flex items-center justify-between w-full gap-3">
-                            <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full bg-blue-500" />
-                              <span>Gemini Flash</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span className="text-emerald-500">⚡ Быстрая</span>
-                              <span>•</span>
-                              <span className="text-blue-400">$ Дешёвая</span>
-                            </div>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="gemini-pro">
-                          <div className="flex items-center justify-between w-full gap-3">
-                            <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full bg-purple-500" />
-                              <span>Gemini Pro</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span className="text-yellow-500">🐢 Медленная</span>
-                              <span>•</span>
-                              <span className="text-orange-400">$$$ Дорогая</span>
-                            </div>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="gemini-lite">
-                          <div className="flex items-center justify-between w-full gap-3">
-                            <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full bg-cyan-500" />
-                              <span>Gemini Lite</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span className="text-emerald-500">⚡⚡ Очень быстрая</span>
-                              <span>•</span>
-                              <span className="text-blue-400">$ Самая дешёвая</span>
-                            </div>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="gpt-5">
-                          <div className="flex items-center justify-between w-full gap-3">
-                            <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                              <span>GPT-5</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span className="text-yellow-500">🐢 Медленная</span>
-                              <span>•</span>
-                              <span className="text-orange-400">$$$ Самая дорогая</span>
-                            </div>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="gpt-5-mini">
-                          <div className="flex items-center justify-between w-full gap-3">
-                            <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full bg-green-500" />
-                              <span>GPT-5 Mini</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span className="text-emerald-500">⚡ Быстрая</span>
-                              <span>•</span>
-                              <span className="text-yellow-400">$$ Средняя</span>
-                            </div>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="gpt-5-nano">
-                          <div className="flex items-center justify-between w-full gap-3">
-                            <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full bg-lime-500" />
-                              <span>GPT-5 Nano</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span className="text-emerald-500">⚡⚡ Очень быстрая</span>
-                              <span>•</span>
-                              <span className="text-blue-400">$ Дешёвая</span>
-                            </div>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="llama3">
-                          <div className="flex items-center justify-between w-full gap-3">
-                            <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full bg-orange-500" />
-                              <span>Llama 3</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span className="text-emerald-500">⚡ Быстрая</span>
-                              <span>•</span>
-                              <span className="text-blue-400">Open Source</span>
-                            </div>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Popover open={open} onOpenChange={setOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={open}
+                          className="w-[300px] justify-between"
+                        >
+                          {selectedModel
+                            ? selectedModel
+                            : "Выберите модель..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[300px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Поиск или ввод вручную..." />
+                          <CommandList>
+                            <CommandEmpty>
+                              <div className="p-2 cursor-pointer hover:bg-accent rounded-sm text-sm" onClick={() => {
+                                const inputValue = document.querySelector('[cmdk-input]')?.getAttribute('value') || '';
+                                if (inputValue) {
+                                  setSelectedModel(inputValue);
+                                  setOpen(false);
+                                }
+                              }}>
+                                <span className="text-muted-foreground mr-2">Использовать:</span>
+                                <span className="font-medium text-foreground">Введенное значение</span>
+                              </div>
+                            </CommandEmpty>
+                            <CommandGroup heading="Локальные (GPU)">
+                              {availableModels.map(model => (
+                                <CommandItem
+                                  key={model.name}
+                                  value={model.name}
+                                  onSelect={() => {
+                                    setSelectedModel(model.name);
+                                    setOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      selectedModel === model.name ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {model.name}
+                                  <span className="ml-auto text-xs text-muted-foreground">Local</span>
+                                </CommandItem>
+                              ))}
+                              {/* Fallback if list empty */}
+                              {availableModels.length === 0 && (
+                                <div className="px-2 py-1 text-xs text-muted-foreground">Загрузка...</div>
+                              )}
+                            </CommandGroup>
+                            <CommandGroup heading="OpenAI (Cloud)">
+                              <CommandItem
+                                value="gpt-4o"
+                                onSelect={() => {
+                                  setSelectedModel("gpt-4o");
+                                  setOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedModel === "gpt-4o" ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                GPT-4o
+                                <span className="ml-auto text-xs text-muted-foreground">Smart</span>
+                              </CommandItem>
+                              <CommandItem
+                                value="o1-preview"
+                                onSelect={() => {
+                                  setSelectedModel("o1-preview");
+                                  setOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedModel === "o1-preview" ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                o1-preview
+                                <span className="ml-auto text-xs text-muted-foreground">Analytic</span>
+                              </CommandItem>
+                            </CommandGroup>
+                            <CommandGroup heading="Google Gemini">
+                              <CommandItem
+                                value="gemini-1.5-pro"
+                                onSelect={(currentValue) => {
+                                  setSelectedModel(currentValue);
+                                  setOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedModel === "gemini-1.5-pro" ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                Gemini 1.5 Pro
+                                <span className="ml-auto text-xs text-muted-foreground">1M Ctx</span>
+                              </CommandItem>
+                              <CommandItem
+                                value="gemini-1.5-flash"
+                                onSelect={(currentValue) => {
+                                  setSelectedModel(currentValue);
+                                  setOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedModel === "gemini-1.5-flash" ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                Gemini 1.5 Flash
+                                <span className="ml-auto text-xs text-muted-foreground">Fast</span>
+                              </CommandItem>
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
-                  <div className="flex items-center gap-2">
+
+                  <div className="flex items-center gap-2 ml-auto px-3">
                     <Badge variant="outline" className="text-xs">
-                      {selectedModel.includes('gpt') ? 'OpenAI' : 'Google'}
+                      {selectedModel === 'custom'
+                        ? 'Custom'
+                        : (selectedModel.includes('gpt') || selectedModel.includes('o1')) ? 'OpenAI' : selectedModel.includes('gemini') ? 'Google' : 'Local'}
                     </Badge>
                     <Badge variant="outline" className={cn(
                       "text-xs",
@@ -1394,8 +1575,11 @@ const AIHubPage = () => {
                   </div>
                 </div>
 
-                <div className="border border-border/50 rounded-lg h-[280px] flex flex-col">
-                  <ScrollArea className="flex-1 p-4">
+                <div className="border border-border/50 rounded-lg h-[calc(100vh-240px)] flex flex-col">
+                  <div
+                    ref={scrollViewportRef}
+                    className="flex-1 overflow-y-auto p-4 scroll-smooth"
+                  >
                     {chatMessages.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-8">
                         Начните диалог с AI ассистентом
@@ -1413,6 +1597,13 @@ const AIHubPage = () => {
                                 ? 'bg-primary text-primary-foreground'
                                 : 'bg-muted'
                             )}>
+                              {msg.images && msg.images.length > 0 && (
+                                <img
+                                  src={`data:image/jpeg;base64,${msg.images[0]}`}
+                                  alt="Attachment"
+                                  className="max-w-full rounded-md mb-2 max-h-[200px]"
+                                />
+                              )}
                               {msg.content ? (
                                 renderMessageContent(msg.content)
                               ) : (
@@ -1424,7 +1615,7 @@ const AIHubPage = () => {
                         <div ref={chatEndRef} />
                       </div>
                     )}
-                  </ScrollArea>
+                  </div>
 
                   {/* Attachment preview */}
                   {attachedFile && (
@@ -1447,7 +1638,7 @@ const AIHubPage = () => {
                       type="file"
                       ref={fileInputRef}
                       onChange={handleFileSelect}
-                      accept=".txt,.md,.json,.xml,.csv,.js,.ts,.tsx,.py,.html,.css,.yaml,.yml,.log"
+                      accept="image/*,.txt,.md,.json,.xml,.csv,.js,.ts,.tsx,.py,.html,.css,.yaml,.yml,.log"
                       className="hidden"
                     />
                     <Button

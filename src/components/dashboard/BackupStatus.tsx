@@ -56,11 +56,11 @@ const BackupStatus = () => {
         if (data) {
           const mappedBackups: BackupItem[] = data.map((item: any) => ({
             id: item.id,
-            nameKey: item.name_key,
+            nameKey: item.name,  // Fixed: use 'name' not 'name_key'
             size: formatBytes(item.size_bytes),
-            dateKey: formatDate(item.completed_at),
-            status: item.status,
-            type: item.backup_type
+            dateKey: formatDate(item.created_at),  // Fixed: use 'created_at' not 'completed_at'
+            status: item.status || 'completed',
+            type: item.type || 'local'  // Fixed: use 'type' not 'backup_type'
           }));
           setBackups(mappedBackups);
         }

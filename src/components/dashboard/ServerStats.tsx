@@ -11,7 +11,7 @@ const ServerStats = () => {
     ram_total: 0,
     uptime: 'Loading...',
     cpu_temp: 'N/A',
-    containers: 0,
+    gpu_temp: 'N/A',
     osInfo: 'Linux Server'
   });
 
@@ -23,13 +23,13 @@ const ServerStats = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [cpuRes, memRes, uptimeRes, sensorsRes, containersRes, systemRes] = await Promise.allSettled([
+        const [cpuRes, memRes, uptimeRes, sensorsRes, gpuRes, systemRes] = await Promise.allSettled([
           fetch('/api/glances/cpu'),
           fetch('/api/glances/mem'),
           fetch('/api/glances/uptime'),
           fetch('/api/glances/sensors'),
-          fetch('/api/system/docker'),
-          fetch('/api/system/os')  // Our system-api for real host OS
+          fetch('/api/glances/gpu'),
+          fetch('/api/system/os')
         ]);
 
         const newData = { ...statsData };
@@ -68,7 +68,24 @@ const ServerStats = () => {
           }
         }
 
-        if (sensorsRes.status === 'fulfilled' && sensorsRes.value.ok) {
+        let gpuTempFound = false;
+
+        // 1. Try dedicated GPU plugin first
+        if (gpuRes.status === 'fulfilled' && gpuRes.value.ok) {
+          const gpuData = await gpuRes.value.json();
+          if (Array.isArray(gpuData) && gpuData.length > 0) {
+            const gpu = gpuData[0];
+            // Support multiple formats (Glances changes sometimes)
+            const temp = gpu.temperature || gpu.proc || gpu.fan;
+            if (gpu.temperature) {
+              newData.gpu_temp = `${Math.round(gpu.temperature)}°C`;
+              gpuTempFound = true;
+            }
+          }
+        }
+
+        // 2. Fallback to sensors if no GPU temp found yet
+        if (!gpuTempFound && sensorsRes.status === 'fulfilled' && sensorsRes.value.ok) {
           const sensors = await sensorsRes.value.json();
           if (Array.isArray(sensors) && sensors.length > 0) {
             // Find CPU temp sensor
@@ -77,15 +94,17 @@ const ServerStats = () => {
               s.label?.toLowerCase().includes('core') ||
               s.label?.toLowerCase().includes('package')
             ) || sensors[0];
-            newData.cpu_temp = `${Math.round(cpuSensor.value)}°C`;
-          }
-        }
+            if (cpuSensor) newData.cpu_temp = `${Math.round(cpuSensor.value)}°C`;
 
-        // Count running containers via System API
-        if (containersRes.status === 'fulfilled' && containersRes.value.ok) {
-          const result = await containersRes.value.json();
-          if (result.success) {
-            newData.containers = result.running || 0;
+            // Find GPU temp sensor as fallback
+            const gpuSensor = sensors.find((s: any) =>
+              s.label?.toLowerCase().includes('gpu') ||
+              s.label?.toLowerCase().includes('nvidia') ||
+              s.label?.toLowerCase().includes('radeon')
+            );
+            if (gpuSensor) {
+              newData.gpu_temp = `${Math.round(gpuSensor.value)}°C`;
+            }
           }
         }
 
@@ -138,11 +157,11 @@ const ServerStats = () => {
       color: 'text-success'
     },
     {
-      icon: Container,
-      label: 'Containers',
-      value: `${statsData.containers}`,
-      subValue: 'Running',
-      color: 'text-blue-500'
+      icon: Thermometer,
+      label: 'GPU Temp',
+      value: statsData.gpu_temp,
+      subValue: 'NVIDIA',
+      color: 'text-orange-500'
     },
     {
       icon: Server,

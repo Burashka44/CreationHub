@@ -44,7 +44,7 @@ services:
     ports:
       - "127.0.0.1:3000:3000"  # SECURITY: Localhost only
     environment:
-      PGRST_DB_URI: "postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-Tarantul1310}@creationhub-postgres:5432/${POSTGRES_DB:-postgres}"
+      PGRST_DB_URI: "postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-Tarantul1310}@creationhub_postgres:5432/${POSTGRES_DB:-postgres}"
       PGRST_DB_SCHEMA: public
       PGRST_DB_ANON_ROLE: ${POSTGRES_USER:-postgres}
       PGRST_JWT_SECRET: "${JWT_SECRET:-super-secret-jwt-key-for-creationhub-2024}"
@@ -71,7 +71,7 @@ services:
     container_name: creationhub_stats
     restart: always
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@creationhub-postgres:5432/${POSTGRES_DB:-postgres}
+      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-Tarantul1310}@creationhub_postgres:5432/${POSTGRES_DB:-postgres}
       - GLANCES_URL=${GLANCES_URL:-http://host.docker.internal:61208/api/4}
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -107,7 +107,7 @@ services:
       - OS_RELEASE_PATH=/host-os-release
       - RESOLV_CONF_PATH=/host-resolv.conf
       - BACKUP_DIR=/backups
-      - POSTGRES_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@creationhub-postgres:5432/${POSTGRES_DB:-postgres}
+      - POSTGRES_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-Tarantul1310}@creationhub_postgres:5432/${POSTGRES_DB:-postgres}
     networks:
       - default
       - creationhub-backend

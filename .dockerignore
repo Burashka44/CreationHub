@@ -1,1 +1,6 @@
-volumes/
+node_modules
+dist
+build
+.git
+.env
+volumes

@@ -6,7 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 interface ServiceCardProps {
   name: string;
   port: number;
-  status: 'online' | 'offline';
+  status: 'online' | 'offline' | 'unknown';
 }
 
 const serviceIcons: Record<string, React.ReactNode> = {
@@ -26,7 +26,22 @@ const serviceIcons: Record<string, React.ReactNode> = {
 
 const ServiceCard = ({ name, port, status }: ServiceCardProps) => {
   const { t } = useLanguage();
-  const isOnline = status === 'online';
+
+  const getStatusColor = (s: string) => {
+    switch (s) {
+      case 'online': return 'bg-success/20 text-success';
+      case 'offline': return 'bg-destructive/20 text-destructive';
+      default: return 'bg-muted text-muted-foreground';
+    }
+  };
+
+  const getIndicatorColor = (s: string) => {
+    switch (s) {
+      case 'online': return 'bg-success animate-pulse';
+      case 'offline': return 'bg-destructive';
+      default: return 'bg-muted-foreground';
+    }
+  };
 
   // FIX: Use current hostname instead of hardcoded IP
   const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
@@ -42,13 +57,13 @@ const ServiceCard = ({ name, port, status }: ServiceCardProps) => {
           <div className="flex items-center gap-2">
             <span className={cn(
               "text-xs px-2 py-1 rounded-full",
-              isOnline ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"
+              getStatusColor(status)
             )}>
-              {isOnline ? t('online') : t('offline')}
+              {status === 'online' ? t('online') : (status === 'offline' ? t('offline') : 'Unknown')}
             </span>
             <div className={cn(
               "w-2 h-2 rounded-full",
-              isOnline ? "bg-success animate-pulse" : "bg-destructive"
+              getIndicatorColor(status)
             )} />
           </div>
         </div>

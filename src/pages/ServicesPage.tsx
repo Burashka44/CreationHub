@@ -221,44 +221,41 @@ const ServicesPage = () => {
 
   const checkAllServices = async () => {
     setIsChecking(true);
-    const newStatusMap: Record<string, string> = {};
-    let onlineCount = 0;
+    let online = 0;
 
-    // Toast start
     toast({
       title: 'Проверка доступности...',
-      description: 'Пингуем сервисы локально',
+      description: 'Запрос состояния сервисов...',
     });
 
-    const checkPromises = services.map(async (service) => {
-      // Skip if no port
-      if (!service.port) {
-        newStatusMap[service.id] = 'offline';
-        return;
+    try {
+      const res = await fetch('/api/services/status-by-port');
+      if (res.ok) {
+        const statuses = await res.json();
+
+        setServices(prev => {
+          const updated = prev.map(s => {
+            const portKey = s.port.toString().split(/\D/)[0];
+            const status = statuses[portKey] || 'offline';
+            if (status === 'online') online++;
+            return {
+              ...s,
+              status,
+              last_check_at: new Date().toISOString()
+            };
+          });
+          return updated;
+        });
+
+        toast({
+          title: 'Проверка завершена',
+          description: `Данные обновлены`,
+        });
       }
-
-      const status = await checkServiceStatus(service);
-      newStatusMap[service.id] = status;
-      if (status === 'online') onlineCount++;
-
-      // Update local state immediately for responsiveness if desired, 
-      // but here we batch update after or update DB?
-      // Updating DB from client is risky if RLS is strict, but let's try updating state first.
-    });
-
-    await Promise.all(checkPromises);
-
-    // Update state to show colors immediately
-    setServices(prev => prev.map(s => ({
-      ...s,
-      status: newStatusMap[s.id] || 'offline',
-      last_check_at: new Date().toISOString()
-    })));
-
-    toast({
-      title: 'Проверка завершена',
-      description: `Онлайн: ${onlineCount} из ${services.length}`,
-    });
+    } catch (e) {
+      console.error("Bulk check failed", e);
+      toast({ title: 'Ошибка проверки', variant: 'destructive' });
+    }
 
     setIsChecking(false);
   };

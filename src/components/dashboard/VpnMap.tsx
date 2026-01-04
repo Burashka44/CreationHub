@@ -19,24 +19,32 @@ const VpnMap = () => {
   React.useEffect(() => {
     const fetchLocation = async () => {
       try {
-        // Fetch from server-side proxy to get Server IP, not Client IP
         const res = await fetch('/api/system/public-ip');
         const data = await res.json();
 
-        if (data.error) throw new Error(data.reason);
+        // Support both direct object and envelope
+        const loc = data.data || data;
+
+        if (loc.error) throw new Error(loc.reason || 'API Error');
+        if (!loc.ip && !loc.city) throw new Error('No IP data received');
 
         setLocation({
-          lat: data.latitude,
-          lon: data.longitude,
-          city: data.city,
-          country: data.country,
-          countryCode: data.country_code,
-          ip: data.ip,
-          org: data.org,
+          lat: loc.latitude || 55.75,
+          lon: loc.longitude || 37.61,
+          city: loc.city || 'Unknown',
+          country: loc.country || 'Unknown',
+          countryCode: loc.country_code || '',
+          ip: loc.ip || 'Unknown',
+          org: loc.org || 'ISP Unknown',
           source: 'Server Proxy (Secure)'
         });
 
-        setMapUrl(`https://www.openstreetmap.org/export/embed.html?bbox=${data.longitude - 10},${data.latitude - 5},${data.longitude + 10},${data.latitude + 5}&layer=mapnik&marker=${data.latitude},${data.longitude}`);
+        // Only update map if coords exist
+        if (loc.latitude && loc.longitude) {
+          setMapUrl(`https://www.openstreetmap.org/export/embed.html?bbox=${loc.longitude - 10},${loc.latitude - 5},${loc.longitude + 10},${loc.latitude + 5}&layer=mapnik&marker=${loc.latitude},${loc.longitude}`);
+        }
+
+
 
       } catch (e) {
         console.error("GeoIP fetch failed", e);

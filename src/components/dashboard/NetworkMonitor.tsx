@@ -202,13 +202,18 @@ const GlobalIpDisplay = ({ label, endpoint, icon: Icon, t }: any) => {
     fetch(endpoint)
       .then(res => res.json())
       .then(data => {
-        if (data.success && data.data) {
-          setIp(data.data.ip || data.data.city || 'Unknown');
+        // Handle both envelope { success: true, data: {...} } and direct { ip: ... }
+        const ipData = data.data || data;
+        if (ipData && (ipData.ip || ipData.city)) {
+          setIp(ipData.ip || ipData.city || 'Unknown');
         } else {
           setIp('Unavailable');
         }
       })
-      .catch(() => setIp('Error'));
+      .catch((e) => {
+        console.error("IP check failed", e);
+        setIp('Error');
+      });
   }, [endpoint]);
 
   const handleCopy = () => {

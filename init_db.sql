@@ -239,19 +239,124 @@ CREATE POLICY "Allow all uptime" ON public.service_uptime FOR ALL USING (true);
 CREATE TABLE IF NOT EXISTS public.system_metrics (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     cpu_percent REAL,
-    memory_percent REAL,
-    memory_used BIGINT,
-    memory_total BIGINT,
-    disk_percent REAL,
-    load_1 REAL,
-    load_5 REAL,
-    load_15 REAL,
-    recorded_at TIMESTAMPTZ DEFAULT now()
+    ram_percent REAL,
+    net_rx_bytes BIGINT,
+    net_tx_bytes BIGINT,
+    timestamp TIMESTAMPTZ DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS idx_metrics_recorded_at ON public.system_metrics(recorded_at DESC);
+CREATE INDEX IF NOT EXISTS idx_metrics_timestamp ON public.system_metrics(timestamp DESC);
 
 ALTER TABLE public.system_metrics ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all metrics" ON public.system_metrics FOR ALL USING (true);
+
+-- ============================================
+-- 7. APP SETTINGS
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.app_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    key TEXT UNIQUE NOT NULL,
+    value JSONB,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all app_settings" ON public.app_settings FOR ALL USING (true);
+
+-- ============================================
+-- 8. FIREWALL RULES
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.firewall_rules (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    port TEXT NOT NULL,
+    from_ip TEXT DEFAULT 'LAN',
+    protocol TEXT DEFAULT 'tcp',
+    comment TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.firewall_rules ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all firewall_rules" ON public.firewall_rules FOR ALL USING (true);
+
+-- ============================================
+-- 9. NETWORK TRAFFIC
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.network_traffic (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    interface TEXT,
+    rx_bytes BIGINT,
+    tx_bytes BIGINT,
+    recorded_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_network_traffic_recorded_at ON public.network_traffic(recorded_at DESC);
+
+ALTER TABLE public.network_traffic ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all network_traffic" ON public.network_traffic FOR ALL USING (true);
+
+-- ============================================
+-- 10. BACKUPS
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.backups (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    type TEXT,
+    size_bytes BIGINT,
+    path TEXT,
+    status TEXT DEFAULT 'completed',
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.backups ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all backups" ON public.backups FOR ALL USING (true);
+
+-- ============================================
+-- 11. SECURITY SETTINGS
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.security_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ufw_status TEXT DEFAULT 'unknown',
+    fail2ban_status TEXT DEFAULT 'unknown',
+    ssh_port INTEGER DEFAULT 22,
+    last_check_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.security_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all security_settings" ON public.security_settings FOR ALL USING (true);
+
+-- ============================================
+-- 12. VPN PROFILES
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.vpn_profiles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    config TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.vpn_profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all vpn_profiles" ON public.vpn_profiles FOR ALL USING (true);
+
+-- ============================================
+-- 13. DNS CONFIGS
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.dns_configs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    primary_dns TEXT,
+    secondary_dns TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.dns_configs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all dns_configs" ON public.dns_configs FOR ALL USING (true);
 
 -- ============================================
 -- 7. AI REQUESTS LOG
@@ -287,7 +392,8 @@ DECLARE
 BEGIN
     FOR tbl IN SELECT unnest(ARRAY[
         'admins', 'telegram_bots', 'telegram_ads', 'media_channels',
-        'channel_ad_rates', 'ad_sales', 'ad_purchases', 'services'
+        'channel_ad_rates', 'ad_sales', 'ad_purchases', 'services',
+        'app_settings', 'firewall_rules', 'security_settings', 'vpn_profiles', 'dns_configs'
     ])
     LOOP
         EXECUTE format('DROP TRIGGER IF EXISTS update_%s_updated_at ON public.%s', tbl, tbl);

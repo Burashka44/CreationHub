@@ -52,6 +52,15 @@ router.get('/gpu', async (req, res) => {
     }
 });
 
+router.get('/network', async (req, res) => {
+    try {
+        const response = await axios.get(`${GLANCES_URL}/api/4/network`, { timeout: 5000 });
+        res.json(response.data);
+    } catch (e) {
+        res.status(503).json({ error: 'Glances unavailable', details: e.message });
+    }
+});
+
 router.get('/all', async (req, res) => {
     try {
         const response = await axios.get(`${GLANCES_URL}/api/4/all`, { timeout: 5000 });
