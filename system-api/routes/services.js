@@ -42,7 +42,9 @@ const SERVICES = {
     // Media (additional)
     'iopaint': { name: 'IOPaint', url: 'http://creationhub-iopaint:8080', health: '/', port: 8585, category: 'media' },
     'rsshub': { name: 'RSSHub', url: 'http://creationhub-rsshub:1200', health: '/', port: 1200, category: 'media' },
-    'channel-manager': { name: 'Channel Manager', url: 'http://creationhub-channel-manager:5002', health: '/', port: 5002, category: 'automation' }
+    'channel-manager': { name: 'Channel Manager', url: 'http://creationhub-channel-manager:5002', health: '/', port: 5002, category: 'automation' },
+    'video-processor': { name: 'Video Processor', url: 'http://creationhub-video-processor:8686', health: '/health', port: 8686, category: 'ai' },
+    'sam2': { name: 'SAM 2', url: 'http://creationhub-sam2:8787', health: '/health', port: 8787, category: 'ai' }
 };
 
 // Get all services with their status

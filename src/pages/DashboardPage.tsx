@@ -53,9 +53,16 @@ const DashboardPage = () => {
         setServices(prev => prev.map(s => {
           // Extract port number from string (e.g. "8080/tcp" -> "8080")
           const portKey = s.port.toString().split(/\D/)[0];
-          // Default to 'offline' if not found in the map, unless unknown
-          const status = statuses[portKey] || 'offline';
-          return { ...s, status: status as 'online' | 'offline' };
+
+          // Use status from API, default to 'offline' if not found
+          // API returns: 'online' or 'offline'
+          const apiStatus = statuses[portKey];
+
+          // If we have an explicit status from API, use it. 
+          // Otherwise keep existing status (which might be from initial DB load) or default to offline.
+          const finalStatus = apiStatus || s.status || 'offline';
+
+          return { ...s, status: finalStatus };
         }));
       }
     } catch (e) {

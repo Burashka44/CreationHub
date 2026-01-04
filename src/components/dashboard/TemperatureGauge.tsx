@@ -6,25 +6,29 @@ interface TemperatureGaugeProps {
   label: string;
   unit?: string;
   size?: number;
+  warning?: number;
+  critical?: number;
 }
 
-const TemperatureGauge = ({ 
-  value, 
-  max = 100, 
-  label, 
+const TemperatureGauge = ({
+  value,
+  max = 100,
+  label,
   unit = '%',
-  size = 120 
+  size = 120,
+  warning,
+  critical
 }: TemperatureGaugeProps) => {
   const percent = Math.min(value / max, 1);
   const strokeWidth = size * 0.08;
   const radius = (size - strokeWidth) / 2;
-  
+
   // Gauge arc from 135° to 405° (270° arc)
   const startAngle = 135;
   const endAngle = 405;
   const totalAngle = endAngle - startAngle;
   const currentAngle = startAngle + (percent * totalAngle);
-  
+
   const polarToCartesian = (cx: number, cy: number, r: number, angleDeg: number) => {
     const angleRad = (angleDeg - 90) * Math.PI / 180;
     return {
@@ -42,6 +46,14 @@ const TemperatureGauge = ({
 
   // Color gradient based on value
   const getColor = () => {
+    // If warning/critical provided, use them (absolute values)
+    if (warning !== undefined && critical !== undefined) {
+      if (value >= critical) return '#ef4444'; // Red
+      if (value >= warning) return '#f97316'; // Orange
+      return '#22c55e'; // Green
+    }
+
+    // Default percentage based fallback
     if (percent < 0.3) return '#22c55e'; // Green
     if (percent < 0.5) return '#84cc16'; // Lime
     if (percent < 0.7) return '#eab308'; // Yellow
@@ -74,7 +86,7 @@ const TemperatureGauge = ({
               ))}
             </linearGradient>
           </defs>
-          
+
           {/* Background arc */}
           <path
             d={describeArc(cx, cy, radius, startAngle, endAngle)}
@@ -83,7 +95,7 @@ const TemperatureGauge = ({
             strokeWidth={strokeWidth}
             strokeLinecap="round"
           />
-          
+
           {/* Value arc */}
           <path
             d={describeArc(cx, cy, radius, startAngle, currentAngle)}
@@ -93,7 +105,7 @@ const TemperatureGauge = ({
             strokeLinecap="round"
             className="transition-all duration-500"
           />
-          
+
           {/* Inner dark circle */}
           <circle
             cx={cx}
@@ -103,10 +115,10 @@ const TemperatureGauge = ({
             className="drop-shadow-lg"
           />
         </svg>
-        
+
         {/* Center text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span 
+          <span
             className="font-bold text-foreground"
             style={{ fontSize: size * 0.22 }}
           >

@@ -51,8 +51,26 @@ const NetworkMonitor = () => {
             return name.length > 10 ? name.slice(0, 8) + '...' : name;
           };
 
-          ifaceName = getFriendlyName(ifaceName);
+          // Find specific unique interfaces
+          const foundWifi = data.find((i: any) =>
+            (i.interface_name.startsWith('wl') || i.interface_name.startsWith('wlan')) &&
+            i.interface_name !== 'lo'
+          );
 
+          const foundEth = data.find((i: any) =>
+            (i.interface_name.startsWith('en') || i.interface_name.startsWith('eth')) &&
+            i.interface_name !== 'lo'
+          );
+
+          // Prioritize: Configured Interface > WiFi > First Ethernet > Any non-loopback
+          const primaryIface = foundWifi || foundEth || data.find((i: any) => i.interface_name !== 'lo');
+
+          if (primaryIface) ifaceName = getFriendlyName(primaryIface.interface_name);
+
+          // Calculate total traffic only for REAL interfaces to avoid double counting
+          // i.e. count only once per unique physical device if possible, or just use the primary one for the display
+          // The user specifically asked "Why 2 wifi?". It usually means the list shows duplicates.
+          // For the summary stats, we should sum everything EXCEPT loopback.
           data.forEach((iface: any) => {
             if (iface.interface_name === 'lo') return;
             rx += iface.bytes_recv_rate_per_sec || 0;

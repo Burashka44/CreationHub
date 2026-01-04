@@ -16,16 +16,20 @@ const SystemGauges = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [cpuRes, memRes, gpuRes, procRes] = await Promise.all([
+        const [cpuRes, memRes, gpuRes, procRes, sensorsRes] = await Promise.all([
           fetch('/api/glances/cpu'),
           fetch('/api/glances/mem'),
           fetch('/api/glances/gpu'),
-          fetch('/api/glances/processes')
+          fetch('/api/glances/processes'),
+          fetch('/api/glances/sensors')
         ]);
 
         const cpu = await cpuRes.json();
         const mem = await memRes.json();
         const gpu = await gpuRes.json();
+        let sensors = [];
+        try { sensors = await sensorsRes.json(); } catch (e) { }
+
         let processes = [];
         try {
           processes = await procRes.json();
@@ -33,11 +37,22 @@ const SystemGauges = () => {
           console.error("Failed to parse processes", e);
         }
 
-        // Parse CPU
+        // Parse CPU Usage
         const cpuUsage = typeof cpu.total === 'number' ? cpu.total : parseFloat(cpu.total || 0);
 
         // Parse Memory
         const memUsage = typeof mem.percent === 'number' ? mem.percent : parseFloat(mem.percent || 0);
+
+        // Parse CPU Temperature
+        let cpuTemp = 0;
+        if (Array.isArray(sensors)) {
+          const tempSensor = sensors.find((s: any) =>
+            s.label.includes('Package id 0') ||
+            s.label.includes('Composite') ||
+            s.label.includes('Core 0')
+          );
+          if (tempSensor) cpuTemp = tempSensor.value;
+        }
 
         // Parse GPU (first GPU)
         let gpuUsage = 0;
@@ -59,7 +74,7 @@ const SystemGauges = () => {
           : [];
 
         setMetrics({
-          cpu: { usage: cpuUsage, temperature: 0 },
+          cpu: { usage: cpuUsage, temperature: cpuTemp },
           gpu: { usage: gpuUsage, temperature: gpuTemp },
           memory: { usage: memUsage },
           processes: topProcesses
@@ -92,11 +107,13 @@ const SystemGauges = () => {
             size={100}
           />
           <TemperatureGauge
-            value={0} // No dedicated sensor data for now
+            value={metrics.cpu.temperature}
             max={100}
             label="CPU Temp"
             unit="°C"
             size={100}
+            warning={80}
+            critical={95}
           />
           <TemperatureGauge
             value={metrics.gpu.usage}

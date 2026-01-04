@@ -86,7 +86,10 @@ function VideoPipelinePage() {
                 .single();
 
             if (data?.value) {
-                setSettings({ ...defaultSettings, ...JSON.parse(data.value) });
+                const settingsValue = typeof data.value === 'string'
+                    ? JSON.parse(data.value)
+                    : data.value;
+                setSettings({ ...defaultSettings, ...settingsValue });
             }
         } catch (error) {
             console.error('Failed to load pipeline settings:', error);
@@ -117,30 +120,25 @@ function VideoPipelinePage() {
     };
 
     const checkServicesStatus = async () => {
-        const checkService = async (url: string) => {
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3000);
-                const response = await fetch(url, {
-                    method: 'GET',
-                    signal: controller.signal
+        try {
+            const res = await fetch('/api/services/status-by-port');
+            if (res.ok) {
+                const statuses = await res.json();
+
+                // Map API status (keyed by port) to local state keys
+                // 'online' means true, anything else means false
+                setServicesStatus({
+                    videoProcessor: statuses['8686'] === 'online',
+                    iopaint: statuses['8585'] === 'online',
+                    sam2: statuses['8787'] === 'online',
+                    ollama: statuses['11434'] === 'online',
                 });
-                clearTimeout(timeoutId);
-                return response.ok;
-            } catch {
-                return false;
+            } else {
+                console.error("Failed to fetch service statuses");
             }
-        };
-
-        // Use API proxy routes or check directly via server IP
-        const serverIP = window.location.hostname;
-
-        setServicesStatus({
-            videoProcessor: await checkService(`http://${serverIP}:8686/health`),
-            iopaint: await checkService(`http://${serverIP}:8585/`),
-            sam2: await checkService(`http://${serverIP}:8787/health`),
-            ollama: await checkService(`http://${serverIP}:11434/api/tags`),
-        });
+        } catch (e) {
+            console.error("Error checking services:", e);
+        }
     };
 
     const updateSetting = <K extends keyof PipelineSettings>(key: K, value: PipelineSettings[K]) => {
