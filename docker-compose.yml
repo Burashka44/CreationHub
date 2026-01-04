@@ -44,7 +44,7 @@ services:
     ports:
       - "127.0.0.1:3000:3000"  # SECURITY: Localhost only
     environment:
-      PGRST_DB_URI: "postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@creationhub-postgres:5432/${POSTGRES_DB:-postgres}"
+      PGRST_DB_URI: "postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-Tarantul1310}@creationhub-postgres:5432/${POSTGRES_DB:-postgres}"
       PGRST_DB_SCHEMA: public
       PGRST_DB_ANON_ROLE: ${POSTGRES_USER:-postgres}
       PGRST_JWT_SECRET: "${JWT_SECRET:-super-secret-jwt-key-for-creationhub-2024}"
@@ -99,8 +99,8 @@ services:
       - /proc:/host-proc:ro
       - /sys:/host-sys:ro
       - /etc/wireguard:/etc/wireguard
-      - /home/inno/compose/backups:/backups:ro  # Backup files access
-      - /home/inno/compose/backups:/backups
+      - ./volumes/backups:/backups:ro  # Backup files access
+      - ./volumes/backups:/backups
       - ./system-api/data:/app/data
     environment:
       - WG_CONFIG_DIR=/etc/wireguard
@@ -130,16 +130,20 @@ services:
     container_name: creationhub_ollama
     restart: always
     runtime: nvidia
-    ports:
-      - "11434:11434"
+    # ports:
+    #   - "11434:11434"
     volumes:
       - ${AI_DATA_PATH:-./ai_data}:/root/.ollama
+    environment:
+      - OLLAMA_NUM_PARALLEL=2
+      - OLLAMA_MAX_LOADED_MODELS=2
+      - OLLAMA_KEEP_ALIVE=10m
     deploy:
       resources:
         limits:
-          memory: 8G
+          memory: 16G
         reservations:
-          memory: 2G
+          memory: 4G
           devices:
             - driver: nvidia
               count: all
@@ -154,6 +158,70 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  # ===========================================
+  # AI Services
+  # ===========================================
+  
+  # AI Transcription (Whisper)
+  ai-transcribe:
+    image: fedirz/faster-whisper-server:latest-cuda
+    container_name: creationhub_ai_transcribe
+    hostname: creationhub-ai-transcribe
+    restart: always
+    # ports:
+    #   - "8000:8000"
+    environment:
+      - WHISPER__MODEL=Systran/faster-whisper-large-v3
+      - WHISPER__INFERENCE_DEVICE=cuda
+    volumes:
+      - ./volumes/ai/whisper:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - default
+
+  # AI Translation (LibreTranslate)
+  ai-translate:
+    image: libretranslate/libretranslate:latest
+    container_name: creationhub_ai_translate
+    hostname: creationhub-ai-translate
+    restart: always
+    # ports:
+    #   - "5000:5000"
+    environment:
+      - LT_PORT=5000
+      - LT_HOST=0.0.0.0
+      - LT_LOAD_ONLY=en,de,ru,zh,es,fr,ja
+      - LT_UPDATE_MODELS=true
+    volumes:
+      - ./volumes/ai/translate:/app/db
+    networks:
+      - default
+
+  # AI TTS (OpenTTS)
+  ai-tts:
+    image: synesthesiam/opentts
+    container_name: creationhub_ai_tts
+    hostname: creationhub-ai-tts
+    restart: always
+    # ports:
+    #   - "5500:5500"
+    command:
+      - --no-espeak
+      - --language
+      - en
+      - --language
+      - ru
+    volumes:
+      - ./volumes/ai/opentts:/data
+    networks:
+      - default
 
   # ===========================================
   # AI Gateway (On-Demand Service Manager)
