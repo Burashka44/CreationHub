@@ -8,7 +8,7 @@ const SERVICES = {
     'ai-chat': { name: 'AI Chat (Ollama)', url: 'http://creationhub_ollama:11434', health: '/api/tags', port: 11434, category: 'ai' },
     'ai-transcribe': { name: 'AI Transcribe (Whisper)', url: 'http://creationhub-ai-transcribe:8000', health: '/health', port: 8000, category: 'ai' },
     'ai-translate': { name: 'AI Translate', url: 'http://creationhub-ai-translate:5000', health: '/languages', port: 5000, category: 'ai' },
-    'ai-tts': { name: 'AI TTS (Piper)', url: 'http://creationhub-ai-tts:10200', health: '/', port: 10200, category: 'ai' },
+    'ai-tts': { name: 'AI TTS', url: 'http://creationhub-ai-tts:5500', health: '/', port: 5500, category: 'ai' },
 
     // Core Infrastructure
     'postgres': { name: 'PostgreSQL', url: 'http://creationhub-postgres:5432', health: null, port: 5432, category: 'core' },
@@ -36,8 +36,13 @@ const SERVICES = {
 
     // System
     'healthchecks': { name: 'Healthchecks', url: 'http://creationhub-healthchecks:8000', health: '/', port: 8001, category: 'system' },
-    'homepage': { name: 'Homepage', url: 'http://creationhub-homepage:3000', health: '/', port: 3000, category: 'system' },
-    'glances': { name: 'Glances (Host)', url: 'http://host.docker.internal:61208', health: '/api/4/cpu', port: 61208, category: 'system' }
+    'homepage': { name: 'Homepage', url: 'http://192.168.1.220:8085', health: '/', port: 8085, category: 'system' },
+    'glances': { name: 'Glances', url: 'http://192.168.1.220:61208', health: '/api/4/cpu', port: 61208, category: 'system' },
+
+    // Media (additional)
+    'iopaint': { name: 'IOPaint', url: 'http://creationhub-iopaint:8080', health: '/', port: 8585, category: 'media' },
+    'rsshub': { name: 'RSSHub', url: 'http://creationhub-rsshub:1200', health: '/', port: 1200, category: 'media' },
+    'channel-manager': { name: 'Channel Manager', url: 'http://creationhub-channel-manager:5002', health: '/', port: 5002, category: 'automation' }
 };
 
 // Get all services with their status

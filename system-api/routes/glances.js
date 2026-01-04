@@ -61,6 +61,17 @@ router.get('/network', async (req, res) => {
     }
 });
 
+router.get('/processes', async (req, res) => {
+    try {
+        const response = await axios.get(`${GLANCES_URL}/api/3/processlist`, { timeout: 5000 });
+        res.json(response.data);
+    } catch (e) {
+        // Fallback or empty list if unavailable
+        console.error('Glances processlist error:', e.message);
+        res.json([]);
+    }
+});
+
 router.get('/all', async (req, res) => {
     try {
         const response = await axios.get(`${GLANCES_URL}/api/4/all`, { timeout: 5000 });

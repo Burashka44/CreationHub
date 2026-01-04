@@ -130,8 +130,8 @@ services:
     container_name: creationhub_ollama
     restart: always
     runtime: nvidia
-    # ports:
-    #   - "11434:11434"
+    ports:
+      - "11434:11434"
     volumes:
       - ${AI_DATA_PATH:-./ai_data}:/root/.ollama
     environment:
