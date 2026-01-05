@@ -2,7 +2,10 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, exec } = require('child_process');
+const util = require('util');
+const execPromise = util.promisify(exec);
+
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const http = require('http');
@@ -438,16 +441,16 @@ app.post('/api/system/wireguard/toggle', (req, res) => {
 });
 
 // GET - WireGuard status (quick check)
-app.get('/api/system/wireguard/status', (req, res) => {
+app.get('/api/system/wireguard/status', async (req, res) => {
     const iface = req.query.interface || 'wg0';
     const safeName = iface.replace(/[^a-zA-Z0-9_-]/g, '');
 
     try {
         // Check if interface is up (using nsenter to access host network namespace)
         const checkCmd = `${NSENTER_PREFIX}ip link show ${safeName} 2>/dev/null | grep -q 'state UP' && echo "up" || echo "down"`;
-        const status = execSync(checkCmd, { encoding: 'utf-8' }).trim();
+        const { stdout: status } = await execPromise(checkCmd, { encoding: 'utf-8' });
 
-        res.json({ success: true, isActive: status === 'up', interface: safeName });
+        res.json({ success: true, isActive: status.trim() === 'up', interface: safeName });
     } catch (e) {
         // Interface doesn't exist or error
         res.json({ success: true, isActive: false, interface: safeName, note: 'Interface not found' });
@@ -456,7 +459,8 @@ app.get('/api/system/wireguard/status', (req, res) => {
 
 // ==================== WIFI CONTROL ====================
 // GET - WiFi status
-app.get('/api/system/wifi/status', (req, res) => {
+// GET - WiFi status
+app.get('/api/system/wifi/status', async (req, res) => {
     try {
         // Check if WiFi is enabled using nmcli or rfkill
         let isEnabled = false;
@@ -464,18 +468,18 @@ app.get('/api/system/wifi/status', (req, res) => {
 
         try {
             // Try nmcli first
-            const result = execSync('nmcli radio wifi', { encoding: 'utf-8' }).trim();
+            const result = (await execPromise('nmcli radio wifi', { encoding: 'utf-8' })).stdout.trim();
             isEnabled = result === 'enabled';
 
             // Get active interface
             try {
-                const ifaceResult = execSync("nmcli -t -f DEVICE,TYPE device | grep wifi | cut -d: -f1 | head -1", { encoding: 'utf-8' }).trim();
+                const ifaceResult = (await execPromise("nmcli -t -f DEVICE,TYPE device | grep wifi | cut -d: -f1 | head -1", { encoding: 'utf-8' })).stdout.trim();
                 if (ifaceResult) interface_name = ifaceResult;
             } catch (e) { }
         } catch (e) {
             // Fallback to rfkill
             try {
-                const rfkill = execSync('rfkill list wifi', { encoding: 'utf-8' });
+                const rfkill = (await execPromise('rfkill list wifi', { encoding: 'utf-8' })).stdout;
                 isEnabled = !rfkill.includes('Soft blocked: yes');
             } catch (e2) {
                 return res.json({ success: false, error: 'WiFi control not available' });
@@ -489,7 +493,8 @@ app.get('/api/system/wifi/status', (req, res) => {
 });
 
 // POST - Toggle WiFi on/off
-app.post('/api/system/wifi/toggle', (req, res) => {
+// POST - Toggle WiFi on/off
+app.post('/api/system/wifi/toggle', async (req, res) => {
     try {
         const { action } = req.body; // 'on' or 'off'
 
@@ -499,13 +504,13 @@ app.post('/api/system/wifi/toggle', (req, res) => {
 
         try {
             // Use nmcli to toggle WiFi
-            execSync(`nmcli radio wifi ${action}`, { encoding: 'utf-8' });
+            await execPromise(`nmcli radio wifi ${action}`, { encoding: 'utf-8' });
             res.json({ success: true, message: `WiFi turned ${action}`, isActive: action === 'on' });
         } catch (e) {
             // Fallback to rfkill
             try {
                 const rfkillAction = action === 'on' ? 'unblock' : 'block';
-                execSync(`rfkill ${rfkillAction} wifi`, { encoding: 'utf-8' });
+                await execPromise(`rfkill ${rfkillAction} wifi`, { encoding: 'utf-8' });
                 res.json({ success: true, message: `WiFi turned ${action}`, isActive: action === 'on' });
             } catch (e2) {
                 res.status(500).json({ success: false, error: 'WiFi control failed: ' + e.message });
@@ -750,6 +755,7 @@ app.get('/api/system/ping', async (req, res) => {
 });
 
 // POST - Host Monitoring (Legacy)
+// POST - Host Monitoring (Legacy)
 app.post('/api/system/ping', async (req, res) => {
     const { host, method = 'ping' } = req.body;
 
@@ -776,7 +782,7 @@ app.post('/api/system/ping', async (req, res) => {
             try {
                 // Extract just hostname/IP for ping (no port or path)
                 const pingTarget = safeHost.split(':')[0].split('/')[0];
-                execSync(`ping -c 1 -W 2 ${pingTarget}`, { encoding: 'utf-8' });
+                await execPromise(`ping -c 1 -W 2 ${pingTarget}`, { encoding: 'utf-8' });
                 status = 'online';
                 latency = Date.now() - startTime;
             } catch (e) {
@@ -784,7 +790,7 @@ app.post('/api/system/ping', async (req, res) => {
             }
         } else if (method === 'http') {
             try {
-                execSync(`curl -s -o /dev/null -w "%{http_code}" --connect-timeout 2 http://${safeHost}`, { encoding: 'utf-8' });
+                await execPromise(`curl -s -o /dev/null -w "%{http_code}" --connect-timeout 2 http://${safeHost}`, { encoding: 'utf-8' });
                 status = 'online';
                 latency = Date.now() - startTime;
             } catch (e) {
@@ -986,6 +992,7 @@ app.get('/api/auth/verify', authMiddleware, (req, res) => {
 });
 
 // ==================== SERVER ACTIONS (Quick Actions) ====================
+// ==================== SERVER ACTIONS (Quick Actions) ====================
 app.post('/api/system/actions', async (req, res) => {
     const { action } = req.body;
     let result = { success: true };
@@ -995,7 +1002,7 @@ app.post('/api/system/actions', async (req, res) => {
             case 'nginx':
                 // Reload Nginx container
                 try {
-                    execSync('docker exec creationhub nginx -s reload', { timeout: 10000 });
+                    await execPromise('docker exec creationhub nginx -s reload', { timeout: 10000 });
                     result.message = 'Nginx configuration reloaded';
                 } catch (e) {
                     throw new Error('Failed to reload Nginx: ' + e.message);
@@ -1005,7 +1012,7 @@ app.post('/api/system/actions', async (req, res) => {
             case 'cache':
                 // Clear system caches using privileged alpine container to access host
                 try {
-                    execSync('docker run --rm --privileged --pid=host alpine nsenter -t 1 -m -u -n -i -- sh -c "sync && echo 3 > /proc/sys/vm/drop_caches"', { timeout: 10000 });
+                    await execPromise('docker run --rm --privileged --pid=host alpine nsenter -t 1 -m -u -n -i -- sh -c "sync && echo 3 > /proc/sys/vm/drop_caches"', { timeout: 10000 });
                     result.message = 'System RAM cache cleared';
                 } catch (e) {
                     throw new Error('Failed to clear cache: ' + e.message);
@@ -1021,8 +1028,8 @@ app.post('/api/system/actions', async (req, res) => {
                 // Check for updates on host
                 try {
                     // This runs apt list on HOST via nsenter
-                    const updates = execSync('docker run --rm --privileged --pid=host ubuntu:latest nsenter -t 1 -m -u -n -i -- sh -c "apt update >/dev/null && apt list --upgradable 2>/dev/null | grep -v Listing | wc -l"').toString().trim();
-                    const count = parseInt(updates);
+                    const { stdout: updates } = await execPromise('docker run --rm --privileged --pid=host ubuntu:latest nsenter -t 1 -m -u -n -i -- sh -c "apt update >/dev/null && apt list --upgradable 2>/dev/null | grep -v Listing | wc -l"');
+                    const count = parseInt(updates.trim());
                     result.message = count > 0 ? `${count} system updates available` : 'System is up to date';
                 } catch (e) {
                     // Fallback if ubuntu image failing or network issues
@@ -1034,8 +1041,8 @@ app.post('/api/system/actions', async (req, res) => {
                 // Basic system health scan
                 try {
                     // Check failed systemd units on host
-                    const failedUnits = execSync('docker run --rm --privileged --pid=host alpine nsenter -t 1 -m -u -n -i -- sh -c "systemctl list-units --state=failed --no-legend | wc -l"').toString().trim();
-                    const count = parseInt(failedUnits);
+                    const { stdout: failedUnits } = await execPromise('docker run --rm --privileged --pid=host alpine nsenter -t 1 -m -u -n -i -- sh -c "systemctl list-units --state=failed --no-legend | wc -l"');
+                    const count = parseInt(failedUnits.trim());
                     if (count === 0) {
                         result.message = 'Security Scan: System Healthy (No failed services)';
                     } else {
@@ -1050,7 +1057,7 @@ app.post('/api/system/actions', async (req, res) => {
                 // REBOOT HOST via nsenter
                 try {
                     // Trigger reboot in 1 minute using 'shutdown -r +1' to allow response to return
-                    execSync('docker run --rm --privileged --pid=host alpine nsenter -t 1 -m -u -n -i -- sh -c "shutdown -r +1"');
+                    await execPromise('docker run --rm --privileged --pid=host alpine nsenter -t 1 -m -u -n -i -- sh -c "shutdown -r +1"');
                     result.message = 'Server creating reboot task (1 min delay)...';
                 } catch (e) {
                     result.message = 'Reboot command failed';

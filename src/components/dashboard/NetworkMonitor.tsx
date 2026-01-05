@@ -160,9 +160,9 @@ const NetworkMonitor = () => {
           <p className="text-xs text-muted-foreground">MB/s</p>
         </div>
 
-        {/* Row 3: Public IP + WireGuard */}
-        <GlobalIpDisplay label="Public IP" endpoint="/api/system/public-ip" icon={Globe} t={t} />
+        {/* Row 3: WireGuard + Public IP */}
         <WireGuardToggle />
+        <GlobalIpDisplay label="Public IP" endpoint="/api/system/public-ip" icon={Globe} t={t} />
       </div>
     </div>
   );
