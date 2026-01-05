@@ -327,6 +327,50 @@ app.post('/api/system/wireguard/restart', (req, res) => {
     }
 });
 
+// POST - Toggle WireGuard interface up/down
+app.post('/api/system/wireguard/toggle', (req, res) => {
+    try {
+        const { interface: iface, action } = req.body; // action: 'up' or 'down'
+        const safeName = (iface || 'wg0').replace(/[^a-zA-Z0-9_-]/g, '');
+
+        if (!['up', 'down'].includes(action)) {
+            return res.status(400).json({ success: false, error: 'action must be "up" or "down"' });
+        }
+
+        try {
+            execSync(`wg-quick ${action} ${safeName} 2>&1`);
+            res.json({ success: true, message: `Interface ${safeName} is now ${action}`, isActive: action === 'up' });
+        } catch (e) {
+            // If already up/down, wg-quick will fail but we can check actual status
+            try {
+                const check = execSync(`ip link show ${safeName} 2>/dev/null | grep -q 'state UP' && echo "up" || echo "down"`, { encoding: 'utf-8' }).trim();
+                res.json({ success: true, message: `Interface ${safeName} was already ${check}`, isActive: check === 'up' });
+            } catch (checkErr) {
+                res.status(500).json({ success: false, error: e.message });
+            }
+        }
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// GET - WireGuard status (quick check)
+app.get('/api/system/wireguard/status', (req, res) => {
+    const iface = req.query.interface || 'wg0';
+    const safeName = iface.replace(/[^a-zA-Z0-9_-]/g, '');
+
+    try {
+        // Check if interface is up
+        const checkCmd = `ip link show ${safeName} 2>/dev/null | grep -q 'state UP' && echo "up" || echo "down"`;
+        const status = execSync(checkCmd, { encoding: 'utf-8' }).trim();
+
+        res.json({ success: true, isActive: status === 'up', interface: safeName });
+    } catch (e) {
+        // Interface doesn't exist or error
+        res.json({ success: true, isActive: false, interface: safeName, note: 'Interface not found' });
+    }
+});
+
 // DELETE - Remove WireGuard config
 app.delete('/api/system/wireguard/:name', (req, res) => {
     try {

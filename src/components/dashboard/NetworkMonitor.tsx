@@ -1,4 +1,4 @@
-import { Activity, ArrowDown, ArrowUp, Wifi, Globe, Gauge, Power } from 'lucide-react';
+import { Activity, ArrowDown, ArrowUp, Wifi, Globe, Gauge, Power, Shield } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -197,13 +197,76 @@ const NetworkMonitor = () => {
           icon={Globe}
           t={t}
         />
-        <div className="p-2.5 rounded-lg bg-muted border border-border">
-          <div className="flex items-center gap-1.5 mb-1">
-            <Activity className="h-3.5 w-3.5 text-amber-500" />
-            <span className="text-[10px] text-muted-foreground">Latency</span>
-          </div>
-          <p className="text-sm font-bold text-foreground">{stats.latency}ms</p>
-          <p className="text-[10px] text-muted-foreground">ping</p>
+        <WireGuardToggle />
+      </div>
+    </div>
+  );
+};
+
+// WireGuard VPN Toggle Component
+const WireGuardToggle = () => {
+  const [isActive, setIsActive] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Fetch initial status
+    fetch('/api/system/wireguard/status?interface=wg0')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setIsActive(data.isActive);
+      })
+      .catch(() => setError('Failed to check VPN status'));
+  }, []);
+
+  const toggleVPN = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const action = isActive ? 'down' : 'up';
+      const res = await fetch('/api/system/wireguard/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ interface: 'wg0', action })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsActive(data.isActive);
+        toast.success(isActive ? '🔴 VPN отключен' : '🟢 VPN подключен');
+      } else {
+        setError(data.error || 'Toggle failed');
+        toast.error(data.error || 'VPN toggle failed');
+      }
+    } catch (e) {
+      setError('Network error');
+      toast.error('Ошибка сети');
+    }
+    setIsLoading(false);
+  };
+
+  return (
+    <div
+      onClick={toggleVPN}
+      className={`p-2.5 rounded-lg cursor-pointer transition-all duration-500 relative overflow-hidden group ${isLoading ? 'opacity-50 pointer-events-none' : ''
+        } ${isActive
+          ? 'bg-gradient-to-br from-purple-500/20 via-purple-400/10 to-violet-500/20 border border-purple-500/40'
+          : 'bg-gradient-to-br from-gray-500/20 via-gray-400/10 to-slate-500/20 border border-gray-500/40'
+        }`}
+    >
+      <div className="flex items-center gap-1.5 mb-1">
+        <Shield className={`h-3.5 w-3.5 ${isActive ? 'text-purple-400' : 'text-gray-400'}`} />
+        <span className="text-[10px] text-muted-foreground">WireGuard</span>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className={`text-sm font-bold ${isActive ? 'text-purple-400' : 'text-gray-400'}`}>
+          {isLoading ? '...' : isActive ? 'ON' : 'OFF'}
+        </span>
+        <div className={`w-8 h-4 rounded-full relative transition-all duration-500 ${isActive
+          ? 'bg-gradient-to-r from-purple-500 to-violet-500 shadow-lg shadow-purple-500/30'
+          : 'bg-gray-600'
+          }`}>
+          <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-md transition-all duration-500 ${isActive ? 'left-4' : 'left-0.5'
+            }`} />
         </div>
       </div>
     </div>
