@@ -8,6 +8,10 @@ const jwt = require('jsonwebtoken');
 const http = require('http');
 const axios = require('axios');
 
+// Helper for executing commands in host network namespace (requires pid: host and privileged: true)
+// This allows WireGuard commands to affect the host's network stack
+const NSENTER_PREFIX = 'nsenter -t 1 -n ';
+
 // Security constants
 const JWT_SECRET = process.env.JWT_SECRET || 'CHANGE_THIS_IN_PRODUCTION_64_CHAR_SECRET';
 const JWT_EXPIRES_IN = '7d';
@@ -358,16 +362,16 @@ app.post('/api/system/wireguard/toggle', (req, res) => {
 
                 // Check if interface already exists
                 try {
-                    execSync(`ip link show ${safeName} 2>/dev/null`, { encoding: 'utf-8' });
+                    execSync(`${NSENTER_PREFIX}ip link show ${safeName} 2>/dev/null`, { encoding: 'utf-8' });
                     // Interface exists, just bring it up
-                    execSync(`ip link set ${safeName} up`, { encoding: 'utf-8' });
+                    execSync(`${NSENTER_PREFIX}ip link set ${safeName} up`, { encoding: 'utf-8' });
                     return res.json({ success: true, message: `Interface ${safeName} brought up`, isActive: true });
                 } catch (e) {
                     // Interface doesn't exist, create it
                 }
 
                 // Create interface
-                execSync(`ip link add dev ${safeName} type wireguard`, { encoding: 'utf-8' });
+                execSync(`${NSENTER_PREFIX}ip link add dev ${safeName} type wireguard`, { encoding: 'utf-8' });
 
                 // Strip wg-quick specific directives for wg setconf
                 const wgOnlyLines = configContent.split('\n').filter(line => {
@@ -389,21 +393,21 @@ app.post('/api/system/wireguard/toggle', (req, res) => {
                 fs.writeFileSync(tempConfigPath, wgOnlyLines);
 
                 // Apply stripped config (using wg setconf)
-                execSync(`wg setconf ${safeName} ${tempConfigPath}`, { encoding: 'utf-8' });
+                execSync(`${NSENTER_PREFIX}wg setconf ${safeName} ${tempConfigPath}`, { encoding: 'utf-8' });
 
                 // Clean up temp file
                 fs.unlinkSync(tempConfigPath);
 
                 // Add address
-                execSync(`ip -4 address add ${address} dev ${safeName}`, { encoding: 'utf-8' });
+                execSync(`${NSENTER_PREFIX}ip -4 address add ${address} dev ${safeName}`, { encoding: 'utf-8' });
 
                 // Set MTU and bring up
-                execSync(`ip link set mtu 1420 up dev ${safeName}`, { encoding: 'utf-8' });
+                execSync(`${NSENTER_PREFIX}ip link set mtu 1420 up dev ${safeName}`, { encoding: 'utf-8' });
 
                 // Add default route through WireGuard for VPN
                 try {
-                    execSync(`ip route add 0.0.0.0/1 dev ${safeName}`, { encoding: 'utf-8' });
-                    execSync(`ip route add 128.0.0.0/1 dev ${safeName}`, { encoding: 'utf-8' });
+                    execSync(`${NSENTER_PREFIX}ip route add 0.0.0.0/1 dev ${safeName}`, { encoding: 'utf-8' });
+                    execSync(`${NSENTER_PREFIX}ip route add 128.0.0.0/1 dev ${safeName}`, { encoding: 'utf-8' });
                 } catch (routeErr) {
                     // Routes may already exist or fail, that's okay
                 }
@@ -414,11 +418,11 @@ app.post('/api/system/wireguard/toggle', (req, res) => {
                 try {
                     // Remove routes first
                     try {
-                        execSync(`ip route del 0.0.0.0/1 dev ${safeName} 2>/dev/null`, { encoding: 'utf-8' });
-                        execSync(`ip route del 128.0.0.0/1 dev ${safeName} 2>/dev/null`, { encoding: 'utf-8' });
+                        execSync(`${NSENTER_PREFIX}ip route del 0.0.0.0/1 dev ${safeName} 2>/dev/null`, { encoding: 'utf-8' });
+                        execSync(`${NSENTER_PREFIX}ip route del 128.0.0.0/1 dev ${safeName} 2>/dev/null`, { encoding: 'utf-8' });
                     } catch (e) { }
 
-                    execSync(`ip link delete dev ${safeName}`, { encoding: 'utf-8' });
+                    execSync(`${NSENTER_PREFIX}ip link delete dev ${safeName}`, { encoding: 'utf-8' });
                     res.json({ success: true, message: `Interface ${safeName} is now down`, isActive: false });
                 } catch (e) {
                     // Interface may not exist
@@ -439,8 +443,8 @@ app.get('/api/system/wireguard/status', (req, res) => {
     const safeName = iface.replace(/[^a-zA-Z0-9_-]/g, '');
 
     try {
-        // Check if interface is up
-        const checkCmd = `ip link show ${safeName} 2>/dev/null | grep -q 'state UP' && echo "up" || echo "down"`;
+        // Check if interface is up (using nsenter to access host network namespace)
+        const checkCmd = `${NSENTER_PREFIX}ip link show ${safeName} 2>/dev/null | grep -q 'state UP' && echo "up" || echo "down"`;
         const status = execSync(checkCmd, { encoding: 'utf-8' }).trim();
 
         res.json({ success: true, isActive: status === 'up', interface: safeName });

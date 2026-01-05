@@ -122,18 +122,18 @@ const NetworkMonitor = () => {
           onClick={toggleInternet}
           className={`p-3 rounded-lg cursor-pointer transition-all duration-300 border ${internetEnabled
             ? 'bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20'
-            : 'bg-red-500/10 border-red-500/30 hover:bg-red-500/20'
+            : 'bg-muted/50 border-border hover:bg-muted'
             }`}
         >
           <div className="flex items-center gap-2 mb-2">
-            <Power className={`h-4 w-4 ${internetEnabled ? 'text-emerald-400' : 'text-red-400'}`} />
+            <Power className={`h-4 w-4 ${internetEnabled ? 'text-emerald-400' : 'text-gray-400'}`} />
             <span className="text-xs text-muted-foreground">Internet</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className={`text-lg font-bold ${internetEnabled ? 'text-emerald-400' : 'text-red-400'}`}>
+            <span className={`text-lg font-bold ${internetEnabled ? 'text-emerald-400' : 'text-gray-400'}`}>
               {internetEnabled ? 'ON' : 'OFF'}
             </span>
-            <div className={`w-10 h-5 rounded-full relative transition-all ${internetEnabled ? 'bg-emerald-500' : 'bg-red-500'}`}>
+            <div className={`w-10 h-5 rounded-full relative transition-all ${internetEnabled ? 'bg-emerald-500' : 'bg-gray-600'}`}>
               <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${internetEnabled ? 'left-5' : 'left-0.5'}`} />
             </div>
           </div>
@@ -208,19 +208,19 @@ const WiFiToggle = () => {
     <div
       onClick={toggleWiFi}
       className={`p-3 rounded-lg cursor-pointer transition-all duration-300 border ${isLoading ? 'opacity-50' : ''} ${isActive
-        ? 'bg-blue-500/10 border-blue-500/30 hover:bg-blue-500/20'
+        ? 'bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20'
         : 'bg-muted/50 border-border hover:bg-muted'
         }`}
     >
       <div className="flex items-center gap-2 mb-2">
-        <Wifi className={`h-4 w-4 ${isActive ? 'text-blue-400' : 'text-gray-400'}`} />
+        <Wifi className={`h-4 w-4 ${isActive ? 'text-emerald-500' : 'text-gray-400'}`} />
         <span className="text-xs text-muted-foreground">WiFi</span>
       </div>
       <div className="flex items-center justify-between">
-        <span className={`text-lg font-bold ${isActive ? 'text-blue-400' : 'text-gray-400'}`}>
+        <span className={`text-lg font-bold ${isActive ? 'text-emerald-500' : 'text-gray-400'}`}>
           {isLoading ? '...' : isActive ? 'ON' : 'OFF'}
         </span>
-        <div className={`w-10 h-5 rounded-full relative transition-all ${isActive ? 'bg-blue-500' : 'bg-gray-600'}`}>
+        <div className={`w-10 h-5 rounded-full relative transition-all ${isActive ? 'bg-emerald-500' : 'bg-gray-600'}`}>
           <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${isActive ? 'left-5' : 'left-0.5'}`} />
         </div>
       </div>
@@ -275,19 +275,19 @@ const WireGuardToggle = () => {
     <div
       onClick={toggleVPN}
       className={`p-3 rounded-lg cursor-pointer transition-all duration-300 border ${isLoading ? 'opacity-50' : ''} ${isActive
-        ? 'bg-purple-500/10 border-purple-500/30 hover:bg-purple-500/20'
+        ? 'bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20'
         : 'bg-muted/50 border-border hover:bg-muted'
         }`}
     >
       <div className="flex items-center gap-2 mb-2">
-        <Shield className={`h-4 w-4 ${isActive ? 'text-purple-400' : 'text-gray-400'}`} />
+        <Shield className={`h-4 w-4 ${isActive ? 'text-emerald-500' : 'text-gray-400'}`} />
         <span className="text-xs text-muted-foreground">WireGuard</span>
       </div>
       <div className="flex items-center justify-between">
-        <span className={`text-lg font-bold ${isActive ? 'text-purple-400' : 'text-gray-400'}`}>
+        <span className={`text-lg font-bold ${isActive ? 'text-emerald-500' : 'text-gray-400'}`}>
           {isLoading ? '...' : isActive ? 'ON' : 'OFF'}
         </span>
-        <div className={`w-10 h-5 rounded-full relative transition-all ${isActive ? 'bg-purple-500' : 'bg-gray-600'}`}>
+        <div className={`w-10 h-5 rounded-full relative transition-all ${isActive ? 'bg-emerald-500' : 'bg-gray-600'}`}>
           <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${isActive ? 'left-5' : 'left-0.5'}`} />
         </div>
       </div>
@@ -332,7 +332,7 @@ const GlobalIpDisplay = ({ label, endpoint, icon: Icon, t }: any) => {
       onClick={handleCopy}
     >
       <div className="flex items-center gap-2 mb-2">
-        <Icon className="h-4 w-4 text-blue-500" />
+        <Icon className="h-4 w-4 text-emerald-500" />
         <span className="text-xs text-muted-foreground">{label}</span>
       </div>
       <p className="text-lg font-bold text-foreground truncate">{ip}</p>
