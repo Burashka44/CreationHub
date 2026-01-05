@@ -281,19 +281,19 @@ const PerformanceChart = () => {
           </Select>
           <div className="flex items-center gap-4 text-xs">
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-primary" />
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: 'hsl(217, 91%, 60%)' }} />
               <span className="text-muted-foreground">CPU</span>
-              <span className="font-medium text-foreground">{currentValues.cpu.toFixed(1)}%</span>
+              <span className="font-medium" style={{ color: 'hsl(217, 91%, 60%)' }}>{currentValues.cpu.toFixed(1)}%</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-success" />
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: 'hsl(142, 76%, 36%)' }} />
               <span className="text-muted-foreground">RAM</span>
-              <span className="font-medium text-foreground">{currentValues.memory.toFixed(1)}%</span>
+              <span className="font-medium" style={{ color: 'hsl(142, 76%, 36%)' }}>{currentValues.memory.toFixed(1)}%</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-warning" />
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: 'hsl(38, 92%, 50%)' }} />
               <span className="text-muted-foreground">Net</span>
-              <span className="font-medium text-foreground">{currentValues.network.toFixed(1)}%</span>
+              <span className="font-medium" style={{ color: 'hsl(38, 92%, 50%)' }}>{currentValues.network.toFixed(1)}%</span>
             </div>
           </div>
         </div>

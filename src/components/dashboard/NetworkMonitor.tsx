@@ -116,66 +116,53 @@ const NetworkMonitor = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        {/* LEFT COLUMN: Toggles */}
-        <div className="flex flex-col gap-2">
-          {/* Internet Toggle */}
-          <div
-            onClick={toggleInternet}
-            className={`p-2.5 rounded-lg cursor-pointer transition-all duration-500 relative overflow-hidden group ${isAnimating ? 'scale-95' : 'scale-100'
-              } ${internetEnabled
-                ? 'bg-gradient-to-br from-emerald-500/20 via-emerald-400/10 to-teal-500/20 border border-emerald-500/40'
-                : 'bg-gradient-to-br from-red-500/20 via-red-400/10 to-orange-500/20 border border-red-500/40'
-              }`}
-          >
-            <div className="flex items-center gap-1.5 mb-1 relative z-10">
-              <Power className={`h-3.5 w-3.5 transition-all duration-300 ${internetEnabled ? 'text-emerald-400' : 'text-red-400'} ${isAnimating ? 'animate-spin' : ''}`} />
-              <span className="text-[10px] text-muted-foreground">Internet</span>
-            </div>
-            <div className="flex items-center justify-between relative z-10">
-              <span className={`text-sm font-bold ${internetEnabled ? 'text-emerald-400' : 'text-red-400'}`}>
-                {internetEnabled ? 'ON' : 'OFF'}
-              </span>
-              <div className={`w-8 h-4 rounded-full relative transition-all duration-500 ${internetEnabled
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
-                : 'bg-red-500'}`}>
-                <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-md transition-all duration-500 ${internetEnabled ? 'left-4' : 'left-0.5'}`} />
-              </div>
+      <div className="grid grid-cols-2 grid-rows-3 gap-2">
+        {/* Row 1: Internet + Download */}
+        <div
+          onClick={toggleInternet}
+          className={`p-3 rounded-lg cursor-pointer transition-all duration-300 border ${internetEnabled
+            ? 'bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20'
+            : 'bg-red-500/10 border-red-500/30 hover:bg-red-500/20'
+            }`}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Power className={`h-4 w-4 ${internetEnabled ? 'text-emerald-400' : 'text-red-400'}`} />
+            <span className="text-xs text-muted-foreground">Internet</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className={`text-lg font-bold ${internetEnabled ? 'text-emerald-400' : 'text-red-400'}`}>
+              {internetEnabled ? 'ON' : 'OFF'}
+            </span>
+            <div className={`w-10 h-5 rounded-full relative transition-all ${internetEnabled ? 'bg-emerald-500' : 'bg-red-500'}`}>
+              <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${internetEnabled ? 'left-5' : 'left-0.5'}`} />
             </div>
           </div>
-
-          {/* WiFi Toggle */}
-          <WiFiToggle />
-
-          {/* Public IP */}
-          <GlobalIpDisplay label="Public IP" endpoint="/api/system/public-ip" icon={Globe} t={t} />
         </div>
 
-        {/* RIGHT COLUMN: Stats + WireGuard */}
-        <div className="flex flex-col gap-2">
-          {/* Download */}
-          <div className="p-2.5 rounded-lg bg-success/10 border border-success/20">
-            <div className="flex items-center gap-1.5 mb-1">
-              <ArrowDown className="h-3.5 w-3.5 text-success" />
-              <span className="text-[10px] text-muted-foreground">{t('download')}</span>
-            </div>
-            <p className="text-lg font-bold text-success">{stats.download.toFixed(2)}</p>
-            <p className="text-[10px] text-muted-foreground">MB/s</p>
+        <div className="p-3 rounded-lg bg-muted/50 border border-border">
+          <div className="flex items-center gap-2 mb-2">
+            <ArrowDown className="h-4 w-4 text-success" />
+            <span className="text-xs text-muted-foreground">{t('download')}</span>
           </div>
-
-          {/* Upload */}
-          <div className="p-2.5 rounded-lg bg-primary/10 border border-primary/20">
-            <div className="flex items-center gap-1.5 mb-1">
-              <ArrowUp className="h-3.5 w-3.5 text-primary" />
-              <span className="text-[10px] text-muted-foreground">{t('upload')}</span>
-            </div>
-            <p className="text-lg font-bold text-primary">{stats.upload.toFixed(2)}</p>
-            <p className="text-[10px] text-muted-foreground">MB/s</p>
-          </div>
-
-          {/* WireGuard VPN */}
-          <WireGuardToggle />
+          <p className="text-xl font-bold text-success">{stats.download.toFixed(2)}</p>
+          <p className="text-xs text-muted-foreground">MB/s</p>
         </div>
+
+        {/* Row 2: WiFi + Upload */}
+        <WiFiToggle />
+
+        <div className="p-3 rounded-lg bg-muted/50 border border-border">
+          <div className="flex items-center gap-2 mb-2">
+            <ArrowUp className="h-4 w-4 text-primary" />
+            <span className="text-xs text-muted-foreground">{t('upload')}</span>
+          </div>
+          <p className="text-xl font-bold text-primary">{stats.upload.toFixed(2)}</p>
+          <p className="text-xs text-muted-foreground">MB/s</p>
+        </div>
+
+        {/* Row 3: Public IP + WireGuard */}
+        <GlobalIpDisplay label="Public IP" endpoint="/api/system/public-ip" icon={Globe} t={t} />
+        <WireGuardToggle />
       </div>
     </div>
   );
@@ -220,23 +207,21 @@ const WiFiToggle = () => {
   return (
     <div
       onClick={toggleWiFi}
-      className={`p-2.5 rounded-lg cursor-pointer transition-all duration-500 ${isLoading ? 'opacity-50' : ''} ${isActive
-          ? 'bg-gradient-to-br from-blue-500/20 via-blue-400/10 to-cyan-500/20 border border-blue-500/40'
-          : 'bg-gradient-to-br from-gray-500/20 via-gray-400/10 to-slate-500/20 border border-gray-500/40'
+      className={`p-3 rounded-lg cursor-pointer transition-all duration-300 border ${isLoading ? 'opacity-50' : ''} ${isActive
+        ? 'bg-blue-500/10 border-blue-500/30 hover:bg-blue-500/20'
+        : 'bg-muted/50 border-border hover:bg-muted'
         }`}
     >
-      <div className="flex items-center gap-1.5 mb-1">
-        <Wifi className={`h-3.5 w-3.5 ${isActive ? 'text-blue-400' : 'text-gray-400'}`} />
-        <span className="text-[10px] text-muted-foreground">WiFi</span>
+      <div className="flex items-center gap-2 mb-2">
+        <Wifi className={`h-4 w-4 ${isActive ? 'text-blue-400' : 'text-gray-400'}`} />
+        <span className="text-xs text-muted-foreground">WiFi</span>
       </div>
       <div className="flex items-center justify-between">
-        <span className={`text-sm font-bold ${isActive ? 'text-blue-400' : 'text-gray-400'}`}>
+        <span className={`text-lg font-bold ${isActive ? 'text-blue-400' : 'text-gray-400'}`}>
           {isLoading ? '...' : isActive ? 'ON' : 'OFF'}
         </span>
-        <div className={`w-8 h-4 rounded-full relative transition-all duration-500 ${isActive ? 'bg-gradient-to-r from-blue-500 to-cyan-500' : 'bg-gray-600'
-          }`}>
-          <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-md transition-all duration-500 ${isActive ? 'left-4' : 'left-0.5'
-            }`} />
+        <div className={`w-10 h-5 rounded-full relative transition-all ${isActive ? 'bg-blue-500' : 'bg-gray-600'}`}>
+          <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${isActive ? 'left-5' : 'left-0.5'}`} />
         </div>
       </div>
     </div>
@@ -289,26 +274,21 @@ const WireGuardToggle = () => {
   return (
     <div
       onClick={toggleVPN}
-      className={`p-2.5 rounded-lg cursor-pointer transition-all duration-500 relative overflow-hidden group ${isLoading ? 'opacity-50 pointer-events-none' : ''
-        } ${isActive
-          ? 'bg-gradient-to-br from-purple-500/20 via-purple-400/10 to-violet-500/20 border border-purple-500/40'
-          : 'bg-gradient-to-br from-gray-500/20 via-gray-400/10 to-slate-500/20 border border-gray-500/40'
+      className={`p-3 rounded-lg cursor-pointer transition-all duration-300 border ${isLoading ? 'opacity-50' : ''} ${isActive
+        ? 'bg-purple-500/10 border-purple-500/30 hover:bg-purple-500/20'
+        : 'bg-muted/50 border-border hover:bg-muted'
         }`}
     >
-      <div className="flex items-center gap-1.5 mb-1">
-        <Shield className={`h-3.5 w-3.5 ${isActive ? 'text-purple-400' : 'text-gray-400'}`} />
-        <span className="text-[10px] text-muted-foreground">WireGuard</span>
+      <div className="flex items-center gap-2 mb-2">
+        <Shield className={`h-4 w-4 ${isActive ? 'text-purple-400' : 'text-gray-400'}`} />
+        <span className="text-xs text-muted-foreground">WireGuard</span>
       </div>
       <div className="flex items-center justify-between">
-        <span className={`text-sm font-bold ${isActive ? 'text-purple-400' : 'text-gray-400'}`}>
+        <span className={`text-lg font-bold ${isActive ? 'text-purple-400' : 'text-gray-400'}`}>
           {isLoading ? '...' : isActive ? 'ON' : 'OFF'}
         </span>
-        <div className={`w-8 h-4 rounded-full relative transition-all duration-500 ${isActive
-          ? 'bg-gradient-to-r from-purple-500 to-violet-500 shadow-lg shadow-purple-500/30'
-          : 'bg-gray-600'
-          }`}>
-          <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-md transition-all duration-500 ${isActive ? 'left-4' : 'left-0.5'
-            }`} />
+        <div className={`w-10 h-5 rounded-full relative transition-all ${isActive ? 'bg-purple-500' : 'bg-gray-600'}`}>
+          <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${isActive ? 'left-5' : 'left-0.5'}`} />
         </div>
       </div>
     </div>
@@ -348,19 +328,20 @@ const GlobalIpDisplay = ({ label, endpoint, icon: Icon, t }: any) => {
 
   return (
     <div
-      className="p-2.5 rounded-lg bg-muted border border-border cursor-pointer hover:bg-muted/80 transition-colors relative group"
+      className="p-3 rounded-lg bg-muted/50 border border-border cursor-pointer hover:bg-muted transition-colors relative group"
       onClick={handleCopy}
     >
-      <div className="flex items-center gap-1.5 mb-1">
-        <Icon className="h-3.5 w-3.5 text-blue-500" />
-        <span className="text-[10px] text-muted-foreground">{label}</span>
+      <div className="flex items-center gap-2 mb-2">
+        <Icon className="h-4 w-4 text-blue-500" />
+        <span className="text-xs text-muted-foreground">{label}</span>
       </div>
-      <p className="text-sm font-bold text-foreground truncate">{ip}</p>
+      <p className="text-lg font-bold text-foreground truncate">{ip}</p>
+      <p className="text-xs text-muted-foreground">Netherlands</p>
 
       {/* Copy Overlay */}
-      <div className={`absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center transition-opacity duration-200 ${copied ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-        <span className="text-xs font-medium text-primary">
-          {copied ? 'Copied!' : 'Copy'}
+      <div className={`absolute inset-0 rounded-lg bg-background/80 backdrop-blur-sm flex items-center justify-center transition-opacity duration-200 ${copied ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+        <span className="text-sm font-medium text-primary">
+          {copied ? '✓ Copied!' : 'Click to copy'}
         </span>
       </div>
     </div>
