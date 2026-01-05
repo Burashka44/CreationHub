@@ -84,26 +84,30 @@ const ServerStats = () => {
           }
         }
 
-        // 2. Fallback to sensors if no GPU temp found yet
-        if (!gpuTempFound && sensorsRes.status === 'fulfilled' && sensorsRes.value.ok) {
+        // Parse sensors for CPU and GPU temperatures
+        if (sensorsRes.status === 'fulfilled' && sensorsRes.value.ok) {
           const sensors = await sensorsRes.value.json();
           if (Array.isArray(sensors) && sensors.length > 0) {
-            // Find CPU temp sensor
+            // Find CPU temp sensor (Core, Package, CPU)
             const cpuSensor = sensors.find((s: any) =>
-              s.label?.toLowerCase().includes('cpu') ||
               s.label?.toLowerCase().includes('core') ||
-              s.label?.toLowerCase().includes('package')
-            ) || sensors[0];
-            if (cpuSensor) newData.cpu_temp = `${Math.round(cpuSensor.value)}°C`;
-
-            // Find GPU temp sensor as fallback
-            const gpuSensor = sensors.find((s: any) =>
-              s.label?.toLowerCase().includes('gpu') ||
-              s.label?.toLowerCase().includes('nvidia') ||
-              s.label?.toLowerCase().includes('radeon')
+              s.label?.toLowerCase().includes('package') ||
+              s.label?.toLowerCase().includes('cpu')
             );
-            if (gpuSensor) {
-              newData.gpu_temp = `${Math.round(gpuSensor.value)}°C`;
+            if (cpuSensor) {
+              newData.cpu_temp = `${Math.round(cpuSensor.value)}°C`;
+            }
+
+            // Find GPU temp sensor as fallback if not already found from GPU API
+            if (!gpuTempFound) {
+              const gpuSensor = sensors.find((s: any) =>
+                s.label?.toLowerCase().includes('gpu') ||
+                s.label?.toLowerCase().includes('nvidia') ||
+                s.label?.toLowerCase().includes('radeon')
+              );
+              if (gpuSensor) {
+                newData.gpu_temp = `${Math.round(gpuSensor.value)}°C`;
+              }
             }
           }
         }
