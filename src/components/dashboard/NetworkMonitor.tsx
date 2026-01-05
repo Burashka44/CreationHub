@@ -117,68 +117,127 @@ const NetworkMonitor = () => {
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        {/* Row 1: Internet Toggle + Download */}
-        <div
-          onClick={toggleInternet}
-          className={`p-2.5 rounded-lg cursor-pointer transition-all duration-500 relative overflow-hidden group ${isAnimating ? 'scale-95' : 'scale-100'
-            } ${internetEnabled
-              ? 'bg-gradient-to-br from-emerald-500/20 via-emerald-400/10 to-teal-500/20 border border-emerald-500/40'
-              : 'bg-gradient-to-br from-red-500/20 via-red-400/10 to-orange-500/20 border border-red-500/40'
-            }`}
-        >
-          <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${internetEnabled
-            ? 'bg-gradient-to-r from-emerald-500/10 via-transparent to-emerald-500/10'
-            : 'bg-gradient-to-r from-red-500/10 via-transparent to-red-500/10'
-            }`} />
-          <div className="flex items-center gap-1.5 mb-1 relative z-10">
-            <Power className={`h-3.5 w-3.5 transition-all duration-300 ${internetEnabled ? 'text-emerald-400' : 'text-red-400'} ${isAnimating ? 'animate-spin' : ''}`} />
-            <span className="text-[10px] text-muted-foreground">Internet</span>
-          </div>
-          <div className="flex items-center justify-between relative z-10">
-            <span className={`text-lg font-bold transition-colors duration-300 ${internetEnabled ? 'text-emerald-400' : 'text-red-400'}`}>
-              {internetEnabled ? 'ON' : 'OFF'}
-            </span>
-            <div className={`w-10 h-5 rounded-full relative transition-all duration-500 ${internetEnabled
-              ? 'bg-gradient-to-r from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/30'
-              : 'bg-gradient-to-r from-red-500 to-orange-500 shadow-lg shadow-red-500/30'}`}>
-              <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-md transition-all duration-500 ${internetEnabled ? 'left-5' : 'left-0.5'}`}>
-                <div className={`absolute inset-0.5 rounded-full ${internetEnabled ? 'bg-emerald-100' : 'bg-red-100'}`} />
+        {/* LEFT COLUMN: Toggles */}
+        <div className="flex flex-col gap-2">
+          {/* Internet Toggle */}
+          <div
+            onClick={toggleInternet}
+            className={`p-2.5 rounded-lg cursor-pointer transition-all duration-500 relative overflow-hidden group ${isAnimating ? 'scale-95' : 'scale-100'
+              } ${internetEnabled
+                ? 'bg-gradient-to-br from-emerald-500/20 via-emerald-400/10 to-teal-500/20 border border-emerald-500/40'
+                : 'bg-gradient-to-br from-red-500/20 via-red-400/10 to-orange-500/20 border border-red-500/40'
+              }`}
+          >
+            <div className="flex items-center gap-1.5 mb-1 relative z-10">
+              <Power className={`h-3.5 w-3.5 transition-all duration-300 ${internetEnabled ? 'text-emerald-400' : 'text-red-400'} ${isAnimating ? 'animate-spin' : ''}`} />
+              <span className="text-[10px] text-muted-foreground">Internet</span>
+            </div>
+            <div className="flex items-center justify-between relative z-10">
+              <span className={`text-sm font-bold ${internetEnabled ? 'text-emerald-400' : 'text-red-400'}`}>
+                {internetEnabled ? 'ON' : 'OFF'}
+              </span>
+              <div className={`w-8 h-4 rounded-full relative transition-all duration-500 ${internetEnabled
+                ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                : 'bg-red-500'}`}>
+                <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-md transition-all duration-500 ${internetEnabled ? 'left-4' : 'left-0.5'}`} />
               </div>
             </div>
           </div>
+
+          {/* WiFi Toggle */}
+          <WiFiToggle />
+
+          {/* Public IP */}
+          <GlobalIpDisplay label="Public IP" endpoint="/api/system/public-ip" icon={Globe} t={t} />
         </div>
 
-        <div className="p-2.5 rounded-lg bg-success/10 border border-success/20">
-          <div className="flex items-center gap-1.5 mb-1">
-            <ArrowDown className="h-3.5 w-3.5 text-success" />
-            <span className="text-[10px] text-muted-foreground">{t('download')}</span>
+        {/* RIGHT COLUMN: Stats + WireGuard */}
+        <div className="flex flex-col gap-2">
+          {/* Download */}
+          <div className="p-2.5 rounded-lg bg-success/10 border border-success/20">
+            <div className="flex items-center gap-1.5 mb-1">
+              <ArrowDown className="h-3.5 w-3.5 text-success" />
+              <span className="text-[10px] text-muted-foreground">{t('download')}</span>
+            </div>
+            <p className="text-lg font-bold text-success">{stats.download.toFixed(2)}</p>
+            <p className="text-[10px] text-muted-foreground">MB/s</p>
           </div>
-          <p className="text-lg font-bold text-success">{stats.download.toFixed(2)}</p>
-          <p className="text-[10px] text-muted-foreground">MB/s</p>
-        </div>
 
-        {/* Row 2: Upload + Interface */}
-        <div className="p-2.5 rounded-lg bg-primary/10 border border-primary/20">
-          <div className="flex items-center gap-1.5 mb-1">
-            <ArrowUp className="h-3.5 w-3.5 text-primary" />
-            <span className="text-[10px] text-muted-foreground">{t('upload')}</span>
+          {/* Upload */}
+          <div className="p-2.5 rounded-lg bg-primary/10 border border-primary/20">
+            <div className="flex items-center gap-1.5 mb-1">
+              <ArrowUp className="h-3.5 w-3.5 text-primary" />
+              <span className="text-[10px] text-muted-foreground">{t('upload')}</span>
+            </div>
+            <p className="text-lg font-bold text-primary">{stats.upload.toFixed(2)}</p>
+            <p className="text-[10px] text-muted-foreground">MB/s</p>
           </div>
-          <p className="text-lg font-bold text-primary">{stats.upload.toFixed(2)}</p>
-          <p className="text-[10px] text-muted-foreground">MB/s</p>
-        </div>
 
-        <div className="p-2.5 rounded-lg bg-muted border border-border">
-          <div className="flex items-center gap-1.5 mb-1">
-            <Gauge className="h-3.5 w-3.5 text-foreground" />
-            <span className="text-[10px] text-muted-foreground">Interface</span>
-          </div>
-          <p className="text-sm font-bold text-foreground truncate" title={stats.interface}>{stats.interface}</p>
-          <p className="text-[10px] text-muted-foreground">{stats.latency}ms ping</p>
+          {/* WireGuard VPN */}
+          <WireGuardToggle />
         </div>
+      </div>
+    </div>
+  );
+};
 
-        {/* Row 3: Public IP + WireGuard */}
-        <GlobalIpDisplay label="Public IP" endpoint="/api/system/public-ip" icon={Globe} t={t} />
-        <WireGuardToggle />
+// WiFi Toggle Component
+const WiFiToggle = () => {
+  const [isActive, setIsActive] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/system/wifi/status')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setIsActive(data.isActive);
+      })
+      .catch(() => { });
+  }, []);
+
+  const toggleWiFi = async () => {
+    setIsLoading(true);
+    try {
+      const action = isActive ? 'off' : 'on';
+      const res = await fetch('/api/system/wifi/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsActive(data.isActive);
+        toast.success(data.isActive ? '📶 WiFi включен' : '📴 WiFi выключен');
+      } else {
+        toast.error(data.error || 'WiFi toggle failed');
+      }
+    } catch (e) {
+      toast.error('Ошибка сети');
+    }
+    setIsLoading(false);
+  };
+
+  return (
+    <div
+      onClick={toggleWiFi}
+      className={`p-2.5 rounded-lg cursor-pointer transition-all duration-500 ${isLoading ? 'opacity-50' : ''} ${isActive
+          ? 'bg-gradient-to-br from-blue-500/20 via-blue-400/10 to-cyan-500/20 border border-blue-500/40'
+          : 'bg-gradient-to-br from-gray-500/20 via-gray-400/10 to-slate-500/20 border border-gray-500/40'
+        }`}
+    >
+      <div className="flex items-center gap-1.5 mb-1">
+        <Wifi className={`h-3.5 w-3.5 ${isActive ? 'text-blue-400' : 'text-gray-400'}`} />
+        <span className="text-[10px] text-muted-foreground">WiFi</span>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className={`text-sm font-bold ${isActive ? 'text-blue-400' : 'text-gray-400'}`}>
+          {isLoading ? '...' : isActive ? 'ON' : 'OFF'}
+        </span>
+        <div className={`w-8 h-4 rounded-full relative transition-all duration-500 ${isActive ? 'bg-gradient-to-r from-blue-500 to-cyan-500' : 'bg-gray-600'
+          }`}>
+          <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-md transition-all duration-500 ${isActive ? 'left-4' : 'left-0.5'
+            }`} />
+        </div>
       </div>
     </div>
   );

@@ -371,6 +371,68 @@ app.get('/api/system/wireguard/status', (req, res) => {
     }
 });
 
+// ==================== WIFI CONTROL ====================
+// GET - WiFi status
+app.get('/api/system/wifi/status', (req, res) => {
+    try {
+        // Check if WiFi is enabled using nmcli or rfkill
+        let isEnabled = false;
+        let interface_name = 'unknown';
+
+        try {
+            // Try nmcli first
+            const result = execSync('nmcli radio wifi', { encoding: 'utf-8' }).trim();
+            isEnabled = result === 'enabled';
+
+            // Get active interface
+            try {
+                const ifaceResult = execSync("nmcli -t -f DEVICE,TYPE device | grep wifi | cut -d: -f1 | head -1", { encoding: 'utf-8' }).trim();
+                if (ifaceResult) interface_name = ifaceResult;
+            } catch (e) { }
+        } catch (e) {
+            // Fallback to rfkill
+            try {
+                const rfkill = execSync('rfkill list wifi', { encoding: 'utf-8' });
+                isEnabled = !rfkill.includes('Soft blocked: yes');
+            } catch (e2) {
+                return res.json({ success: false, error: 'WiFi control not available' });
+            }
+        }
+
+        res.json({ success: true, isActive: isEnabled, interface: interface_name });
+    } catch (e) {
+        res.json({ success: false, error: e.message });
+    }
+});
+
+// POST - Toggle WiFi on/off
+app.post('/api/system/wifi/toggle', (req, res) => {
+    try {
+        const { action } = req.body; // 'on' or 'off'
+
+        if (!['on', 'off'].includes(action)) {
+            return res.status(400).json({ success: false, error: 'action must be "on" or "off"' });
+        }
+
+        try {
+            // Use nmcli to toggle WiFi
+            execSync(`nmcli radio wifi ${action}`, { encoding: 'utf-8' });
+            res.json({ success: true, message: `WiFi turned ${action}`, isActive: action === 'on' });
+        } catch (e) {
+            // Fallback to rfkill
+            try {
+                const rfkillAction = action === 'on' ? 'unblock' : 'block';
+                execSync(`rfkill ${rfkillAction} wifi`, { encoding: 'utf-8' });
+                res.json({ success: true, message: `WiFi turned ${action}`, isActive: action === 'on' });
+            } catch (e2) {
+                res.status(500).json({ success: false, error: 'WiFi control failed: ' + e.message });
+            }
+        }
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 // DELETE - Remove WireGuard config
 app.delete('/api/system/wireguard/:name', (req, res) => {
     try {
