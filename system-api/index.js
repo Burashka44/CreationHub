@@ -327,27 +327,106 @@ app.post('/api/system/wireguard/restart', (req, res) => {
     }
 });
 
-// POST - Toggle WireGuard interface up/down
+// POST - Toggle WireGuard interface up/down (manual commands to avoid DNS/resolvconf issues)
 app.post('/api/system/wireguard/toggle', (req, res) => {
     try {
         const { interface: iface, action } = req.body; // action: 'up' or 'down'
         const safeName = (iface || 'wg0').replace(/[^a-zA-Z0-9_-]/g, '');
+        const configPath = path.join(WG_CONFIG_DIR, `${safeName}.conf`);
 
         if (!['up', 'down'].includes(action)) {
             return res.status(400).json({ success: false, error: 'action must be "up" or "down"' });
         }
 
+        // Check if config exists
+        if (!fs.existsSync(configPath)) {
+            return res.status(404).json({ success: false, error: `Config ${safeName}.conf not found` });
+        }
+
         try {
-            execSync(`wg-quick ${action} ${safeName} 2>&1`);
-            res.json({ success: true, message: `Interface ${safeName} is now ${action}`, isActive: action === 'up' });
-        } catch (e) {
-            // If already up/down, wg-quick will fail but we can check actual status
-            try {
-                const check = execSync(`ip link show ${safeName} 2>/dev/null | grep -q 'state UP' && echo "up" || echo "down"`, { encoding: 'utf-8' }).trim();
-                res.json({ success: true, message: `Interface ${safeName} was already ${check}`, isActive: check === 'up' });
-            } catch (checkErr) {
-                res.status(500).json({ success: false, error: e.message });
+            if (action === 'up') {
+                // Parse config to get address and peer info
+                const configContent = fs.readFileSync(configPath, 'utf-8');
+                const addressMatch = configContent.match(/Address\s*=\s*([^\n]+)/i);
+                const privateKeyMatch = configContent.match(/PrivateKey\s*=\s*([^\n]+)/i);
+
+                if (!addressMatch || !privateKeyMatch) {
+                    return res.status(400).json({ success: false, error: 'Invalid config: missing Address or PrivateKey' });
+                }
+
+                const address = addressMatch[1].trim();
+
+                // Check if interface already exists
+                try {
+                    execSync(`ip link show ${safeName} 2>/dev/null`, { encoding: 'utf-8' });
+                    // Interface exists, just bring it up
+                    execSync(`ip link set ${safeName} up`, { encoding: 'utf-8' });
+                    return res.json({ success: true, message: `Interface ${safeName} brought up`, isActive: true });
+                } catch (e) {
+                    // Interface doesn't exist, create it
+                }
+
+                // Create interface
+                execSync(`ip link add dev ${safeName} type wireguard`, { encoding: 'utf-8' });
+
+                // Strip wg-quick specific directives for wg setconf
+                const wgOnlyLines = configContent.split('\n').filter(line => {
+                    const trimmed = line.trim().toLowerCase();
+                    // Remove wg-quick specific directives
+                    return !trimmed.startsWith('address') &&
+                        !trimmed.startsWith('dns') &&
+                        !trimmed.startsWith('mtu') &&
+                        !trimmed.startsWith('table') &&
+                        !trimmed.startsWith('preup') &&
+                        !trimmed.startsWith('postup') &&
+                        !trimmed.startsWith('predown') &&
+                        !trimmed.startsWith('postdown') &&
+                        !trimmed.startsWith('saveconfig');
+                }).join('\n');
+
+                // Write stripped config to temp file
+                const tempConfigPath = `/tmp/${safeName}_stripped.conf`;
+                fs.writeFileSync(tempConfigPath, wgOnlyLines);
+
+                // Apply stripped config (using wg setconf)
+                execSync(`wg setconf ${safeName} ${tempConfigPath}`, { encoding: 'utf-8' });
+
+                // Clean up temp file
+                fs.unlinkSync(tempConfigPath);
+
+                // Add address
+                execSync(`ip -4 address add ${address} dev ${safeName}`, { encoding: 'utf-8' });
+
+                // Set MTU and bring up
+                execSync(`ip link set mtu 1420 up dev ${safeName}`, { encoding: 'utf-8' });
+
+                // Add default route through WireGuard for VPN
+                try {
+                    execSync(`ip route add 0.0.0.0/1 dev ${safeName}`, { encoding: 'utf-8' });
+                    execSync(`ip route add 128.0.0.0/1 dev ${safeName}`, { encoding: 'utf-8' });
+                } catch (routeErr) {
+                    // Routes may already exist or fail, that's okay
+                }
+
+                res.json({ success: true, message: `Interface ${safeName} is now up`, isActive: true });
+            } else {
+                // Down - delete interface
+                try {
+                    // Remove routes first
+                    try {
+                        execSync(`ip route del 0.0.0.0/1 dev ${safeName} 2>/dev/null`, { encoding: 'utf-8' });
+                        execSync(`ip route del 128.0.0.0/1 dev ${safeName} 2>/dev/null`, { encoding: 'utf-8' });
+                    } catch (e) { }
+
+                    execSync(`ip link delete dev ${safeName}`, { encoding: 'utf-8' });
+                    res.json({ success: true, message: `Interface ${safeName} is now down`, isActive: false });
+                } catch (e) {
+                    // Interface may not exist
+                    res.json({ success: true, message: `Interface ${safeName} was already down`, isActive: false });
+                }
             }
+        } catch (e) {
+            res.status(500).json({ success: false, error: `WireGuard toggle failed: ${e.message}` });
         }
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });

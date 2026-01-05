@@ -85,32 +85,34 @@ services:
         max-file: "3"
 
   # ===========================================
-  # System API (Docker Monitoring)
+  # System API (Docker Monitoring + WireGuard Control)
   # ===========================================
   system-api:
     build: ./system-api
     container_name: creationhub_system_api
     restart: always
-    ports:
-      - "9191:9191"
+    # SECURITY: Host network mode required for WireGuard (wg-quick) commands
+    network_mode: host
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /etc/os-release:/host-os-release:ro
       - /proc:/host-proc:ro
       - /sys:/host-sys:ro
       - /etc/wireguard:/etc/wireguard
-      - ./volumes/backups:/backups:ro  # Backup files access
+      - ./volumes/backups:/backups:ro
       - ./volumes/backups:/backups
       - ./system-api/data:/app/data
     environment:
+      - PORT=9191
       - WG_CONFIG_DIR=/etc/wireguard
       - OS_RELEASE_PATH=/host-os-release
       - RESOLV_CONF_PATH=/host-resolv.conf
       - BACKUP_DIR=/backups
-      - POSTGRES_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-Tarantul1310}@creationhub_postgres:5432/${POSTGRES_DB:-postgres}
-    networks:
-      - default
-      - creationhub-backend
+      - POSTGRES_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-Tarantul1310}@127.0.0.1:5432/${POSTGRES_DB:-postgres}
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:9191/health"]
       interval: 30s
