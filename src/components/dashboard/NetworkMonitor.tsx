@@ -199,13 +199,11 @@ const NetworkMonitor = () => {
         />
         <div className="p-2.5 rounded-lg bg-muted border border-border">
           <div className="flex items-center gap-1.5 mb-1">
-            <Gauge className="h-3.5 w-3.5 text-foreground" />
-            <span className="text-[10px] text-muted-foreground">Interface</span>
+            <Activity className="h-3.5 w-3.5 text-amber-500" />
+            <span className="text-[10px] text-muted-foreground">Latency</span>
           </div>
-          <p className="text-sm font-bold text-foreground truncate" title={stats.interface}>
-            {stats.interface}
-          </p>
-          <p className="text-[10px] text-muted-foreground">{stats.latency}ms latency</p>
+          <p className="text-sm font-bold text-foreground">{stats.latency}ms</p>
+          <p className="text-[10px] text-muted-foreground">ping</p>
         </div>
       </div>
     </div>
