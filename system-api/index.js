@@ -105,13 +105,20 @@ app.use((req, res, next) => {
     const start = Date.now();
     res.on('finish', () => {
         const duration = Date.now() - start;
+
+        // Sanitize sensitive data from logs
+        const sanitizedBody = req.body ? { ...req.body } : {};
+        if (sanitizedBody.password) sanitizedBody.password = '[REDACTED]';
+        if (sanitizedBody.token) sanitizedBody.token = '[REDACTED]';
+
         const log = {
             timestamp: new Date().toISOString(),
             method: req.method,
             path: req.path,
             status: res.statusCode,
             duration: `${duration}ms`,
-            ip: req.ip || req.connection.remoteAddress
+            ip: req.ip || req.connection.remoteAddress,
+            body: Object.keys(sanitizedBody).length > 0 ? sanitizedBody : undefined
         };
         // Only log non-health check requests or errors
         if (req.path !== '/health' && req.path !== '/api/system/glances/cpu') {

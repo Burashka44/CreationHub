@@ -16,12 +16,27 @@ if (!JWT_SECRET) {
 // Helper to log activity
 const logActivity = async (action, details, userId = null, ip = 'unknown') => {
     try {
+        const metadata = {
+            user_id: userId,
+            ip_address: ip,
+            timestamp: new Date().toISOString(),
+            user_agent: 'system-api'
+        };
+
         await pool.query(
             'INSERT INTO activity_logs (activity_type, description, metadata) VALUES ($1, $2, $3)',
-            [action, details, JSON.stringify({ user_id: userId, ip_address: ip })]
+            [action, details, JSON.stringify(metadata)]
         );
+
+        // Log to console for monitoring/SIEM integration
+        console.log(JSON.stringify({
+            level: 'audit',
+            action,
+            details,
+            ...metadata
+        }));
     } catch (e) {
-        console.error('Failed to log activity:', e);
+        console.error('Failed to log activity:', e.message);
     }
 };
 
@@ -91,7 +106,11 @@ router.post('/login', async (req, res) => {
 
     } catch (e) {
         console.error('Login error:', e);
-        res.status(500).json({ success: false, error: e.message });
+        // Don't leak stack traces in production
+        const errorMessage = process.env.NODE_ENV === 'production'
+            ? 'Authentication failed'
+            : e.message;
+        res.status(500).json({ success: false, error: errorMessage });
     }
 });
 
