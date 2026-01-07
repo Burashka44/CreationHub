@@ -98,8 +98,7 @@ const app = express();
 app.set('trust proxy', true);
 
 app.use(cors(corsOptions));
-// Rate limiter disabled - will re-enable with proper config later
-// app.use(rateLimiter);
+app.use(rateLimiter); // ENABLED: Protect against brute force
 
 // Request logging middleware
 app.use((req, res, next) => {

@@ -6,8 +6,8 @@ services:
     build: 
       context: .
       args:
-        - VITE_SUPABASE_URL=/api/v1
-        - VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoicG9zdGdyZXMiLCJleHAiOjIwODE2NzIxNTF9.230cB1C85ECp3N5eXO4xOXabWYbA7bEVqDQ87tM1ZJ4
+        - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-/api/v1}
+        - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
     container_name: creationhub
     ports:
       - "7777:80"
@@ -16,8 +16,8 @@ services:
       postgrest:
         condition: service_started
     environment:
-      - VITE_SUPABASE_URL=/api/v1
-      - VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoicG9zdGdyZXMiLCJleHAiOjIwODE2NzIxNTF9.230cB1C85ECp3N5eXO4xOXabWYbA7bEVqDQ87tM1ZJ4
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-/api/v1}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
     networks:
       - default
       - creationhub-backend
@@ -44,10 +44,10 @@ services:
     ports:
       - "127.0.0.1:3000:3000"  # SECURITY: Localhost only
     environment:
-      PGRST_DB_URI: "postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-Tarantul1310}@creationhub_postgres:5432/${POSTGRES_DB:-postgres}"
+      PGRST_DB_URI: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@creationhub_postgres:5432/${POSTGRES_DB}"
       PGRST_DB_SCHEMA: public
-      PGRST_DB_ANON_ROLE: ${POSTGRES_USER:-postgres}
-      PGRST_JWT_SECRET: "${JWT_SECRET:-super-secret-jwt-key-for-creationhub-2024}"
+      PGRST_DB_ANON_ROLE: ${POSTGRES_USER}
+      PGRST_JWT_SECRET: "${JWT_SECRET}"
     restart: always
     networks:
       - default
@@ -129,7 +129,7 @@ services:
     restart: always
     runtime: nvidia
     ports:
-      - "11434:11434"
+      - "127.0.0.1:11434:11434"  # SECURITY: Localhost only
     volumes:
       - ${AI_DATA_PATH:-./ai_data}:/root/.ollama
     environment:
@@ -236,7 +236,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - JWT_SECRET=${JWT_SECRET:-super-secret-jwt-key-for-creationhub-2024}
+      - JWT_SECRET=${JWT_SECRET}
     networks:
       - default
       - creationhub-backend
@@ -298,7 +298,7 @@ services:
     container_name: creationhub_adminer
     restart: always
     ports:
-      - "8083:8080"
+      - "127.0.0.1:8083:8080"  # SECURITY: Localhost only (reverse proxy recommended)
     networks:
       - default
       - creationhub-backend

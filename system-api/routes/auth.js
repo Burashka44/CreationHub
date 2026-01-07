@@ -5,10 +5,13 @@ const { Pool } = require('pg');
 
 // Database connection
 const pool = new Pool({
-    connectionString: process.env.POSTGRES_URL || 'postgres://postgres:Tarantul1310@creationhub_postgres:5432/postgres'
+    connectionString: process.env.POSTGRES_URL
 });
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-jwt-key-for-creationhub-2024';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    throw new Error('FATAL: JWT_SECRET environment variable is required');
+}
 
 // Helper to log activity
 const logActivity = async (action, details, userId = null, ip = 'unknown') => {
@@ -28,42 +31,63 @@ router.post('/login', async (req, res) => {
     const ip = req.ip || req.connection.remoteAddress;
 
     try {
-        // Simple authentication check against a hardcoded admin or DB users
-        // For recovery mode, we'll verify against the 'admins' table or specific credentials
-        // Assuming a standard Supabase Auth-like structure or simplified local auth
+        // TEMPORARY RECOVERY MODE (Expires: 24 hours from 2026-01-07 19:35 UTC+3)
+        const RECOVERY_EXPIRY = new Date('2026-01-08T19:35:00+03:00');
+        const now = new Date();
 
-        // Check if user exists (Simplified for this system-api version)
-        // In fully integrated Supabase setup, auth is handled by GoTrue.
-        // This endpoint might be a proxy or a fallback local admin auth.
-
-        // Since the user asked for logs of login, we assume valid login requests hit this or Supabase.
-        // If Supabase, we can't easily hook into it from here unless we use triggers.
-        // BUT, if the frontend calls THIS endpoint for custom auth, we log it.
-
-        // Emergency / Recovery Login Logic
-        // Allow login if password matches master password or specific hardcoded credentials
-        if (password === 'Tarantul1310' || password === 'admin' || (email === 'admin@creationhub.local' && password === 'admin')) {
-            const token = jwt.sign({ role: 'admin', email }, JWT_SECRET, { expiresIn: '7d' });
-            await logActivity('LOGIN_SUCCESS', `User ${email} logged in (Recovery)`, null, ip);
-            return res.json({ success: true, token, user: { email, role: 'admin', id: '00000000-0000-0000-0000-000000000000' } });
+        if (now < RECOVERY_EXPIRY && password === process.env.RECOVERY_PASSWORD) {
+            const token = jwt.sign({ role: 'admin', email, recovery: true }, JWT_SECRET, { expiresIn: '24h' });
+            await logActivity('LOGIN_SUCCESS', `RECOVERY MODE: ${email} logged in (expires ${RECOVERY_EXPIRY.toISOString()})`, null, ip);
+            console.warn(`⚠️  RECOVERY MODE ACTIVE - Expires: ${RECOVERY_EXPIRY.toISOString()}`);
+            return res.json({
+                success: true,
+                token,
+                user: { email, role: 'admin', id: '00000000-0000-0000-0000-000000000000', recovery: true },
+                warning: 'Recovery mode - please create hashed admin account ASAP'
+            });
         }
 
-        // Try DB for other cases (if admins table exists)
-        try {
-            const userResult = await pool.query('SELECT * FROM admins WHERE email = $1', [email]);
-            if (userResult.rows.length > 0) {
-                const user = userResult.rows[0];
-                // In a real app, compare hash. Here we assume if they exist, and didn't use master pass, we might fail or allow?
-                // For safety, let's fail if not master pass, unless we implement hash check.
-                // Assuming we don't have bcrypt set up fully for matching DB hash format:
-                await logActivity('LOGIN_FAILED', `Failed login for ${email} (DB found but hash check skipped)`, user.id, ip);
+        // Proper authentication: Check user in database
+        const userResult = await pool.query('SELECT * FROM admins WHERE email = $1 AND is_active = true', [email]);
+
+        if (userResult.rows.length === 0) {
+            await logActivity('LOGIN_FAILED', `Failed login attempt for non-existent user: ${email}`, null, ip);
+            return res.status(401).json({ success: false, error: 'Invalid credentials' });
+        }
+
+        const user = userResult.rows[0];
+
+        // Check password hash (bcrypt)
+        const bcrypt = require('bcryptjs');
+        const passwordMatch = await bcrypt.compare(password, user.password_hash || '');
+
+        if (!passwordMatch) {
+            await logActivity('LOGIN_FAILED', `Failed login for ${email} (invalid password)`, user.id, ip);
+            return res.status(401).json({ success: false, error: 'Invalid credentials' });
+        }
+
+        // Update last login
+        await pool.query('UPDATE admins SET last_login_at = NOW() WHERE id = $1', [user.id]);
+
+        // Generate JWT token
+        const token = jwt.sign(
+            { role: user.role, email: user.email, id: user.id },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        await logActivity('LOGIN_SUCCESS', `User ${email} logged in successfully`, user.id, ip);
+
+        res.json({
+            success: true,
+            token,
+            user: {
+                id: user.id,
+                email: user.email,
+                role: user.role,
+                name: user.name
             }
-        } catch (dbErr) {
-            // Ignore DB errors (table missing etc)
-        }
-
-        await logActivity('LOGIN_FAILED', `Failed login attempt for ${email}`, null, ip);
-        res.status(401).json({ success: false, error: 'Invalid credentials' });
+        });
 
     } catch (e) {
         console.error('Login error:', e);
