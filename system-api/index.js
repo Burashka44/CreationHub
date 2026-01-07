@@ -10,6 +10,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const http = require('http');
 const axios = require('axios');
+const os = require('os');
 
 // Helper for executing commands in host network namespace (requires pid: host and privileged: true)
 // This allows WireGuard commands to affect the host's network stack
@@ -135,12 +136,14 @@ const backupRoutes = require('./routes/backups');
 const glancesRoutes = require('./routes/glances');
 const servicesRoutes = require('./routes/services');
 const mediaRoutes = require('./routes/media');
+const authRoutes = require('./routes/auth');
 
 app.use('/api/ai', aiRoutes);
 app.use('/api/system/backups', backupRoutes);
 app.use('/api/system/glances', glancesRoutes);
 app.use('/api/services', servicesRoutes);
 app.use('/api/media', mediaRoutes);
+app.use('/api/auth', authRoutes);
 
 const PORT = process.env.PORT || 9191;
 
@@ -152,36 +155,29 @@ const RESOLV_CONF_PATH = process.env.RESOLV_CONF_PATH || '/etc/resolv.conf';
 // ==================== OS INFO ====================
 app.get('/api/system/os', (req, res) => {
     try {
-        const osRelease = fs.readFileSync(OS_RELEASE_PATH, 'utf-8');
-        const lines = osRelease.split('\n');
-        const info = {};
+        let osPath = process.env.OS_RELEASE_PATH || '/host-os-release';
+        if (!fs.existsSync(osPath)) osPath = '/etc/os-release';
 
-        lines.forEach(line => {
-            const [key, ...valueParts] = line.split('=');
-            if (key && valueParts.length) {
-                info[key] = valueParts.join('=').replace(/"/g, '');
-            }
-        });
+        if (fs.existsSync(osPath)) {
+            const lines = fs.readFileSync(osPath, 'utf-8').split('\n');
+            const info = {};
+            lines.forEach(line => {
+                const [key, value] = line.split('=');
+                if (key && value) info[key] = value.replace(/"/g, '');
+            });
 
-        // Also get kernel version
-        try {
-            info.KERNEL = execSync('uname -r').toString().trim();
-        } catch (e) {
-            info.KERNEL = 'unknown';
+            let kernel = 'Unknown';
+            try { kernel = execSync('uname -r').toString().trim(); } catch (e) { }
+
+            res.json({
+                name: info.PRETTY_NAME || 'Linux',
+                version: info.VERSION_ID || 'Unknown',
+                arch: os.arch(),
+                kernel: kernel
+            });
+        } else {
+            res.json({ name: 'Linux Container', version: 'Unknown', arch: os.arch(), kernel: 'Unknown' });
         }
-
-        res.json({
-            success: true,
-            data: {
-                pretty_name: info.PRETTY_NAME || 'Unknown Linux',
-                name: info.NAME || 'Linux',
-                version: info.VERSION || '',
-                version_id: info.VERSION_ID || '',
-                kernel: info.KERNEL,
-                id: info.ID || 'linux',
-                logo: info.ID || 'linux' // For icon mapping
-            }
-        });
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
     }
@@ -189,23 +185,22 @@ app.get('/api/system/os', (req, res) => {
 
 app.get('/api/system/uptime', (req, res) => {
     try {
-        // uptime -p returns pretty output like "up 2 weeks, 3 days, 14 hours, 27 minutes"
-        // uptime -s returns start time
-        const pretty = execSync('uptime -p').toString().trim().replace('up ', '');
-        const since = execSync('uptime -s').toString().trim();
-        res.json({ success: true, pretty, since });
-    } catch (e) {
-        // Fallback to /proc/uptime
-        try {
-            const data = fs.readFileSync('/proc/uptime', 'utf8');
-            const seconds = parseFloat(data.split(' ')[0]);
-            const days = Math.floor(seconds / (3600 * 24));
-            const hours = Math.floor((seconds % (3600 * 24)) / 3600);
-            const minutes = Math.floor((seconds % 3600) / 60);
-            res.json({ success: true, pretty: `${days}d ${hours}h ${minutes}m`, since: 'unknown' });
-        } catch (err) {
-            res.status(500).json({ success: false, error: e.message });
+        const hostProcUptime = '/host-proc/uptime';
+        let uptimeSeconds = 0;
+
+        if (fs.existsSync(hostProcUptime)) {
+            uptimeSeconds = parseFloat(fs.readFileSync(hostProcUptime, 'utf8').split(' ')[0]);
+        } else {
+            uptimeSeconds = os.uptime();
         }
+
+        const days = Math.floor(uptimeSeconds / (3600 * 24));
+        const hours = Math.floor((uptimeSeconds % (3600 * 24)) / 3600);
+        const minutes = Math.floor((uptimeSeconds % 3600) / 60);
+
+        res.json({ uptime: `${days}d ${hours}h ${minutes}m`, seconds: uptimeSeconds });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
     }
 });
 
@@ -580,6 +575,8 @@ app.put('/api/system/wireguard/:name', (req, res) => {
         res.status(500).json({ success: false, error: e.message });
     }
 });
+
+// Duplicate route definitions removed
 
 // ==================== DNS CONFIG ====================
 app.get('/api/system/dns', (req, res) => {

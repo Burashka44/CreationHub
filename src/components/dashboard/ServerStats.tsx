@@ -177,7 +177,7 @@ const ServerStats = () => {
   ];
 
   return (
-    <div className="dashboard-card">
+    <div className="h-full">
       <div className="flex items-center gap-2 mb-4">
         <Server className="h-5 w-5 text-primary" />
         <h3 className="font-semibold text-foreground">{t('serverInfo')}</h3>
@@ -191,7 +191,7 @@ const ServerStats = () => {
         {stats.map((stat, index) => (
           <div
             key={index}
-            className="p-3 rounded-lg bg-muted/30 border border-border/50 hover:border-primary/30 transition-all"
+            className="p-3 rounded-lg bg-muted/50 border border-border hover:border-primary/30 transition-all"
           >
             <div className="flex items-center gap-2 mb-2">
               <stat.icon className={`h-4 w-4 ${stat.color}`} />

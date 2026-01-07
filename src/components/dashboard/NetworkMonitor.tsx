@@ -106,9 +106,9 @@ const NetworkMonitor = () => {
   };
 
   return (
-    <div className="dashboard-card">
+    <div className="h-full">
       <div className="flex items-center gap-2 mb-4">
-        <Wifi className="h-5 w-5 text-primary" />
+        <Wifi className="h-5 w-5 text-emerald-400" />
         <h3 className="font-semibold text-foreground">{t('networkMonitor')}</h3>
         <div className="ml-auto flex items-center gap-1">
           <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
@@ -121,7 +121,7 @@ const NetworkMonitor = () => {
         <div
           onClick={toggleInternet}
           className={`p-3 rounded-lg cursor-pointer transition-all duration-300 border ${internetEnabled
-            ? 'bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20'
+            ? 'bg-emerald-500/10 border-primary/30 hover:bg-emerald-500/20'
             : 'bg-muted/50 border-border hover:bg-muted'
             }`}
         >
@@ -141,10 +141,10 @@ const NetworkMonitor = () => {
 
         <div className="p-3 rounded-lg bg-muted/50 border border-border">
           <div className="flex items-center gap-2 mb-2">
-            <ArrowDown className="h-4 w-4 text-success" />
+            <ArrowDown className="h-4 w-4 text-emerald-400" />
             <span className="text-xs text-muted-foreground">{t('download')}</span>
           </div>
-          <p className="text-xl font-bold text-success">{stats.download.toFixed(2)}</p>
+          <p className="text-xl font-bold text-emerald-400">{stats.download.toFixed(2)}</p>
           <p className="text-xs text-muted-foreground">MB/s</p>
         </div>
 
@@ -153,10 +153,10 @@ const NetworkMonitor = () => {
 
         <div className="p-3 rounded-lg bg-muted/50 border border-border">
           <div className="flex items-center gap-2 mb-2">
-            <ArrowUp className="h-4 w-4 text-primary" />
+            <ArrowUp className="h-4 w-4 text-emerald-400" />
             <span className="text-xs text-muted-foreground">{t('upload')}</span>
           </div>
-          <p className="text-xl font-bold text-primary">{stats.upload.toFixed(2)}</p>
+          <p className="text-xl font-bold text-emerald-400">{stats.upload.toFixed(2)}</p>
           <p className="text-xs text-muted-foreground">MB/s</p>
         </div>
 
@@ -208,16 +208,16 @@ const WiFiToggle = () => {
     <div
       onClick={toggleWiFi}
       className={`p-3 rounded-lg cursor-pointer transition-all duration-300 border ${isLoading ? 'opacity-50' : ''} ${isActive
-        ? 'bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20'
+        ? 'bg-emerald-500/10 border-primary/30 hover:bg-emerald-500/20'
         : 'bg-muted/50 border-border hover:bg-muted'
         }`}
     >
       <div className="flex items-center gap-2 mb-2">
-        <Wifi className={`h-4 w-4 ${isActive ? 'text-emerald-500' : 'text-gray-400'}`} />
+        <Wifi className={`h-4 w-4 ${isActive ? 'text-emerald-400' : 'text-gray-400'}`} />
         <span className="text-xs text-muted-foreground">WiFi</span>
       </div>
       <div className="flex items-center justify-between">
-        <span className={`text-lg font-bold ${isActive ? 'text-emerald-500' : 'text-gray-400'}`}>
+        <span className={`text-lg font-bold ${isActive ? 'text-emerald-400' : 'text-gray-400'}`}>
           {isLoading ? '...' : isActive ? 'ON' : 'OFF'}
         </span>
         <div className={`w-10 h-5 rounded-full relative transition-all ${isActive ? 'bg-emerald-500' : 'bg-gray-600'}`}>
@@ -275,16 +275,16 @@ const WireGuardToggle = () => {
     <div
       onClick={toggleVPN}
       className={`p-3 rounded-lg cursor-pointer transition-all duration-300 border ${isLoading ? 'opacity-50' : ''} ${isActive
-        ? 'bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20'
+        ? 'bg-emerald-500/10 border-primary/30 hover:bg-emerald-500/20'
         : 'bg-muted/50 border-border hover:bg-muted'
         }`}
     >
       <div className="flex items-center gap-2 mb-2">
-        <Shield className={`h-4 w-4 ${isActive ? 'text-emerald-500' : 'text-gray-400'}`} />
+        <Shield className={`h-4 w-4 ${isActive ? 'text-emerald-400' : 'text-gray-400'}`} />
         <span className="text-xs text-muted-foreground">WireGuard</span>
       </div>
       <div className="flex items-center justify-between">
-        <span className={`text-lg font-bold ${isActive ? 'text-emerald-500' : 'text-gray-400'}`}>
+        <span className={`text-lg font-bold ${isActive ? 'text-emerald-400' : 'text-gray-400'}`}>
           {isLoading ? '...' : isActive ? 'ON' : 'OFF'}
         </span>
         <div className={`w-10 h-5 rounded-full relative transition-all ${isActive ? 'bg-emerald-500' : 'bg-gray-600'}`}>
@@ -332,7 +332,7 @@ const GlobalIpDisplay = ({ label, endpoint, icon: Icon, t }: any) => {
       onClick={handleCopy}
     >
       <div className="flex items-center gap-2 mb-2">
-        <Icon className="h-4 w-4 text-emerald-500" />
+        <Icon className="h-4 w-4 text-emerald-400" />
         <span className="text-xs text-muted-foreground">{label}</span>
       </div>
       <p className="text-lg font-bold text-foreground truncate">{ip}</p>
@@ -340,7 +340,7 @@ const GlobalIpDisplay = ({ label, endpoint, icon: Icon, t }: any) => {
 
       {/* Copy Overlay */}
       <div className={`absolute inset-0 rounded-lg bg-background/80 backdrop-blur-sm flex items-center justify-center transition-opacity duration-200 ${copied ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-        <span className="text-sm font-medium text-primary">
+        <span className="text-sm font-medium text-emerald-400">
           {copied ? '✓ Copied!' : 'Click to copy'}
         </span>
       </div>

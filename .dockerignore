@@ -1,6 +1,13 @@
 node_modules
 dist
 build
+gpt_engineer_code
 .git
-.env
+.github
+.DS_Store
+ai_data
+*.tar
+*.gz
+*.mp4
+*.mkv
 volumes

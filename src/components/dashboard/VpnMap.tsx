@@ -77,7 +77,7 @@ const VpnMap = () => {
   };
 
   return (
-    <div className="dashboard-card h-full overflow-hidden flex flex-col">
+    <div className="h-full overflow-hidden flex flex-col">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-foreground flex items-center gap-2">
           <Globe className="h-5 w-5 text-primary" />

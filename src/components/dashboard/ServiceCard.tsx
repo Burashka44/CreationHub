@@ -29,8 +29,8 @@ const ServiceCard = ({ name, port, status }: ServiceCardProps) => {
 
   const getStatusColor = (s: string) => {
     switch (s) {
-      case 'online': return 'bg-success/20 text-success';
-      case 'offline': return 'bg-destructive/20 text-destructive';
+      case 'online': return 'bg-success/50 text-white';
+      case 'offline': return 'bg-destructive/50 text-white';
       default: return 'bg-muted text-muted-foreground';
     }
   };
@@ -48,8 +48,8 @@ const ServiceCard = ({ name, port, status }: ServiceCardProps) => {
   const link = `http://${host}:${port}`;
 
   return (
-    <a href={link} target="_blank" rel="noopener noreferrer" className="block">
-      <div className="service-card group cursor-pointer hover:border-primary">
+    <a href={link} target="_blank" rel="noopener noreferrer" className="block h-full">
+      <div className="h-full min-h-[120px] flex flex-col justify-between p-3 rounded-lg border border-border bg-muted/50 hover:bg-emerald-500/10 hover:border-primary/30 transition-all duration-300 group">
         <div className="flex items-start justify-between mb-3">
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
             {serviceIcons[name] || <Server className="h-5 w-5" />}

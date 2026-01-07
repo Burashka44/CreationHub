@@ -1,128 +1,106 @@
-import { History, User, Server, Database, Shield, Settings } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { formatDistanceToNow } from "date-fns";
+import { ru } from "date-fns/locale";
+import { Activity, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-interface ActivityItem {
-  id: string;
-  actionKey: string;
-  target: string;
-  user: string;
-  time: string;
-  type: 'user' | 'server' | 'database' | 'security' | 'settings';
+interface ActivityLogProps {
+  limit?: number;
+  className?: string;
+  hideHeader?: boolean;
 }
 
-const ActivityLog = () => {
-  const { t } = useLanguage();
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
+const ActivityLog = ({ limit = 20, className, hideHeader = false }: ActivityLogProps) => {
+  const [activities, setActivities] = useState<any[]>([]);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
-  // Convert timestamp to relative time (min/hours ago)
-  const timeAgo = (date: string) => {
-    const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
+  const fetchActivity = async () => {
+    // Type casting to bypass missing table definition in generated types
+    const { data } = await (supabase as any)
+      .from('activity_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
 
-    let interval = seconds / 3600;
-    if (interval > 1) return Math.floor(interval) + "h";
-
-    interval = seconds / 60;
-    if (interval > 1) return Math.floor(interval) + "m";
-
-    return Math.floor(seconds) + "s";
+    if (data) setActivities(data);
   };
 
   useEffect(() => {
-    const fetchActivity = async () => {
-      const { data } = await supabase
-        .from('activity_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-      if (data) {
-        setActivities(data.map((item: any) => ({
-          id: item.id,
-          actionKey: item.action_key,
-          target: item.target,
-          user: item.user_name,
-          time: timeAgo(item.created_at),
-          type: item.activity_type
-        })));
-      }
-    };
-
     fetchActivity();
+    const interval = setInterval(fetchActivity, 5000);
+    return () => clearInterval(interval);
+  }, [limit]);
 
-    // Subscribe to new logs
-    const channel = supabase
-      .channel('activity-changes')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activity_logs' },
-        () => fetchActivity()
-      )
-      .subscribe();
+  const clearLogs = async () => {
+    try {
+      // Use system-api for cleanup if complex, or direct Supabase if policy allows.
+      // Based on previous session, there might be a backend route, but direct DB is easier if permitted.
+      // We'll try the API we saw in "Previous Session Summary": DELETE /api/activity/logs
+      // But for now, let's assume direct supabase for speed, or fallback to API.
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+      const { error } = await (supabase as any)
+        .from('activity_logs')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all (using uuid string)
 
-  const getIcon = (type: ActivityItem['type']) => {
-    switch (type) {
-      case 'user': return <User className="h-4 w-4" />;
-      case 'server': return <Server className="h-4 w-4" />;
-      case 'database': return <Database className="h-4 w-4" />;
-      case 'security': return <Shield className="h-4 w-4" />;
-      case 'settings': return <Settings className="h-4 w-4" />;
-      default: return <Server className="h-4 w-4" />;
-    }
-  };
-
-  const getColor = (type: ActivityItem['type']) => {
-    switch (type) {
-      case 'user': return 'bg-primary/20 text-primary';
-      case 'server': return 'bg-success/20 text-success';
-      case 'database': return 'bg-warning/20 text-warning';
-      case 'security': return 'bg-destructive/20 text-destructive';
-      case 'settings': return 'bg-purple-500/20 text-purple-500';
-      default: return 'bg-muted text-muted-foreground';
+      if (error) throw error;
+      toast.success("Журнал очищен");
+      fetchActivity();
+    } catch (e) {
+      toast.error("Ошибка очистки журнала");
     }
   };
 
   return (
-    <div className="dashboard-card max-h-[400px] overflow-hidden flex flex-col">
-      <div className="flex items-center gap-2 mb-4">
-        <History className="h-5 w-5 text-primary" />
-        <h3 className="font-semibold text-foreground">{t('activityLog')}</h3>
-      </div>
+    <div className={cn("flex flex-col p-4 rounded-lg border border-border bg-muted/50", className || "max-h-[400px]")}>
+      {!hideHeader && (
+        <div className="flex items-center justify-between mb-4 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <Activity className="h-5 w-5 text-primary" />
+            <h3 className="font-semibold text-foreground">Активность</h3>
+          </div>
+          {isAdmin && (
+            <Button variant="ghost" size="sm" onClick={clearLogs} className="text-muted-foreground hover:text-destructive">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      )}
 
-      <div className="space-y-3 overflow-y-auto flex-1 pr-1 scrollbar-thin">
-        {activities.length === 0 ? (
-          <div className="text-center text-muted-foreground py-4 text-sm">No activity recorded</div>
-        ) : (
-          activities.map((activity, index) => (
-            <div
-              key={activity.id}
-              className="flex items-start gap-3 animate-fade-in"
-              style={{ animationDelay: `${index * 50}ms` }}
-            >
-              <div className={cn("p-2 rounded-lg shrink-0", getColor(activity.type))}>
-                {getIcon(activity.type)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-foreground">
-                  <span className="font-medium">{t(activity.actionKey) || activity.actionKey}</span>
-                  {' '}
-                  <span className="text-muted-foreground">{activity.target}</span>
+      <ScrollArea className="flex-1 pr-4">
+        <div className="space-y-4">
+          {activities.map((item) => (
+            <div key={item.id} className="flex gap-3 text-sm border-b border-border/50 pb-3 last:border-0 last:pb-0">
+              <div className="w-2 h-2 mt-1.5 rounded-full bg-primary flex-shrink-0" />
+              <div className="grid gap-1">
+                <p className="text-foreground font-medium leading-none">
+                  {item.activity_type}
+                  <span className="text-muted-foreground font-normal ml-2">
+                    {item.description}
+                  </span>
                 </p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs text-muted-foreground">{t('by')} {activity.user}</span>
-                  <span className="text-xs text-muted-foreground">•</span>
-                  <span className="text-xs text-muted-foreground">{activity.time} {t('ago')}</span>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  {formatDistanceToNow(new Date(item.created_at || new Date()), {
+                    addSuffix: true,
+                    locale: ru,
+                  })}
+                </p>
               </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+          {activities.length === 0 && (
+            <div className="text-center text-muted-foreground py-8">
+              Нет активности
+            </div>
+          )}
+        </div>
+      </ScrollArea>
     </div>
   );
 };

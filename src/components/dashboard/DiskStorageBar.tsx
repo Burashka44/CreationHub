@@ -113,13 +113,14 @@ const DiskStorageBar = () => {
 
   const getUsageColor = (percent: number) => {
     if (percent > 90) return 'bg-red-500';
-    return 'bg-blue-500';
+    return 'bg-blue-500'; // Matches screenshot "Blue"
   };
 
-  if (loading && disks.length === 0) return null;
+  // Always render container
+  // if (loading && disks.length === 0) return null;
 
   return (
-    <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+    <Card className="h-full p-4 rounded-lg border border-border bg-muted/50">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold flex items-center gap-2">
           <HardDrive className="h-5 w-5 text-primary" />

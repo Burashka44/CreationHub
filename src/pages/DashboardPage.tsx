@@ -9,6 +9,7 @@ import PerformanceChart from '@/components/dashboard/PerformanceChart';
 import ResourceMeters from '@/components/dashboard/ResourceMeters';
 import TrafficStats from '@/components/dashboard/TrafficStats';
 import ServiceCard from '@/components/dashboard/ServiceCard';
+import ActivityLog from '@/components/dashboard/ActivityLog';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect } from 'react';
@@ -87,7 +88,7 @@ const DashboardPage = () => {
       {/* Row 1: Server Info + VPN Map + Network Monitor */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="col-span-3 bg-primary/10 p-4 rounded-lg border border-primary text-center">
-          <h2 className="text-xl font-bold text-primary">CREATION HUB: GLANCES LINKED v2.2 (FIXED)</h2>
+          <h2 className="text-xl font-bold text-primary">CREATION HUB: GLANCES LINKED v2.5 (MODERN & FIXED)</h2>
           <p className="text-sm opacity-80">Stats loaded from Server (192.168.1.220)</p>
         </div>
         <ServerStats />
@@ -128,8 +129,15 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* Row 7: Disk Storage (Full Width, No Activity Log) */}
-      <DiskStorageBar />
+      {/* Row 7: Activity Log + Disk Storage */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <ActivityLog limit={10} />
+        </div>
+        <div className="lg:col-span-1">
+          <DiskStorageBar />
+        </div>
+      </div>
     </div>
   );
 };
