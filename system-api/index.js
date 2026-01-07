@@ -437,7 +437,16 @@ app.post('/api/system/wireguard/toggle', (req, res) => {
 // GET - WireGuard status (quick check)
 app.get('/api/system/wireguard/status', async (req, res) => {
     const iface = req.query.interface || 'wg0';
-    const safeName = iface.replace(/[^a-zA-Z0-9_-]/g, '');
+
+    // SECURITY: Strict allowlist validation - only alphanumeric and single hyphen
+    if (!/^wg[0-9]{1,2}$/.test(iface)) {
+        return res.status(400).json({
+            success: false,
+            error: 'Invalid interface name. Must match pattern: wg0-wg99'
+        });
+    }
+
+    const safeName = iface; // Already validated
 
     try {
         // Check if interface is up (using nsenter to access host network namespace)
