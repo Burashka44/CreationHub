@@ -25,7 +25,7 @@ const ActivityLog = ({ limit = 20, className, hideHeader = false }: ActivityLogP
     const { data } = await (supabase as any)
       .from('activity_logs')
       .select('*')
-      .order('created_at', { ascending: false })
+      .order('timestamp', { ascending: false })
       .limit(limit);
 
     if (data) setActivities(data);
@@ -33,7 +33,7 @@ const ActivityLog = ({ limit = 20, className, hideHeader = false }: ActivityLogP
 
   useEffect(() => {
     fetchActivity();
-    const interval = setInterval(fetchActivity, 5000);
+    const interval = setInterval(fetchActivity, 10000);
     return () => clearInterval(interval);
   }, [limit]);
 
@@ -86,7 +86,7 @@ const ActivityLog = ({ limit = 20, className, hideHeader = false }: ActivityLogP
                   </span>
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(item.created_at || new Date()), {
+                  {formatDistanceToNow(new Date(item.timestamp || new Date()), {
                     addSuffix: true,
                     locale: ru,
                   })}

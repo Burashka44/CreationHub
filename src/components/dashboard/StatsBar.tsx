@@ -43,7 +43,7 @@ const StatsBar = () => {
     };
 
     fetchMetrics();
-    const metricInterval = setInterval(fetchMetrics, 5000);
+    const metricInterval = setInterval(fetchMetrics, 30000);
 
     const fetchData = async () => {
       try {
@@ -66,7 +66,7 @@ const StatsBar = () => {
       }
     };
     fetchData();
-    const interval = setInterval(fetchData, 60000); // Update every minute
+    const interval = setInterval(fetchData, 30000); // Update every 30s
     return () => {
       clearInterval(interval);
       clearInterval(metricInterval);

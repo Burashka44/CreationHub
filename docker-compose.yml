@@ -42,7 +42,7 @@ services:
     container_name: creationhub_api
     # SECURITY: Internal only - access via nginx proxy /api/v1/
     ports:
-      - "127.0.0.1:3000:3000"  # SECURITY: Localhost only
+      - "0.0.0.0:3000:3000"  # LAN access enabled
     environment:
       PGRST_DB_URI: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@creationhub_postgres:5432/${POSTGRES_DB}"
       PGRST_DB_SCHEMA: public
@@ -95,15 +95,15 @@ services:
     cap_add:
       - NET_ADMIN
       - SYS_ADMIN
+    env_file: .env
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /etc/os-release:/host-os-release:ro
       - /proc:/host-proc:ro
       - /sys:/host-sys:ro
       - /etc/wireguard:/etc/wireguard
-      - ./volumes/backups:/backups:ro
-      - ./volumes/backups:/backups
-      - ./system-api/data:/app/data
+      # Mount real backup disk directly (not symlink for cleaner mount)
+      - /home/inno/compose_ARCHIVED_DO_NOT_USE/backups:/backups
     environment:
       - PORT=9191
       - WG_CONFIG_DIR=/etc/wireguard
@@ -129,7 +129,7 @@ services:
     restart: always
     runtime: nvidia
     ports:
-      - "127.0.0.1:11434:11434"  # SECURITY: Localhost only
+      - "0.0.0.0:11434:11434"  # LAN access enabled
     volumes:
       - ${AI_DATA_PATH:-./ai_data}:/root/.ollama
     environment:
@@ -168,8 +168,8 @@ services:
     container_name: creationhub_ai_transcribe
     hostname: creationhub-ai-transcribe
     restart: always
-    # ports:
-    #   - "8000:8000"
+    ports:
+      - "8000:8000"
     environment:
       - WHISPER__MODEL=Systran/faster-whisper-large-v3
       - WHISPER__INFERENCE_DEVICE=cuda
@@ -191,8 +191,8 @@ services:
     container_name: creationhub_ai_translate
     hostname: creationhub-ai-translate
     restart: always
-    # ports:
-    #   - "5000:5000"
+    ports:
+      - "5000:5000"
     environment:
       - LT_PORT=5000
       - LT_HOST=0.0.0.0
@@ -209,8 +209,8 @@ services:
     container_name: creationhub_ai_tts
     hostname: creationhub-ai-tts
     restart: always
-    # ports:
-    #   - "5500:5500"
+    ports:
+      - "5500:5500"
     command:
       - --no-espeak
       - --language
@@ -298,13 +298,211 @@ services:
     container_name: creationhub_adminer
     restart: always
     ports:
-      - "127.0.0.1:8083:8080"  # SECURITY: Localhost only (reverse proxy recommended)
+      - "0.0.0.0:8083:8080"  # LAN access enabled
     networks:
       - default
       - creationhub-backend
 
+
+
+
+
+  # ===========================================
+  # Restored Admin Tools
+  # ===========================================
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: creationhub_portainer
+    restart: always
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - default
+      - creationhub-backend
+
+  npm:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: creationhub_npm
+    restart: always
+    ports:
+      - "80:80"
+      - "81:81"
+      - "443:443"
+    volumes:
+      - ./volumes/npm/data:/data
+      - ./volumes/npm/letsencrypt:/etc/letsencrypt
+    networks:
+      - default
+      - creationhub-backend
+
+  filebrowser:
+    image: filebrowser/filebrowser
+    container_name: creationhub_filebrowser
+    restart: always
+    ports:
+      - "8082:80"
+    volumes:
+      - ./volumes/media:/srv
+      - ./volumes/filebrowser/filebrowser.db:/database.db
+    networks:
+      - default
+      - creationhub-backend
+
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: creationhub_dozzle
+    restart: always
+    ports:
+      - "8888:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - default
+      - creationhub-backend
+
+
+  # ===========================================
+  # Restored Missing Services
+  # ===========================================
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: creationhub_n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    volumes:
+      - ./volumes/n8n:/home/node/.n8n
+    networks:
+      - default
+      - creationhub-backend
+
+  browserless:
+    image: browserless/chrome:latest
+    container_name: creationhub_browserless
+    restart: always
+    ports:
+      - "3002:3000"
+    networks:
+      - default
+      - creationhub-backend
+
+  rsshub:
+    image: diygod/rsshub:latest
+    container_name: creationhub_rsshub
+    restart: always
+    ports:
+      - "1200:1200"
+    environment:
+      - CACHE_TYPE=redis
+      - REDIS_URL=redis://creationhub_redis:6379/
+    networks:
+      - default
+      - creationhub-backend
+
+  nextcloud:
+    image: nextcloud:apache
+    container_name: creationhub_nextcloud
+    restart: always
+    ports:
+      - "8081:80"
+    volumes:
+      - ./volumes/nextcloud/data:/var/www/html
+    networks:
+      - default
+      - creationhub-backend
+
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: creationhub_homepage
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./volumes/homepage/config:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - default
+      - creationhub-backend
+
+  healthchecks:
+    image: linuxserver/healthchecks:latest
+    container_name: creationhub_healthchecks
+    restart: always
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./volumes/healthchecks:/config
+    environment:
+      - PUID=911
+      - PGID=911
+      - SITE_ROOT=http://192.168.1.220:8001
+      - SITE_NAME=CreationHub Healthchecks
+      - SUPERUSER_EMAIL=admin@localhost
+      - SUPERUSER_PASSWORD=${HEALTHCHECKS_PASSWORD:-changeme}
+    networks:
+      - default
+      - creationhub-backend
+
+  wireguard-ui:
+    image: ngoduykhanh/wireguard-ui:latest
+    container_name: creationhub_wireguard_ui
+    restart: always
+    ports:
+      - "5003:5000"
+    volumes:
+      - /etc/wireguard:/etc/wireguard
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - default
+
+  # AI Extras
+  iopaint:
+    image: nginx:alpine # Placeholder while sanster/iopaint is unavailable
+    container_name: creationhub_iopaint
+    restart: always
+    ports:
+      - "8585:80"
+    # command: start --model=lama --device=cpu --port=8080
+    volumes:
+         - ./volumes/ai/iopaint:/data
+    networks:
+      - default
+      - creationhub-backend
+
+  # Placeholder for complex custom services to ensure DB entries have targets
+  sam-2:
+    image: nginx:alpine
+    container_name: creationhub_sam2
+    restart: always
+    ports:
+      - "8787:80"
+    networks:
+      - default
+      - creationhub-backend
+
+  video-processor:
+    image: nginx:alpine
+    container_name: creationhub_video_processor
+    restart: always
+    ports:
+      - "8686:80"
+    networks:
+      - default
+      - creationhub-backend
+volumes:
+  portainer_data:
+    external: true
+    name: dashboard_portainer_data
+
 networks:
   creationhub-backend:
+    name: creationhub-backend
     external: true
-
+  default:
+    name: dashboard_default
 

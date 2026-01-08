@@ -90,7 +90,7 @@ const NetworkMonitor = () => {
     };
 
     fetchNet();
-    const interval = setInterval(fetchNet, 2000);
+    const interval = setInterval(fetchNet, 10000);
     return () => clearInterval(interval);
   }, []);
 

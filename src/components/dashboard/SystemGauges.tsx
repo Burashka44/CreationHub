@@ -86,7 +86,7 @@ const SystemGauges = () => {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 2000);
+    const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -146,7 +146,7 @@ const SystemGauges = () => {
               >
                 <span className="text-sm text-foreground truncate mr-2" title={process.name}>{process.name}</span>
                 <span className={`text-sm font-medium ${process.usage < 5 ? 'text-emerald-400' :
-                    process.usage < 15 ? 'text-yellow-400' : 'text-orange-400'
+                  process.usage < 15 ? 'text-yellow-400' : 'text-orange-400'
                   }`}>
                   {process.usage.toFixed(1)}%
                 </span>

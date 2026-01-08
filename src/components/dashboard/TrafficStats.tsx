@@ -71,7 +71,7 @@ const TrafficStats = () => {
     };
 
     fetchTraffic();
-    const interval = setInterval(fetchTraffic, 2000);
+    const interval = setInterval(fetchTraffic, 10000);
     return () => clearInterval(interval);
   }, []);
 

@@ -105,7 +105,7 @@ const GpuMonitor = () => {
     };
 
     fetchGpu();
-    const interval = setInterval(fetchGpu, 5000);
+    const interval = setInterval(fetchGpu, 10000);
     return () => clearInterval(interval);
   }, []);
 

@@ -102,7 +102,7 @@ const DiskStorageBar = () => {
     };
 
     fetchDisks();
-    const interval = setInterval(fetchDisks, 60000);
+    const interval = setInterval(fetchDisks, 30000);
     return () => clearInterval(interval);
   }, []);
 

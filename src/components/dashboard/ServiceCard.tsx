@@ -43,9 +43,42 @@ const ServiceCard = ({ name, port, status }: ServiceCardProps) => {
     }
   };
 
-  // FIX: Use current hostname instead of hardcoded IP
-  const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-  const link = `http://${host}:${port}`;
+  // Map services to their correct URLs
+  const getServiceUrl = (serviceName: string, port: number) => {
+    const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+
+    // Special URL mappings
+    const specialUrls: Record<string, string> = {
+      'Adminer': `http://${host}:8083`,
+      'NPM': `http://${host}:81`,
+      'Nginx Proxy Manager': `http://${host}:81`,
+      'File Browser': `http://${host}:8082`,
+      'FileBrowser': `http://${host}:8082`,
+      'Dozzle': `http://${host}:8888`,
+      'n8n': `http://${host}:5678`,
+      'Nextcloud': `http://${host}:8081`,
+      'Healthchecks': `http://${host}:8001`,
+      'RSShub': `http://${host}:1200`,
+      'RSSHub': `http://${host}:1200`,
+      'Portainer': `http://${host}:9000`,
+      'IOPaint': `http://${host}:8585`,
+      'Video Processor': `http://${host}:8686`,
+      'SAM 2': `http://${host}:8787`,
+      'VPN Manager': `http://${host}:5001`,
+      'WireGuard UI': `http://${host}:5003`,
+      'Browserless': `http://${host}:3002`,
+    };
+
+    // Check if service has special URL
+    if (specialUrls[serviceName]) {
+      return specialUrls[serviceName];
+    }
+
+    // Default: use port
+    return `http://${host}:${port}`;
+  };
+
+  const link = getServiceUrl(name, port);
 
   return (
     <a href={link} target="_blank" rel="noopener noreferrer" className="block h-full">
@@ -73,7 +106,7 @@ const ServiceCard = ({ name, port, status }: ServiceCardProps) => {
         </h3>
 
         <div className="flex items-center justify-between text-xs">
-          <span className="font-mono text-muted-foreground">{host}:{port}</span>
+          <span className="font-mono text-muted-foreground">{link.replace('http://', '')}</span>
           <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
         </div>
       </div>

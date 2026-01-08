@@ -96,7 +96,7 @@ const QuickActions = () => {
   };
 
   return (
-    <div className="dashboard-card">
+    <div className="dashboard-card h-full">
       <div className="flex items-center gap-2 mb-4">
         <Zap className="h-5 w-5 text-warning" />
         <h3 className="font-semibold text-foreground">{t('quickActions')}</h3>

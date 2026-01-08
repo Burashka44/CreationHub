@@ -656,9 +656,15 @@ const ServicesPage = () => {
         {filteredServices.map((service) => (
           <Card
             key={service.id}
+            onClick={() => {
+              if (service.category !== 'core') {
+                window.open(getServiceUrl(service), '_blank');
+              }
+            }}
             className={cn(
-              "border-border/50 bg-card/50 backdrop-blur hover:bg-card/80 hover:shadow-lg hover:scale-[1.02] transition-all duration-300 group cursor-pointer",
-              !service.is_active && "opacity-60"
+              "border-border/50 bg-card/50 backdrop-blur transition-all duration-300 group",
+              !service.is_active && "opacity-60",
+              service.category !== 'core' ? "hover:bg-card/80 hover:shadow-lg hover:scale-[1.02] cursor-pointer" : "cursor-default"
             )}
           >
             <CardContent className="pt-4">
@@ -709,12 +715,12 @@ const ServicesPage = () => {
                 <code className="text-xs font-mono text-muted-foreground">
                   :{service.port}
                 </code>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                   <Button
                     size="icon"
                     variant="ghost"
                     className="h-7 w-7"
-                    onClick={() => openStatsDialog(service)}
+                    onClick={(e) => { e.stopPropagation(); openStatsDialog(service); }}
                   >
                     <TrendingUp className="h-3.5 w-3.5" />
                   </Button>
@@ -722,7 +728,7 @@ const ServicesPage = () => {
                     size="icon"
                     variant="ghost"
                     className="h-7 w-7"
-                    onClick={() => openEditDialog(service)}
+                    onClick={(e) => { e.stopPropagation(); openEditDialog(service); }}
                   >
                     <Edit2 className="h-3.5 w-3.5" />
                   </Button>
@@ -730,21 +736,31 @@ const ServicesPage = () => {
                     size="icon"
                     variant="ghost"
                     className="h-7 w-7 text-destructive"
-                    onClick={() => handleDeleteService(service.id)}
+                    onClick={(e) => { e.stopPropagation(); handleDeleteService(service.id); }}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                   <Button
-                    size="sm"
+                    size="icon"
                     variant="ghost"
-                    className="gap-1.5 h-7"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      window.open(getServiceUrl(service), '_blank');
-                    }}
+                    className="h-7 w-7 text-destructive"
+                    onClick={(e) => { e.stopPropagation(); handleDeleteService(service.id); }}
                   >
-                    <ExternalLink className="h-3.5 w-3.5" />
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
+                  {service.category !== 'core' && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="gap-1.5 h-7"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(getServiceUrl(service), '_blank');
+                      }}
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>

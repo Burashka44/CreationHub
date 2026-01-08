@@ -116,7 +116,7 @@ const ResourceMeters = () => {
     };
 
     fetchMetrics();
-    const interval = setInterval(fetchMetrics, 3000);
+    const interval = setInterval(fetchMetrics, 10000);
     return () => clearInterval(interval);
   }, []);
 

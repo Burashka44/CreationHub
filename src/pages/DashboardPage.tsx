@@ -106,7 +106,7 @@ const DashboardPage = () => {
       <TrafficStats />
 
       {/* Row 5: Quick Actions + Security + Backup */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
         <QuickActions />
         <SecurityStatus />
         <BackupStatus />

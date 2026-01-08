@@ -31,7 +31,7 @@ export const SERVICES: ServiceConfig[] = [
   { id: 'portainer', name: 'Portainer', description: 'Управление Docker контейнерами через веб-интерфейс', category: 'admin', port: 9000, icon: 'Container', color: 'sky', get externalUrl() { return buildUrl(this.port); } },
   { id: 'grafana', name: 'Grafana', description: 'Визуализация метрик и создание дашбордов мониторинга', category: 'admin', port: 3001, icon: 'BarChart3', color: 'orange', get externalUrl() { return buildUrl(this.port); } },
   { id: 'dozzle', name: 'Dozzle', description: 'Просмотр логов контейнеров в реальном времени', category: 'admin', port: 8888, icon: 'ScrollText', color: 'gray', get externalUrl() { return buildUrl(this.port); } },
-  { id: 'adminer', name: 'Adminer', description: 'Веб-интерфейс для управления базами данных PostgreSQL', category: 'admin', port: 8083, icon: 'Database', color: 'indigo', get externalUrl() { return buildUrl(this.port); } },
+  { id: 'adminer', name: 'Adminer', description: 'Веб-интерфейс для управления базами данных PostgreSQL', category: 'admin', port: 8083, icon: 'Database', color: 'indigo', externalUrl: '/adminer/' },
   { id: 'glances', name: 'Glances', description: 'Мониторинг системных ресурсов и производительности сервера', category: 'admin', port: 61208, icon: 'Activity', color: 'green', get externalUrl() { return buildUrl(this.port); } },
 
   // Automation
@@ -47,8 +47,7 @@ export const SERVICES: ServiceConfig[] = [
 
   // Network
   { id: 'npm', name: 'Nginx Proxy', description: 'Обратный прокси-сервер и SSL терминация для сервисов', category: 'network', port: 81, icon: 'Shield', color: 'green', get externalUrl() { return buildUrl(this.port); } },
-  { id: 'wireguard-ui', name: 'WireGuard UI', description: 'Веб-интерфейс управления WireGuard VPN конфигурациями', category: 'network', port: 5003, icon: 'Lock', color: 'purple', get externalUrl() { return buildUrl(this.port); } },
-  { id: 'vpn-manager', name: 'VPN Manager', description: 'Управление VPN туннелями и мониторинг подключений', category: 'network', port: 5001, icon: 'Network', color: 'violet', get externalUrl() { return buildUrl(this.port); } },
+  { id: 'wireguard-ui', name: 'WireGuard UI', description: 'WireGuard VPN управление', category: 'network', port: 5003, icon: 'Shield', color: 'purple', get externalUrl() { return buildUrl(this.port); } },
 
   // Core (no external UI)
   { id: 'postgres', name: 'PostgreSQL', description: 'Основная реляционная база данных системы CreationHub', category: 'core', port: 5432, icon: 'Database', color: 'blue' },

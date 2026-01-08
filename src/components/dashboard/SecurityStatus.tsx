@@ -24,10 +24,12 @@ const SecurityStatus = () => {
 
   useEffect(() => {
     const loadSecurityStatus = async () => {
-      // Load security settings from DB
-      const { data: settings } = await supabase
+      // Load security settings from DB - using actual column names
+      // Note: security_settings not in generated types, using type casting
+      const { data: settings } = await (supabase as any)
         .from('security_settings')
-        .select('setting_key, setting_value');
+        .select('ufw_status, fail2ban_status, ssh_port, last_check_at')
+        .single();
 
       // Load 2FA setting from app_settings
       const { data: appSettings } = await supabase
@@ -36,9 +38,6 @@ const SecurityStatus = () => {
         .eq('key', 'security');
 
       // Create a fresh copy of checks to update
-      // We re-initialize with default state to ensure clean slate (except maybe SSL which is consistent)
-      // Actually, better to copy from current state or default.
-      // Let's copy from defaults for simplicity in logic
       const newChecks: SecurityCheck[] = [
         { nameKey: 'firewall', label: 'UFW Firewall', status: 'unknown' },
         { nameKey: 'fail2ban', label: 'Fail2Ban', status: 'unknown' },
@@ -55,45 +54,46 @@ const SecurityStatus = () => {
         sslCheck.detail = isHttps ? 'Valid' : 'HTTP only';
       }
 
-      // Parse security settings if available
-      if (settings && settings.length > 0) {
-        settings.forEach((s: any) => {
-          if (s.setting_key === 'realtime' && s.setting_value) {
-            let val = s.setting_value;
-            if (typeof val === 'string') {
-              try {
-                val = JSON.parse(val);
-              } catch (e) {
-                console.error("JSON parse error", e);
-                return;
-              }
-            }
-
-            // UFW
-            const ufwCheck = newChecks.find(c => c.nameKey === 'firewall');
-            if (ufwCheck && val.ufw) {
-              ufwCheck.status = val.ufw.status === 'active' ? 'ok' : 'error';
-              ufwCheck.detail = val.ufw.status === 'active' ? `${val.ufw.rules || 0} rules` : 'Inactive';
-            }
-
-            // Fail2Ban
-            const f2bCheck = newChecks.find(c => c.nameKey === 'fail2ban');
-            if (f2bCheck && val.fail2ban) {
-              f2bCheck.status = val.fail2ban.status === 'active' ? 'ok' : 'warning';
-              f2bCheck.detail = val.fail2ban.status === 'active' ? `${val.fail2ban.jails || 0} jails` : 'Not running';
-              setBannedIps(val.fail2ban.banned || 0);
-            }
-
-            // Updates
-            const updCheck = newChecks.find(c => c.nameKey === 'updates');
-            if (updCheck && val.updates !== undefined) {
-              updCheck.status = val.updates === 0 ? 'ok' : 'warning';
-              updCheck.detail = val.updates === 0 ? 'Up to date' : `${val.updates} pending`;
-            }
+      // Parse security settings from direct DB columns
+      if (settings) {
+        // UFW Firewall
+        const ufwCheck = newChecks.find(c => c.nameKey === 'firewall');
+        if (ufwCheck) {
+          if (settings.ufw_status === 'active') {
+            ufwCheck.status = 'ok';
+            ufwCheck.detail = 'Active';
+          } else if (settings.ufw_status === 'inactive') {
+            ufwCheck.status = 'error';
+            ufwCheck.detail = 'Inactive';
+          } else {
+            ufwCheck.status = 'warning';
+            ufwCheck.detail = settings.ufw_status || 'Unknown';
           }
-        });
+        }
+
+        // Fail2Ban
+        const f2bCheck = newChecks.find(c => c.nameKey === 'fail2ban');
+        if (f2bCheck) {
+          if (settings.fail2ban_status === 'active') {
+            f2bCheck.status = 'ok';
+            f2bCheck.detail = 'Running';
+          } else if (settings.fail2ban_status === 'inactive') {
+            f2bCheck.status = 'warning';
+            f2bCheck.detail = 'Not running';
+          } else {
+            f2bCheck.status = 'warning';
+            f2bCheck.detail = settings.fail2ban_status || 'Unknown';
+          }
+        }
+
+        // Updates - set to unknown for now (no column in DB for this)
+        const updCheck = newChecks.find(c => c.nameKey === 'updates');
+        if (updCheck) {
+          updCheck.status = 'warning';
+          updCheck.detail = 'Check manually';
+        }
       } else {
-        // No settings found - likely recorder not running or first boot
+        // No settings found - likely first boot
         const ufwCheck = newChecks.find(c => c.nameKey === 'firewall');
         if (ufwCheck) { ufwCheck.detail = 'No Data'; ufwCheck.status = 'warning'; }
 
@@ -105,11 +105,14 @@ const SecurityStatus = () => {
       }
 
       // 2FA from app settings
-      if (appSettings && appSettings[0]?.value?.twoFactor !== undefined) {
-        const tfaCheck = newChecks.find(c => c.nameKey === '2fa');
-        if (tfaCheck) {
-          tfaCheck.status = appSettings[0].value.twoFactor ? 'ok' : 'warning';
-          tfaCheck.detail = appSettings[0].value.twoFactor ? 'Enabled' : 'Disabled';
+      if (appSettings && appSettings[0]?.value) {
+        const settingsValue = appSettings[0].value as any;
+        if (settingsValue.twoFactor !== undefined) {
+          const tfaCheck = newChecks.find(c => c.nameKey === '2fa');
+          if (tfaCheck) {
+            tfaCheck.status = settingsValue.twoFactor ? 'ok' : 'warning';
+            tfaCheck.detail = settingsValue.twoFactor ? 'Enabled' : 'Disabled';
+          }
         }
       }
 
@@ -126,7 +129,7 @@ const SecurityStatus = () => {
     loadSecurityStatus();
 
     // Refresh every 30 seconds
-    const interval = setInterval(loadSecurityStatus, 30000);
+    const interval = setInterval(loadSecurityStatus, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -147,7 +150,7 @@ const SecurityStatus = () => {
       : 'from-red-500 to-red-600';
 
   return (
-    <div className="dashboard-card">
+    <div className="dashboard-card flex flex-col h-full">
       <div className="flex items-center gap-2 mb-4">
         <ShieldCheck className="h-5 w-5 text-primary" />
         <h3 className="font-semibold text-foreground">{t('securityStatus')}</h3>
@@ -173,7 +176,7 @@ const SecurityStatus = () => {
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2 flex-1">
         {checks.map((check) => (
           <div
             key={check.nameKey}
