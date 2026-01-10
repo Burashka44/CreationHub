@@ -42,7 +42,7 @@ services:
     container_name: creationhub_api
     # SECURITY: Internal only - access via nginx proxy /api/v1/
     ports:
-      - "127.0.0.1:3000:3000"  # LAN access enabled
+      - "0.0.0.0:3000:3000"  # LAN access enabled
     environment:
       PGRST_DB_URI: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@creationhub_postgres:5432/${POSTGRES_DB}"
       PGRST_DB_SCHEMA: public
@@ -89,6 +89,8 @@ services:
     restart: always
     ports:
       - "9191:9191"
+    # Using pid: host and privileged for nsenter to access host network namespace
+    pid: host
     privileged: true
     cap_add:
       - NET_ADMIN
@@ -109,7 +111,6 @@ services:
       - RESOLV_CONF_PATH=/host-resolv.conf
       - BACKUP_DIR=/backups
       - POSTGRES_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-Tarantul1310}@creationhub_postgres:5432/${POSTGRES_DB:-postgres}
-
     networks:
       - default
       - creationhub-backend
@@ -297,7 +298,7 @@ services:
     container_name: creationhub_adminer
     restart: always
     ports:
-      - "127.0.0.1:8083:8080"  # LAN access enabled
+      - "0.0.0.0:8083:8080"  # LAN access enabled
     networks:
       - default
       - creationhub-backend

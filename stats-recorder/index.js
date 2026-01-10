@@ -26,6 +26,17 @@ async function initDB() {
     net_rx_total bigint,
     net_tx_total bigint
 );
+
+      CREATE TABLE IF NOT EXISTS disk_snapshots (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          name TEXT,
+          mount_point TEXT,
+          used_bytes BIGINT,
+          total_bytes BIGINT,
+          percent FLOAT,
+          fs_type TEXT,
+          timestamp TIMESTAMPTZ DEFAULT now()
+      );
 `);
 
         console.log('Schema initialized.');

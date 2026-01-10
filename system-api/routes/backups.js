@@ -71,7 +71,7 @@ router.get('/list', (req, res) => {
         // Filter: Only show directories >1GB, keep all individual SQL files
         allBackups = allBackups.filter(backup => {
             if (backup.type === 'directory') {
-                return backup.size > 1073741824; // >1GB
+                return backup.size > 1048576; // >1MB (show optimized backups too)
             }
             return true; // Keep all files
         });

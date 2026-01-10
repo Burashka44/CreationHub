@@ -1,0 +1,798 @@
+{
+  "Command": "\"/docker-entrypoint.…\"",
+  "CreatedAt": "2026-01-08 18:16:19 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "healthy",
+  "ID": "bbafbfbe6d75",
+  "Image": "dashboard-creationhub",
+  "Labels": "com.docker.compose.config-hash=182e6ee1fcb7b54656c7410e96f361574b584e93ca8ae0ccaca392e0d1eeff50,com.docker.compose.oneoff=False,com.docker.compose.replace=creationhub,maintainer=NGINX Docker Maintainers <docker-maint@nginx.com>,com.docker.compose.container-number=1,com.docker.compose.depends_on=postgrest:service_started:false,com.docker.compose.image=sha256:016fda7e19916bf23c3ec5a7f34b256bbc3c057aad6e3a781a5111f93a8c4c65,com.docker.compose.project=dashboard,com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml,com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard,com.docker.compose.service=creationhub,com.docker.compose.version=5.0.0",
+  "LocalVolumes": "0",
+  "Mounts": "",
+  "Name": "creationhub",
+  "Names": "creationhub",
+  "Networks": "dashboard_default,creationhub-backend",
+  "Ports": "0.0.0.0:7777->80/tcp, [::]:7777->80/tcp",
+  "Project": "dashboard",
+  "Publishers": [
+    {
+      "URL": "0.0.0.0",
+      "TargetPort": 80,
+      "PublishedPort": 7777,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "::",
+      "TargetPort": 80,
+      "PublishedPort": 7777,
+      "Protocol": "tcp"
+    }
+  ],
+  "RunningFor": "17 hours ago",
+  "Service": "creationhub",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 17 hours (healthy)"
+}
+{
+  "Command": "\"entrypoint.sh docke…\"",
+  "CreatedAt": "2026-01-08 17:56:51 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "",
+  "ID": "6a892bca8300",
+  "Image": "adminer",
+  "Labels": "com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:ae1d4d7774c544d084e42887a318e6b0f47ad8c60fe1661d9278ef169c8b4eaa,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml,com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard,com.docker.compose.replace=creationhub_adminer,com.docker.compose.service=adminer,com.docker.compose.config-hash=7a7a07c1e9702af92df53ddcbd3d81af0cbab74496d85411f0c3371407650cbd,com.docker.compose.project=dashboard,com.docker.compose.version=5.0.0",
+  "LocalVolumes": "0",
+  "Mounts": "",
+  "Name": "creationhub_adminer",
+  "Names": "creationhub_adminer",
+  "Networks": "creationhub-backend,dashboard_default",
+  "Ports": "0.0.0.0:8083->8080/tcp",
+  "Project": "dashboard",
+  "Publishers": [
+    {
+      "URL": "0.0.0.0",
+      "TargetPort": 8080,
+      "PublishedPort": 8083,
+      "Protocol": "tcp"
+    }
+  ],
+  "RunningFor": "18 hours ago",
+  "Service": "adminer",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 18 hours"
+}
+{
+  "Command": "\"docker-entrypoint.s…\"",
+  "CreatedAt": "2026-01-07 12:24:17 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "",
+  "ID": "a67340e02fa8",
+  "Image": "dashboard-ai-gateway",
+  "Labels": "com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:c1db741ff4e1f56b7b128271244ee15acd769cf13068e695e4134496d38b4d40,com.docker.compose.project=dashboard,com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml,com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard,com.docker.compose.replace=creationhub_ai_gateway,com.docker.compose.oneoff=False,com.docker.compose.service=ai-gateway,com.docker.compose.version=5.0.0,com.docker.compose.config-hash=4bf3494f64367aa136215055c7d4a1f6f1a993cba29c99eb8155078b006478ae",
+  "LocalVolumes": "0",
+  "Mounts": "/var/run/docke…",
+  "Name": "creationhub_ai_gateway",
+  "Names": "creationhub_ai_gateway",
+  "Networks": "creationhub-backend,dashboard_default",
+  "Ports": "0.0.0.0:9292->9292/tcp, [::]:9292->9292/tcp",
+  "Project": "dashboard",
+  "Publishers": [
+    {
+      "URL": "0.0.0.0",
+      "TargetPort": 9292,
+      "PublishedPort": 9292,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "::",
+      "TargetPort": 9292,
+      "PublishedPort": 9292,
+      "Protocol": "tcp"
+    }
+  ],
+  "RunningFor": "47 hours ago",
+  "Service": "ai-gateway",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 47 hours"
+}
+{
+  "Command": "\"/opt/nvidia/nvidia_…\"",
+  "CreatedAt": "2026-01-08 18:17:50 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "",
+  "ID": "b096265d2a17",
+  "Image": "fedirz/faster-whisper-server:latest-cuda",
+  "Labels": "com.docker.compose.version=5.0.0,org.opencontainers.image.version=22.04,maintainer=NVIDIA CORPORATION <cudatools@nvidia.com>,org.opencontainers.image.ref.name=ubuntu,com.docker.compose.config-hash=39be6a9ce07afb6637f8bb22ba7dc3c1b4a3de5d565b31536c10660ad87c31a2,com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard,com.docker.compose.container-number=1,com.docker.compose.project=dashboard,com.docker.compose.replace=creationhub_ai_transcribe,com.docker.compose.depends_on=,com.docker.compose.image=sha256:0b64050ad0b9244745746b652473ee42a8d5454d501877a252c3e65f631ffc99,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml,com.docker.compose.service=ai-transcribe,com.nvidia.cudnn.version=8.9.6.50",
+  "LocalVolumes": "0",
+  "Mounts": "/home/inno/.ge…",
+  "Name": "creationhub_ai_transcribe",
+  "Names": "creationhub_ai_transcribe",
+  "Networks": "dashboard_default",
+  "Ports": "0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp",
+  "Project": "dashboard",
+  "Publishers": [
+    {
+      "URL": "0.0.0.0",
+      "TargetPort": 8000,
+      "PublishedPort": 8000,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "::",
+      "TargetPort": 8000,
+      "PublishedPort": 8000,
+      "Protocol": "tcp"
+    }
+  ],
+  "RunningFor": "17 hours ago",
+  "Service": "ai-transcribe",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 17 hours"
+}
+{
+  "Command": "\"/bin/postgrest\"",
+  "CreatedAt": "2026-01-08 17:56:51 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "",
+  "ID": "4497e8426481",
+  "Image": "postgrest/postgrest",
+  "Labels": "com.docker.compose.config-hash=a4420eade8ac45cc111dce5776f0fa972b9bb8de16f38b627b1b8e52e2a073b4,com.docker.compose.depends_on=,com.docker.compose.project=dashboard,com.docker.compose.version=5.0.0,com.docker.compose.container-number=1,com.docker.compose.image=sha256:7c5840727ad683b0fdbfb9810930665b34f8b44884a4dc740aa8844748a2b85e,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml,com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard,com.docker.compose.replace=creationhub_api,com.docker.compose.service=postgrest",
+  "LocalVolumes": "0",
+  "Mounts": "",
+  "Name": "creationhub_api",
+  "Names": "creationhub_api",
+  "Networks": "creationhub-backend,dashboard_default",
+  "Ports": "0.0.0.0:3000->3000/tcp",
+  "Project": "dashboard",
+  "Publishers": [
+    {
+      "URL": "0.0.0.0",
+      "TargetPort": 3000,
+      "PublishedPort": 3000,
+      "Protocol": "tcp"
+    }
+  ],
+  "RunningFor": "18 hours ago",
+  "Service": "postgrest",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 18 hours"
+}
+{
+  "Command": "\"./start.sh\"",
+  "CreatedAt": "2026-01-08 08:44:55 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "",
+  "ID": "d51276efa20f",
+  "Image": "browserless/chrome:latest",
+  "Labels": "com.docker.compose.config-hash=c094ad5b826569f2b75b1af5fee8b4ce6254ee2e620fe61fbf8e026a2c414458,com.docker.compose.depends_on=,com.docker.compose.oneoff=False,com.docker.compose.project=dashboard,com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml,com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard,org.opencontainers.image.version=22.04,com.docker.compose.container-number=1,com.docker.compose.image=sha256:57d19e414d9fe4ae9d2ab12ba768c97f38d51246c5b31af55a009205c136012f,com.docker.compose.service=browserless,com.docker.compose.version=5.0.0,org.opencontainers.image.ref.name=ubuntu",
+  "LocalVolumes": "0",
+  "Mounts": "",
+  "Name": "creationhub_browserless",
+  "Names": "creationhub_browserless",
+  "Networks": "creationhub-backend,dashboard_default",
+  "Ports": "0.0.0.0:3002->3000/tcp, [::]:3002->3000/tcp",
+  "Project": "dashboard",
+  "Publishers": [
+    {
+      "URL": "0.0.0.0",
+      "TargetPort": 3000,
+      "PublishedPort": 3002,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "::",
+      "TargetPort": 3000,
+      "PublishedPort": 3002,
+      "Protocol": "tcp"
+    }
+  ],
+  "RunningFor": "27 hours ago",
+  "Service": "browserless",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 27 hours"
+}
+{
+  "Command": "\"/dozzle\"",
+  "CreatedAt": "2026-01-07 20:54:31 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "",
+  "ID": "cbe9d9102530",
+  "Image": "amir20/dozzle:latest",
+  "Labels": "org.opencontainers.image.licenses=MIT,org.opencontainers.image.title=dozzle,org.opencontainers.image.version=v8.14.12,com.docker.compose.depends_on=,com.docker.compose.oneoff=False,com.docker.compose.version=5.0.0,org.opencontainers.image.created=2025-12-14T16:58:48.812Z,org.opencontainers.image.revision=d630056a61752fd44cc3693232806b6b27758336,org.opencontainers.image.source=https://github.com/amir20/dozzle,org.opencontainers.image.url=https://github.com/amir20/dozzle,com.docker.compose.config-hash=f88fe73b1c9deda01a99aef783f9ceee0153558b775cf24e45829c1bde53ad05,com.docker.compose.image=sha256:0df89c904da71e94a0c9ed3c89a890f01488321b5f10ac1e0c0bedcead9af6e4,com.docker.compose.project=dashboard,com.docker.compose.container-number=1,com.docker.compose.service=dozzle,org.opencontainers.image.description=Realtime log viewer for containers.  Supports Docker, Swarm and K8s.,com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml,com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard",
+  "LocalVolumes": "0",
+  "Mounts": "/var/run/docke…",
+  "Name": "creationhub_dozzle",
+  "Names": "creationhub_dozzle",
+  "Networks": "dashboard_default,creationhub-backend",
+  "Ports": "0.0.0.0:8888->8080/tcp, [::]:8888->8080/tcp",
+  "Project": "dashboard",
+  "Publishers": [
+    {
+      "URL": "0.0.0.0",
+      "TargetPort": 8080,
+      "PublishedPort": 8888,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "::",
+      "TargetPort": 8080,
+      "PublishedPort": 8888,
+      "Protocol": "tcp"
+    }
+  ],
+  "RunningFor": "39 hours ago",
+  "Service": "dozzle",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 39 hours"
+}
+{
+  "Command": "\"tini -- /init.sh\"",
+  "CreatedAt": "2026-01-07 20:54:31 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "healthy",
+  "ID": "c7d2894a0006",
+  "Image": "filebrowser/filebrowser",
+  "Labels": "org.opencontainers.image.created=2026-01-03T07:57:22Z,org.opencontainers.image.name=filebrowser,com.docker.compose.config-hash=b14f3924153e49075b0335f59c5745119342b0bbddd79dec53944fb018ac47a4,com.docker.compose.image=sha256:a22a0e9cddfd9a83e10a0d53453fb412e152693257065299a78481a75a8c90ce,org.opencontainers.image.source=https://github.com/filebrowser/filebrowser,com.docker.compose.depends_on=,com.docker.compose.project=dashboard,com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml,org.opencontainers.image.version=2.53.1,com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard,com.docker.compose.service=filebrowser,org.opencontainers.image.revision=94ec786d34aaaa924ed34719d4a972520f7fecb5,com.docker.compose.container-number=1,com.docker.compose.oneoff=False,com.docker.compose.version=5.0.0",
+  "LocalVolumes": "2",
+  "Mounts": "e53d7ce81ad1ca…,12cfafb946a746…,/home/inno/.ge…,/home/inno/.ge…",
+  "Name": "creationhub_filebrowser",
+  "Names": "creationhub_filebrowser",
+  "Networks": "dashboard_default,creationhub-backend",
+  "Ports": "0.0.0.0:8082->80/tcp, [::]:8082->80/tcp",
+  "Project": "dashboard",
+  "Publishers": [
+    {
+      "URL": "0.0.0.0",
+      "TargetPort": 80,
+      "PublishedPort": 8082,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "::",
+      "TargetPort": 80,
+      "PublishedPort": 8082,
+      "Protocol": "tcp"
+    }
+  ],
+  "RunningFor": "39 hours ago",
+  "Service": "filebrowser",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 39 hours (healthy)"
+}
+{
+  "Command": "\"/init\"",
+  "CreatedAt": "2026-01-08 18:07:26 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "",
+  "ID": "eb0d45342a7c",
+  "Image": "linuxserver/healthchecks:latest",
+  "Labels": "org.opencontainers.image.version=v3.13-ls325,com.docker.compose.oneoff=False,com.docker.compose.replace=creationhub_healthchecks,com.docker.compose.version=5.0.0,maintainer=thespad,org.opencontainers.image.source=https://github.com/linuxserver/docker-healthchecks,org.opencontainers.image.title=Healthchecks,com.docker.compose.project=dashboard,com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml,com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard,org.opencontainers.image.description=[Healthchecks](https://github.com/healthchecks/healthchecks) is a watchdog for your cron jobs. It's a web server that listens for pings from your cron jobs, plus a web interface.  ,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.service=healthchecks,org.opencontainers.image.documentation=https://docs.linuxserver.io/images/docker-healthchecks,org.opencontainers.image.licenses=GPL-3.0-only,org.opencontainers.image.ref.name=6f7875a87bb471d238b21925e246c8648739eaf7,org.opencontainers.image.revision=6f7875a87bb471d238b21925e246c8648739eaf7,org.opencontainers.image.url=https://github.com/linuxserver/docker-healthchecks/packages,build_version=Linuxserver.io version:- v3.13-ls325 Build-date:- 2026-01-04T21:22:25+00:00,com.docker.compose.config-hash=8ada588424ebdbbfb31c38cb89e3b7d7b93cd5a57186ebe2c53ab1a40597bcb7,com.docker.compose.image=sha256:d9c45c77e81e64204a87552596ede21efa7a36e09ff8c3631ea918396ddfbd48,org.opencontainers.image.authors=linuxserver.io,org.opencontainers.image.created=2026-01-04T21:22:25+00:00,org.opencontainers.image.vendor=linuxserver.io",
+  "LocalVolumes": "0",
+  "Mounts": "/home/inno/.ge…",
+  "Name": "creationhub_healthchecks",
+  "Names": "creationhub_healthchecks",
+  "Networks": "creationhub-backend,dashboard_default",
+  "Ports": "0.0.0.0:8001->8000/tcp, [::]:8001->8000/tcp",
+  "Project": "dashboard",
+  "Publishers": [
+    {
+      "URL": "0.0.0.0",
+      "TargetPort": 8000,
+      "PublishedPort": 8001,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "::",
+      "TargetPort": 8000,
+      "PublishedPort": 8001,
+      "Protocol": "tcp"
+    }
+  ],
+  "RunningFor": "17 hours ago",
+  "Service": "healthchecks",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 17 hours"
+}
+{
+  "Command": "\"/docker-entrypoint.…\"",
+  "CreatedAt": "2026-01-08 08:44:55 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "",
+  "ID": "020c678b5783",
+  "Image": "nginx:alpine",
+  "Labels": "com.docker.compose.config-hash=0886865678c94651dd1e09f8255743cfba0ee9607ba94c6d39460528e4a51646,com.docker.compose.container-number=1,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml,com.docker.compose.service=iopaint,maintainer=NGINX Docker Maintainers <docker-maint@nginx.com>,com.docker.compose.depends_on=,com.docker.compose.image=sha256:8491795299c8e739b7fcc6285d531d9812ce2666e07bd3dd8db00020ad132295,com.docker.compose.project=dashboard,com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard,com.docker.compose.version=5.0.0",
+  "LocalVolumes": "0",
+  "Mounts": "/home/inno/.ge…",
+  "Name": "creationhub_iopaint",
+  "Names": "creationhub_iopaint",
+  "Networks": "dashboard_default,creationhub-backend",
+  "Ports": "0.0.0.0:8585->80/tcp, [::]:8585->80/tcp",
+  "Project": "dashboard",
+  "Publishers": [
+    {
+      "URL": "0.0.0.0",
+      "TargetPort": 80,
+      "PublishedPort": 8585,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "::",
+      "TargetPort": 80,
+      "PublishedPort": 8585,
+      "Protocol": "tcp"
+    }
+  ],
+  "RunningFor": "27 hours ago",
+  "Service": "iopaint",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 27 hours"
+}
+{
+  "Command": "\"tini -- /docker-ent…\"",
+  "CreatedAt": "2026-01-08 08:44:55 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "",
+  "ID": "528cfc87f7d9",
+  "Image": "n8nio/n8n:latest",
+  "Labels": "org.opencontainers.image.source=https://github.com/n8n-io/n8n,com.docker.compose.config-hash=94b8aa035f9eea9f1688286801b4f093bd34d2976e6f871d69d84f9c36d58dd4,com.docker.compose.oneoff=False,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml,org.opencontainers.image.title=n8n,org.opencontainers.image.version=2.2.4,com.docker.compose.project=dashboard,com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard,org.opencontainers.image.description=Workflow Automation Tool,org.opencontainers.image.url=https://n8n.io,com.docker.compose.image=sha256:be4e8625e534b42edf8a987eb11040991cd26c1a50feb9c208da8dbb2e904a69,com.docker.compose.service=n8n,com.docker.compose.version=5.0.0",
+  "LocalVolumes": "0",
+  "Mounts": "/home/inno/.ge…",
+  "Name": "creationhub_n8n",
+  "Names": "creationhub_n8n",
+  "Networks": "creationhub-backend,dashboard_default",
+  "Ports": "0.0.0.0:5678->5678/tcp, [::]:5678->5678/tcp",
+  "Project": "dashboard",
+  "Publishers": [
+    {
+      "URL": "0.0.0.0",
+      "TargetPort": 5678,
+      "PublishedPort": 5678,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "::",
+      "TargetPort": 5678,
+      "PublishedPort": 5678,
+      "Protocol": "tcp"
+    }
+  ],
+  "RunningFor": "27 hours ago",
+  "Service": "n8n",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 24 hours"
+}
+{
+  "Command": "\"/entrypoint.sh apac…\"",
+  "CreatedAt": "2026-01-08 08:44:55 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "",
+  "ID": "c38f31f7db62",
+  "Image": "nextcloud:apache",
+  "Labels": "com.docker.compose.version=5.0.0,com.docker.compose.config-hash=cdef36c4af91bb39e6f07f770cefd85d3b366293ee63cb7e83598c9a88964600,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.project=dashboard,com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard,com.docker.compose.service=nextcloud,com.docker.compose.image=sha256:0ddb0f97ddd504f306a0fd1416b0fe65a875067ab31952d9b013a0c82e32d84e,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml",
+  "LocalVolumes": "0",
+  "Mounts": "/home/inno/.ge…",
+  "Name": "creationhub_nextcloud",
+  "Names": "creationhub_nextcloud",
+  "Networks": "creationhub-backend,dashboard_default",
+  "Ports": "0.0.0.0:8081->80/tcp, [::]:8081->80/tcp",
+  "Project": "dashboard",
+  "Publishers": [
+    {
+      "URL": "0.0.0.0",
+      "TargetPort": 80,
+      "PublishedPort": 8081,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "::",
+      "TargetPort": 80,
+      "PublishedPort": 8081,
+      "Protocol": "tcp"
+    }
+  ],
+  "RunningFor": "27 hours ago",
+  "Service": "nextcloud",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 27 hours"
+}
+{
+  "Command": "\"/init\"",
+  "CreatedAt": "2026-01-07 20:54:31 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "",
+  "ID": "db68fd086fb1",
+  "Image": "jc21/nginx-proxy-manager:latest",
+  "Labels": "org.label-schema.license=MIT,com.docker.compose.depends_on=,com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard,com.docker.compose.service=npm,maintainer=Jamie Curnow <jc@jc21.com>,org.label-schema.schema-version=1.0,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml,org.label-schema.description=Docker container for managing Nginx proxy hosts with a simple, powerful interface ,com.docker.compose.config-hash=78992fd248db0b0f3aae4b3356f8d549e370febf11dbc6ee6a94746ddbb739aa,com.docker.compose.container-number=1,com.docker.compose.version=5.0.0,org.label-schema.cmd=docker run --rm -ti jc21/nginx-proxy-manager:latest,org.label-schema.name=nginx-proxy-manager,org.label-schema.url=https://github.com/jc21/nginx-proxy-manager,org.label-schema.vcs-url=https://github.com/jc21/nginx-proxy-manager.git,com.docker.compose.image=sha256:cd9eba29ca132cb006729f2cb2660126453f84818c2f7d75963ad7b61ef696bd,com.docker.compose.project=dashboard",
+  "LocalVolumes": "0",
+  "Mounts": "/home/inno/.ge…,/home/inno/.ge…",
+  "Name": "creationhub_npm",
+  "Names": "creationhub_npm",
+  "Networks": "creationhub-backend,dashboard_default",
+  "Ports": "0.0.0.0:80-81->80-81/tcp, [::]:80-81->80-81/tcp, 0.0.0.0:443->443/tcp, [::]:443->443/tcp",
+  "Project": "dashboard",
+  "Publishers": [
+    {
+      "URL": "0.0.0.0",
+      "TargetPort": 80,
+      "PublishedPort": 80,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "::",
+      "TargetPort": 80,
+      "PublishedPort": 80,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "0.0.0.0",
+      "TargetPort": 81,
+      "PublishedPort": 81,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "::",
+      "TargetPort": 81,
+      "PublishedPort": 81,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "0.0.0.0",
+      "TargetPort": 443,
+      "PublishedPort": 443,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "::",
+      "TargetPort": 443,
+      "PublishedPort": 443,
+      "Protocol": "tcp"
+    }
+  ],
+  "RunningFor": "39 hours ago",
+  "Service": "npm",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 39 hours"
+}
+{
+  "Command": "\"/bin/ollama serve\"",
+  "CreatedAt": "2026-01-08 17:56:51 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "healthy",
+  "ID": "64194701490f",
+  "Image": "ollama/ollama:latest",
+  "Labels": "com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard,com.docker.compose.version=5.0.0,com.docker.compose.config-hash=b908e290ce06bce07929010a9cf12a3e0d5b92d27fe4fd14e112b0b4904d820c,com.docker.compose.depends_on=,com.docker.compose.image=sha256:2c9595c555fd70a28363489ac03bd5bf9e7c5bdf2890373c3a830ffd7252ce6d,com.docker.compose.oneoff=False,com.docker.compose.replace=creationhub_ollama,com.docker.compose.service=ollama,org.opencontainers.image.ref.name=ubuntu,org.opencontainers.image.version=24.04,com.docker.compose.container-number=1,com.docker.compose.project=dashboard,com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml",
+  "LocalVolumes": "0",
+  "Mounts": "/home/inno/.ge…",
+  "Name": "creationhub_ollama",
+  "Names": "creationhub_ollama",
+  "Networks": "dashboard_default",
+  "Ports": "0.0.0.0:11434->11434/tcp",
+  "Project": "dashboard",
+  "Publishers": [
+    {
+      "URL": "0.0.0.0",
+      "TargetPort": 11434,
+      "PublishedPort": 11434,
+      "Protocol": "tcp"
+    }
+  ],
+  "RunningFor": "18 hours ago",
+  "Service": "ollama",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 18 hours (healthy)"
+}
+{
+  "Command": "\"/portainer\"",
+  "CreatedAt": "2026-01-07 20:54:31 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "",
+  "ID": "895c54aa1d2d",
+  "Image": "portainer/portainer-ce:latest",
+  "Labels": "io.portainer.server=true,org.opencontainers.image.title=Portainer,com.docker.compose.config-hash=213efcab49def405790731656485ea42949eb970d632821e853e362313caa5e5,com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml,com.docker.compose.service=portainer,com.docker.desktop.extension.api.version=>= 0.2.2,com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard,org.opencontainers.image.description=Docker container management made simple, with the world’s most popular GUI-based container management platform.,org.opencontainers.image.vendor=Portainer.io,com.docker.compose.container-number=1,com.docker.compose.image=sha256:4786931dc7c588ff1c242696fe1eb3f7f9c5dafb136b6c713aff7745dd5bd407,com.docker.compose.oneoff=False,com.docker.desktop.extension.icon=https://portainer-io-assets.sfo2.cdn.digitaloceanspaces.com/logos/portainer.png,com.docker.extension.publisher-url=https://www.portainer.io,com.docker.extension.screenshots=[{\"alt\": \"screenshot one\", \"url\": \"https://portainer-io-assets.sfo2.digitaloceanspaces.com/screenshots/docker-extension-1.png\"},{\"alt\": \"screenshot two\", \"url\": \"https://portainer-io-assets.sfo2.digitaloceanspaces.com/screenshots/docker-extension-2.png\"},{\"alt\": \"screenshot three\", \"url\": \"https://portainer-io-assets.sfo2.digitaloceanspaces.com/screenshots/docker-extension-3.png\"},{\"alt\": \"screenshot four\", \"url\": \"https://portainer-io-assets.sfo2.digitaloceanspaces.com/screenshots/docker-extension-4.png\"},{\"alt\": \"screenshot five\", \"url\": \"https://portainer-io-assets.sfo2.digitaloceanspaces.com/screenshots/docker-extension-5.png\"},{\"alt\": \"screenshot six\", \"url\": \"https://portainer-io-assets.sfo2.digitaloceanspaces.com/screenshots/docker-extension-6.png\"},{\"alt\": \"screenshot seven\", \"url\": \"https://portainer-io-assets.sfo2.digitaloceanspaces.com/screenshots/docker-extension-7.png\"},{\"alt\": \"screenshot eight\", \"url\": \"https://portainer-io-assets.sfo2.digitaloceanspaces.com/screenshots/docker-extension-8.png\"},{\"alt\": \"screenshot nine\", \"url\": \"https://portainer-io-assets.sfo2.digitaloceanspaces.com/screenshots/docker-extension-9.png\"}],com.docker.compose.depends_on=,com.docker.compose.project=dashboard,com.docker.compose.version=5.0.0,com.docker.extension.additional-urls=[{\"title\":\"Website\",\"url\":\"https://www.portainer.io?utm_campaign=DockerCon&utm_source=DockerDesktop\"},{\"title\":\"Documentation\",\"url\":\"https://docs.portainer.io\"},{\"title\":\"Support\",\"url\":\"https://join.slack.com/t/portainer/shared_invite/zt-txh3ljab-52QHTyjCqbe5RibC2lcjKA\"}],com.docker.extension.detailed-description=<p data-renderer-start-pos=\"226\">Portainer&rsquo;s Docker Desktop extension gives you access to all of Portainer&rsquo;s rich management functionality within your docker desktop experience.</p><h2 data-renderer-start-pos=\"374\">With Portainer you can:</h2><ul><li>See all your running containers</li><li>Easily view all of your container logs</li><li>Console into containers</li><li>Easily deploy your code into containers using a simple form</li><li>Turn your YAML into custom templates for easy reuse</li></ul><h2 data-renderer-start-pos=\"660\">About Portainer&nbsp;</h2><p data-renderer-start-pos=\"680\">Portainer is the worlds&rsquo; most popular universal container management platform with more than 650,000 active monthly users. Portainer can be used to manage Docker Standalone, Kubernetes and Docker Swarm environments through a single common interface. It includes a simple GitOps automation engine and a Kube API.&nbsp;</p><p data-renderer-start-pos=\"1006\">Portainer Business Edition is our fully supported commercial grade product for business-wide use. It includes all the functionality that businesses need to manage containers at scale. Visit <a class=\"sc-jKJlTe dPfAtb\" href=\"http://portainer.io/\" title=\"http://Portainer.io\" data-renderer-mark=\"true\">Portainer.io</a> to learn more about Portainer Business and <a class=\"sc-jKJlTe dPfAtb\" href=\"http://portainer.io/take-3?utm_campaign=DockerCon&amp;utm_source=Docker%20Desktop\" title=\"http://portainer.io/take-3?utm_campaign=DockerCon&amp;utm_source=Docker%20Desktop\" data-renderer-mark=\"true\">get 3 free nodes.</a></p>",
+  "LocalVolumes": "1",
+  "Mounts": "dashboard_port…,/var/run/docke…",
+  "Name": "creationhub_portainer",
+  "Names": "creationhub_portainer",
+  "Networks": "dashboard_default,creationhub-backend",
+  "Ports": "8000/tcp, 9443/tcp, 0.0.0.0:9000->9000/tcp, [::]:9000->9000/tcp",
+  "Project": "dashboard",
+  "Publishers": [
+    {
+      "URL": "",
+      "TargetPort": 8000,
+      "PublishedPort": 0,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "0.0.0.0",
+      "TargetPort": 9000,
+      "PublishedPort": 9000,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "::",
+      "TargetPort": 9000,
+      "PublishedPort": 9000,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "",
+      "TargetPort": 9443,
+      "PublishedPort": 0,
+      "Protocol": "tcp"
+    }
+  ],
+  "RunningFor": "39 hours ago",
+  "Service": "portainer",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 38 hours"
+}
+{
+  "Command": "\"docker-entrypoint.s…\"",
+  "CreatedAt": "2026-01-07 20:49:28 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "healthy",
+  "ID": "2bafc75425ac",
+  "Image": "postgres:16-alpine",
+  "Labels": "com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml,com.docker.compose.version=5.0.0,com.docker.compose.config-hash=f1862eb1b8f435a811c2fb89d557d719107bb626412507eebda8f4a441bfe950,com.docker.compose.container-number=1,com.docker.compose.image=sha256:23e88eb049fd5d54894d70100df61d38a49ed97909263f79d4ff4c30a5d5fca2,com.docker.compose.project=dashboard,com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard,com.docker.compose.service=creationhub-postgres,com.docker.compose.depends_on=,com.docker.compose.oneoff=False",
+  "LocalVolumes": "0",
+  "Mounts": "/home/inno/.ge…,/home/inno/.ge…",
+  "Name": "creationhub_postgres",
+  "Names": "creationhub_postgres",
+  "Networks": "dashboard_default,creationhub-backend",
+  "Ports": "5432/tcp",
+  "Project": "dashboard",
+  "Publishers": [
+    {
+      "URL": "",
+      "TargetPort": 5432,
+      "PublishedPort": 0,
+      "Protocol": "tcp"
+    }
+  ],
+  "RunningFor": "39 hours ago",
+  "Service": "creationhub-postgres",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 39 hours (healthy)"
+}
+{
+  "Command": "\"docker-entrypoint.s…\"",
+  "CreatedAt": "2026-01-07 20:49:28 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "healthy",
+  "ID": "12a03340fd21",
+  "Image": "redis:7-alpine",
+  "Labels": "com.docker.compose.depends_on=,com.docker.compose.image=sha256:ee64a64eaab618d88051c3ade8f6352d11531fcf79d9a4818b9b183d8c1d18ba,com.docker.compose.project=dashboard,com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml,com.docker.compose.service=redis,com.docker.compose.version=5.0.0,com.docker.compose.container-number=1,com.docker.compose.oneoff=False,com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard,com.docker.compose.config-hash=af61441953ea526bce92c65c68bbc3634dc769551701478bf9c828075c4c5c37",
+  "LocalVolumes": "0",
+  "Mounts": "/home/inno/.ge…",
+  "Name": "creationhub_redis",
+  "Names": "creationhub_redis",
+  "Networks": "creationhub-backend,dashboard_default",
+  "Ports": "6379/tcp",
+  "Project": "dashboard",
+  "Publishers": [
+    {
+      "URL": "",
+      "TargetPort": 6379,
+      "PublishedPort": 0,
+      "Protocol": "tcp"
+    }
+  ],
+  "RunningFor": "39 hours ago",
+  "Service": "redis",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 39 hours (healthy)"
+}
+{
+  "Command": "\"dumb-init -- npm ru…\"",
+  "CreatedAt": "2026-01-08 08:44:55 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "",
+  "ID": "1c5087560a31",
+  "Image": "diygod/rsshub:latest",
+  "Labels": "com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard,com.docker.compose.version=5.0.0,org.opencontainers.image.authors=https://github.com/DIYgod/RSSHub,org.opencontainers.image.licenses=AGPL-3.0,org.opencontainers.image.source=https://github.com/DIYgod/RSSHub,org.opencontainers.image.title=RSSHub,org.opencontainers.image.url=https://github.com/DIYgod/RSSHub,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:23bd41510e99c4c5e48c320900bfb1bf4b7c8709f9d05f246a69bc64bddb0a50,com.docker.compose.oneoff=False,org.opencontainers.image.created=2026-01-07T17:15:10.980Z,com.docker.compose.config-hash=a7b653e59112de4e5662d9737e21899c746099e02bcf365073fc9678dcced754,com.docker.compose.service=rsshub,org.opencontainers.image.description=🧡 Everything is RSSible,org.opencontainers.image.revision=3f7f5848ba53a17e22ee3dda050f5d0ace648362,com.docker.compose.project=dashboard,com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml,org.opencontainers.image.version=latest",
+  "LocalVolumes": "0",
+  "Mounts": "",
+  "Name": "creationhub_rsshub",
+  "Names": "creationhub_rsshub",
+  "Networks": "creationhub-backend,dashboard_default",
+  "Ports": "0.0.0.0:1200->1200/tcp, [::]:1200->1200/tcp",
+  "Project": "dashboard",
+  "Publishers": [
+    {
+      "URL": "0.0.0.0",
+      "TargetPort": 1200,
+      "PublishedPort": 1200,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "::",
+      "TargetPort": 1200,
+      "PublishedPort": 1200,
+      "Protocol": "tcp"
+    }
+  ],
+  "RunningFor": "27 hours ago",
+  "Service": "rsshub",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 27 hours"
+}
+{
+  "Command": "\"/docker-entrypoint.…\"",
+  "CreatedAt": "2026-01-08 08:44:55 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "",
+  "ID": "e5bfc4075b76",
+  "Image": "nginx:alpine",
+  "Labels": "com.docker.compose.depends_on=,com.docker.compose.image=sha256:8491795299c8e739b7fcc6285d531d9812ce2666e07bd3dd8db00020ad132295,com.docker.compose.oneoff=False,com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard,maintainer=NGINX Docker Maintainers <docker-maint@nginx.com>,com.docker.compose.project=dashboard,com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml,com.docker.compose.service=sam-2,com.docker.compose.version=5.0.0,com.docker.compose.config-hash=53d959096ef25924d7768a964154fb4ae3a9a7271289c54a2adea741124806e6,com.docker.compose.container-number=1",
+  "LocalVolumes": "0",
+  "Mounts": "",
+  "Name": "creationhub_sam2",
+  "Names": "creationhub_sam2",
+  "Networks": "creationhub-backend,dashboard_default",
+  "Ports": "0.0.0.0:8787->80/tcp, [::]:8787->80/tcp",
+  "Project": "dashboard",
+  "Publishers": [
+    {
+      "URL": "0.0.0.0",
+      "TargetPort": 80,
+      "PublishedPort": 8787,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "::",
+      "TargetPort": 80,
+      "PublishedPort": 8787,
+      "Protocol": "tcp"
+    }
+  ],
+  "RunningFor": "27 hours ago",
+  "Service": "sam-2",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 27 hours"
+}
+{
+  "Command": "\"docker-entrypoint.s…\"",
+  "CreatedAt": "2026-01-07 20:49:28 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "",
+  "ID": "05a843893031",
+  "Image": "dashboard-stats-recorder",
+  "Labels": "com.docker.compose.container-number=1,com.docker.compose.oneoff=False,com.docker.compose.project=dashboard,com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml,com.docker.compose.service=stats-recorder,com.docker.compose.version=5.0.0,com.docker.compose.config-hash=6b00134a595121c10df217c53bd032480992a1155ff3b98e7195425370d42d47,com.docker.compose.depends_on=,com.docker.compose.image=sha256:36e2e95b45eeb433406b4759567b2522285292baf12a3352b66179995b64e2e7,com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard",
+  "LocalVolumes": "0",
+  "Mounts": "",
+  "Name": "creationhub_stats",
+  "Names": "creationhub_stats",
+  "Networks": "dashboard_default,creationhub-backend",
+  "Ports": "",
+  "Project": "dashboard",
+  "Publishers": [],
+  "RunningFor": "39 hours ago",
+  "Service": "stats-recorder",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 39 hours"
+}
+{
+  "Command": "\"docker-entrypoint.s…\"",
+  "CreatedAt": "2026-01-08 17:33:20 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "",
+  "ID": "ba9f53dbe274",
+  "Image": "dashboard-system-api",
+  "Labels": "com.docker.compose.oneoff=False,com.docker.compose.project=dashboard,com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml,com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard,com.docker.compose.service=system-api,com.docker.compose.version=5.0.0,com.docker.compose.config-hash=843ff77217b8e46f1a76553f8cf8dad977492c06afba68e684479ccc109b5f6e,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:ed2ef06ae535579ae26fc45b19d9d39dc43c8f109c24e3fe07e5734af64b7b11,com.docker.compose.replace=creationhub_system_api",
+  "LocalVolumes": "0",
+  "Mounts": "/etc/os-release,/proc,/sys,/var/run/docke…,/home/inno/com…,/etc/wireguard",
+  "Name": "creationhub_system_api",
+  "Names": "creationhub_system_api",
+  "Networks": "creationhub-backend,dashboard_default",
+  "Ports": "0.0.0.0:9191->9191/tcp, [::]:9191->9191/tcp",
+  "Project": "dashboard",
+  "Publishers": [
+    {
+      "URL": "0.0.0.0",
+      "TargetPort": 9191,
+      "PublishedPort": 9191,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "::",
+      "TargetPort": 9191,
+      "PublishedPort": 9191,
+      "Protocol": "tcp"
+    }
+  ],
+  "RunningFor": "18 hours ago",
+  "Service": "system-api",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 18 hours"
+}
+{
+  "Command": "\"/docker-entrypoint.…\"",
+  "CreatedAt": "2026-01-08 08:44:55 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "",
+  "ID": "af723b63cdae",
+  "Image": "nginx:alpine",
+  "Labels": "com.docker.compose.version=5.0.0,com.docker.compose.config-hash=fdeef4ef65e2ec4592ad386c837d00e1b238b5a786401cac112fc63b782cecea,com.docker.compose.container-number=1,com.docker.compose.image=sha256:8491795299c8e739b7fcc6285d531d9812ce2666e07bd3dd8db00020ad132295,com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard,maintainer=NGINX Docker Maintainers <docker-maint@nginx.com>,com.docker.compose.depends_on=,com.docker.compose.oneoff=False,com.docker.compose.project=dashboard,com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml,com.docker.compose.service=video-processor",
+  "LocalVolumes": "0",
+  "Mounts": "",
+  "Name": "creationhub_video_processor",
+  "Names": "creationhub_video_processor",
+  "Networks": "creationhub-backend,dashboard_default",
+  "Ports": "0.0.0.0:8686->80/tcp, [::]:8686->80/tcp",
+  "Project": "dashboard",
+  "Publishers": [
+    {
+      "URL": "0.0.0.0",
+      "TargetPort": 80,
+      "PublishedPort": 8686,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "::",
+      "TargetPort": 80,
+      "PublishedPort": 8686,
+      "Protocol": "tcp"
+    }
+  ],
+  "RunningFor": "27 hours ago",
+  "Service": "video-processor",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 27 hours"
+}
+{
+  "Command": "\"./init.sh\"",
+  "CreatedAt": "2026-01-08 08:44:55 +0300 MSK",
+  "ExitCode": 0,
+  "Health": "",
+  "ID": "787c6c3e18b2",
+  "Image": "ngoduykhanh/wireguard-ui:latest",
+  "Labels": "com.docker.compose.config-hash=7204dd1087887f0feccbdd2915b9cbebc2d5a2d28292d2a5929fedae0b85a007,com.docker.compose.depends_on=,com.docker.compose.image=sha256:8f5d8f96af23665e2119333b5411106fb683ed5143da9fdbcecfcdbb746cd9a2,com.docker.compose.project=dashboard,com.docker.compose.project.working_dir=/home/inno/.gemini/antigravity/scratch/dashboard,com.docker.compose.service=wireguard-ui,com.docker.compose.version=5.0.0,com.docker.compose.container-number=1,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/inno/.gemini/antigravity/scratch/dashboard/docker-compose.yml",
+  "LocalVolumes": "0",
+  "Mounts": "/etc/wireguard",
+  "Name": "creationhub_wireguard_ui",
+  "Names": "creationhub_wireguard_ui",
+  "Networks": "creationhub-backend,dashboard_default",
+  "Ports": "0.0.0.0:5003->5000/tcp, [::]:5003->5000/tcp",
+  "Project": "dashboard",
+  "Publishers": [
+    {
+      "URL": "0.0.0.0",
+      "TargetPort": 5000,
+      "PublishedPort": 5003,
+      "Protocol": "tcp"
+    },
+    {
+      "URL": "::",
+      "TargetPort": 5000,
+      "PublishedPort": 5003,
+      "Protocol": "tcp"
+    }
+  ],
+  "RunningFor": "27 hours ago",
+  "Service": "wireguard-ui",
+  "Size": "0B",
+  "State": "running",
+  "Status": "Up 27 hours"
+}

@@ -23,20 +23,30 @@ const StatsBar = () => {
   React.useEffect(() => {
     const fetchMetrics = async () => {
       try {
-        const { data } = await supabase
-          .from('system_metrics')
-          .select('*')
-          .order('recorded_at', { ascending: false })
-          .limit(1)
-          .single();
+        const [sysRes, diskRes] = await Promise.all([
+          supabase
+            .from('system_metrics')
+            .select('*')
+            .order('timestamp', { ascending: false })
+            .limit(1)
+            .single(),
+          (supabase
+            .from('disk_snapshots' as any)
+            .select('percent')
+            .eq('name', 'System')
+            .order('timestamp', { ascending: false })
+            .limit(1)
+            .single()) as any
+        ]);
 
-        if (data) {
-          setMetrics({
-            cpu: Math.round(data.cpu_percent || 0),
-            memory: Math.round(data.memory_percent || 0),
-            disk: Math.round(data.disk_percent || 0)
-          });
-        }
+        const sysData = sysRes.data;
+        const diskData = diskRes.data;
+
+        setMetrics({
+          cpu: Math.round(sysData?.cpu_percent || 0),
+          memory: Math.round(sysData?.ram_percent || 0),
+          disk: Math.round(diskData?.percent || 0)
+        });
       } catch (e) {
         console.error('Metrics fetch error:', e);
       }

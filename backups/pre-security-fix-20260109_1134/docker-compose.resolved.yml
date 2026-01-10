@@ -1,0 +1,601 @@
+name: dashboard
+services:
+  adminer:
+    container_name: creationhub_adminer
+    image: adminer
+    networks:
+      creationhub-backend: null
+      default: null
+    ports:
+      - mode: ingress
+        host_ip: 0.0.0.0
+        target: 8080
+        published: "8083"
+        protocol: tcp
+    restart: always
+  ai-transcribe:
+    container_name: creationhub_ai_transcribe
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities:
+                - gpu
+              driver: nvidia
+              count: 1
+    environment:
+      WHISPER__INFERENCE_DEVICE: cuda
+      WHISPER__MODEL: Systran/faster-whisper-large-v3
+    hostname: creationhub-ai-transcribe
+    image: fedirz/faster-whisper-server:latest-cuda
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 8000
+        published: "8000"
+        protocol: tcp
+    restart: always
+    volumes:
+      - type: bind
+        source: /home/inno/.gemini/antigravity/scratch/dashboard/volumes/ai/whisper
+        target: /root/.cache/huggingface
+        bind: {}
+  ai-translate:
+    container_name: creationhub_ai_translate
+    environment:
+      LT_HOST: 0.0.0.0
+      LT_LOAD_ONLY: en,de,ru,zh,es,fr,ja
+      LT_PORT: "5000"
+      LT_UPDATE_MODELS: "true"
+    hostname: creationhub-ai-translate
+    image: libretranslate/libretranslate:latest
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 5000
+        published: "5000"
+        protocol: tcp
+    restart: always
+    volumes:
+      - type: bind
+        source: /home/inno/.gemini/antigravity/scratch/dashboard/volumes/ai/translate
+        target: /app/db
+        bind: {}
+  ai-tts:
+    command:
+      - --no-espeak
+      - --language
+      - en
+      - --language
+      - ru
+    container_name: creationhub_ai_tts
+    hostname: creationhub-ai-tts
+    image: synesthesiam/opentts
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 5500
+        published: "5500"
+        protocol: tcp
+    restart: always
+    volumes:
+      - type: bind
+        source: /home/inno/.gemini/antigravity/scratch/dashboard/volumes/ai/opentts
+        target: /data
+        bind: {}
+  browserless:
+    container_name: creationhub_browserless
+    image: browserless/chrome:latest
+    networks:
+      creationhub-backend: null
+      default: null
+    ports:
+      - mode: ingress
+        target: 3000
+        published: "3002"
+        protocol: tcp
+    restart: always
+  creationhub:
+    build:
+      context: /home/inno/.gemini/antigravity/scratch/dashboard
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoicG9zdGdyZXMiLCJleHAiOjIwODE2NzIxNTF9.230cB1C85ECp3N5eXO4xOXabWYbA7bEVqDQ87tM1ZJ4
+        VITE_SUPABASE_URL: /api/v1
+    container_name: creationhub
+    depends_on:
+      postgrest:
+        condition: service_started
+        required: true
+    environment:
+      VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoicG9zdGdyZXMiLCJleHAiOjIwODE2NzIxNTF9.230cB1C85ECp3N5eXO4xOXabWYbA7bEVqDQ87tM1ZJ4
+      VITE_SUPABASE_URL: /api/v1
+    extra_hosts:
+      - host.docker.internal=host-gateway
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - --spider
+        - -q
+        - http://127.0.0.1:80/
+      timeout: 10s
+      interval: 1m0s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-file: "3"
+        max-size: 10m
+    networks:
+      creationhub-backend: null
+      default: null
+    ports:
+      - mode: ingress
+        target: 80
+        published: "7777"
+        protocol: tcp
+    restart: always
+  creationhub-postgres:
+    container_name: creationhub_postgres
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: Tarantul1310
+      POSTGRES_USER: postgres
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U postgres
+      timeout: 5s
+      interval: 5s
+      retries: 5
+    image: postgres:16-alpine
+    networks:
+      creationhub-backend: null
+      default: null
+    restart: always
+    volumes:
+      - type: bind
+        source: /home/inno/.gemini/antigravity/scratch/dashboard/volumes/postgres
+        target: /var/lib/postgresql/data
+        bind: {}
+      - type: bind
+        source: /home/inno/.gemini/antigravity/scratch/dashboard/init_db.sql
+        target: /docker-entrypoint-initdb.d/init.sql
+        bind: {}
+  dozzle:
+    container_name: creationhub_dozzle
+    image: amir20/dozzle:latest
+    networks:
+      creationhub-backend: null
+      default: null
+    ports:
+      - mode: ingress
+        target: 8080
+        published: "8888"
+        protocol: tcp
+    restart: always
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        bind: {}
+  filebrowser:
+    container_name: creationhub_filebrowser
+    image: filebrowser/filebrowser
+    networks:
+      creationhub-backend: null
+      default: null
+    ports:
+      - mode: ingress
+        target: 80
+        published: "8082"
+        protocol: tcp
+    restart: always
+    volumes:
+      - type: bind
+        source: /home/inno/.gemini/antigravity/scratch/dashboard/volumes/media
+        target: /srv
+        bind: {}
+      - type: bind
+        source: /home/inno/.gemini/antigravity/scratch/dashboard/volumes/filebrowser/filebrowser.db
+        target: /database.db
+        bind: {}
+  healthchecks:
+    container_name: creationhub_healthchecks
+    environment:
+      PGID: "911"
+      PUID: "911"
+      SITE_NAME: CreationHub Healthchecks
+      SITE_ROOT: http://192.168.1.220:8001
+      SUPERUSER_EMAIL: admin@localhost
+      SUPERUSER_PASSWORD: changeme
+    image: linuxserver/healthchecks:latest
+    networks:
+      creationhub-backend: null
+      default: null
+    ports:
+      - mode: ingress
+        target: 8000
+        published: "8001"
+        protocol: tcp
+    restart: always
+    volumes:
+      - type: bind
+        source: /home/inno/.gemini/antigravity/scratch/dashboard/volumes/healthchecks
+        target: /config
+        bind: {}
+  homepage:
+    container_name: creationhub_homepage
+    image: ghcr.io/gethomepage/homepage:latest
+    networks:
+      creationhub-backend: null
+      default: null
+    ports:
+      - mode: ingress
+        target: 3000
+        published: "3000"
+        protocol: tcp
+    restart: always
+    volumes:
+      - type: bind
+        source: /home/inno/.gemini/antigravity/scratch/dashboard/volumes/homepage/config
+        target: /app/config
+        bind: {}
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        read_only: true
+        bind: {}
+  iopaint:
+    container_name: creationhub_iopaint
+    image: nginx:alpine
+    networks:
+      creationhub-backend: null
+      default: null
+    ports:
+      - mode: ingress
+        target: 80
+        published: "8585"
+        protocol: tcp
+    restart: always
+    volumes:
+      - type: bind
+        source: /home/inno/.gemini/antigravity/scratch/dashboard/volumes/ai/iopaint
+        target: /data
+        bind: {}
+  n8n:
+    container_name: creationhub_n8n
+    image: n8nio/n8n:latest
+    networks:
+      creationhub-backend: null
+      default: null
+    ports:
+      - mode: ingress
+        target: 5678
+        published: "5678"
+        protocol: tcp
+    restart: always
+    volumes:
+      - type: bind
+        source: /home/inno/.gemini/antigravity/scratch/dashboard/volumes/n8n
+        target: /home/node/.n8n
+        bind: {}
+  nextcloud:
+    container_name: creationhub_nextcloud
+    image: nextcloud:apache
+    networks:
+      creationhub-backend: null
+      default: null
+    ports:
+      - mode: ingress
+        target: 80
+        published: "8081"
+        protocol: tcp
+    restart: always
+    volumes:
+      - type: bind
+        source: /home/inno/.gemini/antigravity/scratch/dashboard/volumes/nextcloud/data
+        target: /var/www/html
+        bind: {}
+  npm:
+    container_name: creationhub_npm
+    image: jc21/nginx-proxy-manager:latest
+    networks:
+      creationhub-backend: null
+      default: null
+    ports:
+      - mode: ingress
+        target: 80
+        published: "80"
+        protocol: tcp
+      - mode: ingress
+        target: 81
+        published: "81"
+        protocol: tcp
+      - mode: ingress
+        target: 443
+        published: "443"
+        protocol: tcp
+    restart: always
+    volumes:
+      - type: bind
+        source: /home/inno/.gemini/antigravity/scratch/dashboard/volumes/npm/data
+        target: /data
+        bind: {}
+      - type: bind
+        source: /home/inno/.gemini/antigravity/scratch/dashboard/volumes/npm/letsencrypt
+        target: /etc/letsencrypt
+        bind: {}
+  ollama:
+    container_name: creationhub_ollama
+    deploy:
+      resources:
+        limits:
+          memory: "17179869184"
+        reservations:
+          memory: "4294967296"
+          devices:
+            - capabilities:
+                - gpu
+              driver: nvidia
+              count: -1
+    environment:
+      OLLAMA_KEEP_ALIVE: 10m
+      OLLAMA_MAX_LOADED_MODELS: "2"
+      OLLAMA_NUM_PARALLEL: "2"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - bash -c 'echo > /dev/tcp/127.0.0.1/11434'
+      timeout: 10s
+      interval: 30s
+      retries: 3
+    image: ollama/ollama:latest
+    logging:
+      driver: json-file
+      options:
+        max-file: "3"
+        max-size: 10m
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        host_ip: 0.0.0.0
+        target: 11434
+        published: "11434"
+        protocol: tcp
+    restart: always
+    runtime: nvidia
+    volumes:
+      - type: bind
+        source: /home/inno/.gemini/antigravity/scratch/dashboard/ai_data
+        target: /root/.ollama
+        bind: {}
+  portainer:
+    container_name: creationhub_portainer
+    image: portainer/portainer-ce:latest
+    networks:
+      creationhub-backend: null
+      default: null
+    ports:
+      - mode: ingress
+        target: 9000
+        published: "9000"
+        protocol: tcp
+    restart: always
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        bind: {}
+      - type: volume
+        source: portainer_data
+        target: /data
+        volume: {}
+  postgrest:
+    container_name: creationhub_api
+    environment:
+      PGRST_DB_ANON_ROLE: postgres
+      PGRST_DB_SCHEMA: public
+      PGRST_DB_URI: postgres://postgres:Tarantul1310@creationhub_postgres:5432/postgres
+      PGRST_JWT_SECRET: WO9r7SGqvpeF3AIbuIm8dCA4LzgTR0oZSJ3EK6mHNkY
+    image: postgrest/postgrest
+    logging:
+      driver: json-file
+      options:
+        max-file: "3"
+        max-size: 10m
+    networks:
+      creationhub-backend: null
+      default: null
+    ports:
+      - mode: ingress
+        host_ip: 0.0.0.0
+        target: 3000
+        published: "3000"
+        protocol: tcp
+    restart: always
+  redis:
+    command:
+      - redis-server
+      - --requirepass
+      - changeme
+    container_name: creationhub_redis
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - -a
+        - changeme
+        - ping
+      timeout: 5s
+      interval: 5s
+      retries: 5
+    image: redis:7-alpine
+    networks:
+      creationhub-backend: null
+      default: null
+    restart: always
+    volumes:
+      - type: bind
+        source: /home/inno/.gemini/antigravity/scratch/dashboard/volumes/redis
+        target: /data
+        bind: {}
+  rsshub:
+    container_name: creationhub_rsshub
+    environment:
+      CACHE_TYPE: redis
+      REDIS_URL: redis://creationhub_redis:6379/
+    image: diygod/rsshub:latest
+    networks:
+      creationhub-backend: null
+      default: null
+    ports:
+      - mode: ingress
+        target: 1200
+        published: "1200"
+        protocol: tcp
+    restart: always
+  sam-2:
+    container_name: creationhub_sam2
+    image: nginx:alpine
+    networks:
+      creationhub-backend: null
+      default: null
+    ports:
+      - mode: ingress
+        target: 80
+        published: "8787"
+        protocol: tcp
+    restart: always
+  stats-recorder:
+    build:
+      context: /home/inno/.gemini/antigravity/scratch/dashboard/stats-recorder
+      dockerfile: Dockerfile
+    container_name: creationhub_stats
+    environment:
+      DATABASE_URL: postgres://postgres:Tarantul1310@creationhub_postgres:5432/postgres
+      GLANCES_URL: http://host.docker.internal:61208/api/4
+    extra_hosts:
+      - host.docker.internal=host-gateway
+    logging:
+      driver: json-file
+      options:
+        max-file: "3"
+        max-size: 10m
+    networks:
+      creationhub-backend: null
+      default: null
+    restart: always
+  system-api:
+    build:
+      context: /home/inno/.gemini/antigravity/scratch/dashboard/system-api
+      dockerfile: Dockerfile
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    container_name: creationhub_system_api
+    environment:
+      BACKUP_DIR: /backups
+      JWT_SECRET: WO9r7SGqvpeF3AIbuIm8dCA4LzgTR0oZSJ3EK6mHNkY
+      NODE_ENV: production
+      OS_RELEASE_PATH: /host-os-release
+      PORT: "9191"
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: Tarantul1310
+      POSTGRES_URL: postgres://postgres:Tarantul1310@creationhub_postgres:5432/postgres
+      POSTGRES_USER: postgres
+      RECOVERY_PASSWORD: mSUPQt46NoCEy5Mnl1qwqZKNy9spyJXyI+/g9n1sQ10=
+      RESOLV_CONF_PATH: /host-resolv.conf
+      VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoicG9zdGdyZXMiLCJleHAiOjIwODE2NzIxNTF9.230cB1C85ECp3N5eXO4xOXabWYbA7bEVqDQ87tM1ZJ4
+      VITE_SUPABASE_URL: /api/v1
+      WG_CONFIG_DIR: /etc/wireguard
+    logging:
+      driver: json-file
+      options:
+        max-file: "3"
+        max-size: 10m
+    networks:
+      creationhub-backend: null
+      default: null
+    pid: host
+    ports:
+      - mode: ingress
+        target: 9191
+        published: "9191"
+        protocol: tcp
+    privileged: true
+    restart: always
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        read_only: true
+        bind: {}
+      - type: bind
+        source: /etc/os-release
+        target: /host-os-release
+        read_only: true
+        bind: {}
+      - type: bind
+        source: /proc
+        target: /host-proc
+        read_only: true
+        bind: {}
+      - type: bind
+        source: /sys
+        target: /host-sys
+        read_only: true
+        bind: {}
+      - type: bind
+        source: /etc/wireguard
+        target: /etc/wireguard
+        bind: {}
+      - type: bind
+        source: /home/inno/compose_ARCHIVED_DO_NOT_USE/backups
+        target: /backups
+        bind: {}
+  video-processor:
+    container_name: creationhub_video_processor
+    image: nginx:alpine
+    networks:
+      creationhub-backend: null
+      default: null
+    ports:
+      - mode: ingress
+        target: 80
+        published: "8686"
+        protocol: tcp
+    restart: always
+  wireguard-ui:
+    cap_add:
+      - NET_ADMIN
+    container_name: creationhub_wireguard_ui
+    image: ngoduykhanh/wireguard-ui:latest
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 5000
+        published: "5003"
+        protocol: tcp
+    restart: always
+    volumes:
+      - type: bind
+        source: /etc/wireguard
+        target: /etc/wireguard
+        bind: {}
+networks:
+  creationhub-backend:
+    name: creationhub-backend
+    external: true
+  default:
+    name: dashboard_default
+volumes:
+  portainer_data:
+    name: dashboard_portainer_data
+    external: true

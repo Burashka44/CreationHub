@@ -653,18 +653,8 @@ app.get('/api/system/dns', (req, res) => {
 });
 
 // ==================== GEO LOCATION ====================
-// Cache for Public IP (1 hour TTL)
-let publicIPCache = null;
-let publicIPCacheTime = 0;
-const PUBLIC_IP_CACHE_TTL = 3600000; // 1 hour
-
+// ==================== GEO LOCATION ====================
 app.get('/api/system/public-ip', async (req, res) => {
-    // Check cache first
-    const now = Date.now();
-    if (publicIPCache && (now - publicIPCacheTime < PUBLIC_IP_CACHE_TTL)) {
-        return res.json({ ...publicIPCache, cached: true, age: Math.floor((now - publicIPCacheTime) / 1000) });
-    }
-
     // Helper to normalize data
     const normalize = (data, source) => {
         if (source === 'ipapi') {
@@ -701,44 +691,26 @@ app.get('/api/system/public-ip', async (req, res) => {
         try {
             const response = await axios.get('https://ipapi.co/json/', {
                 headers: { 'User-Agent': 'CreationHub-SystemAPI/1.0' },
-                timeout: 5000 // Increased from 3000ms
+                timeout: 3000
             });
             if (response.data && response.data.ip) {
-                const result = normalize(response.data, 'ipapi');
-                publicIPCache = result;
-                publicIPCacheTime = now;
-                return res.json(result);
+                return res.json(normalize(response.data, 'ipapi'));
             }
         } catch (e) {
             console.warn('Primary GeoIP failed, trying fallback:', e.message);
         }
 
         // Try Fallback: ipwho.is (No SSL requirement, very rate-limit friendly)
-        const response = await axios.get('http://ipwho.is/', { timeout: 5000 }); // Increased from 3000ms
+        const response = await axios.get('http://ipwho.is/', { timeout: 3000 });
         if (response.data && response.data.success) {
-            const result = normalize(response.data, 'ipwhois');
-            publicIPCache = result;
-            publicIPCacheTime = now;
-            return res.json(result);
+            return res.json(normalize(response.data, 'ipwhois'));
         } else {
             throw new Error('Fallback provider returned error');
         }
 
     } catch (e) {
         console.error('All GeoIP providers failed:', e.message);
-
-        // If we have stale cache, return it with warning
-        if (publicIPCache) {
-            return res.json({
-                ...publicIPCache,
-                cached: true,
-                stale: true,
-                age: Math.floor((now - publicIPCacheTime) / 1000),
-                warning: 'Using cached data (API unavailable)'
-            });
-        }
-
-        // Last resort: Return error
+        // Last resort: Return bare minimum if possible, or error
         res.status(500).json({ error: true, reason: 'Unable to determine public IP' });
     }
 });
