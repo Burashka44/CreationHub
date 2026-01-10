@@ -177,15 +177,12 @@ app.get('/api/system/os', (req, res) => {
                 kernel = execSync('uname -r').toString().trim();
             } catch (e) { }
 
-            // Better display: "Ubuntu 24.04 (Kernel 6.8.0-90)"
-            const distroName = info.NAME || 'Linux';
-            const versionId = info.VERSION_ID || '';
-            const kernelShort = kernel.split('-')[0]; // "6.8.0" from "6.8.0-90-generic"
+            // Show EXACT host OS version (PRETTY_NAME from host /etc/os-release)
+            const kernelShort = kernel.split('-').slice(0, 2).join('-'); // "6.8.0-90" from "6.8.0-90-generic"
 
             res.json({
-                name: `${distroName} ${versionId}`,
-                fullName: info.PRETTY_NAME || 'Linux',
-                version: `Kernel ${kernelShort}`,
+                name: info.PRETTY_NAME || 'Linux',  // Full name from host: "Ubuntu 24.04.3 LTS"
+                version: kernelShort,                 // Kernel: "6.8.0-90"
                 arch: os.arch(),
                 kernel: kernel
             });
