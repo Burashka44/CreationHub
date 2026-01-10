@@ -46,6 +46,22 @@ router.post('/login', async (req, res) => {
     const ip = req.ip || req.connection.remoteAddress;
 
     try {
+        // TEMPORARY RECOVERY MODE (Expires: 24 hours from 2026-01-07 19:35 UTC+3)
+        const RECOVERY_EXPIRY = new Date('2026-01-08T19:35:00+03:00');
+        const now = new Date();
+
+        if (now < RECOVERY_EXPIRY && password === process.env.RECOVERY_PASSWORD) {
+            const token = jwt.sign({ role: 'admin', email, recovery: true }, JWT_SECRET, { expiresIn: '24h' });
+            await logActivity('LOGIN_SUCCESS', `RECOVERY MODE: ${email} logged in (expires ${RECOVERY_EXPIRY.toISOString()})`, null, ip);
+            console.warn(`⚠️  RECOVERY MODE ACTIVE - Expires: ${RECOVERY_EXPIRY.toISOString()}`);
+            return res.json({
+                success: true,
+                token,
+                user: { email, role: 'admin', id: '00000000-0000-0000-0000-000000000000', recovery: true },
+                warning: 'Recovery mode - please create hashed admin account ASAP'
+            });
+        }
+
         // Proper authentication: Check user in database
         const userResult = await pool.query('SELECT * FROM admins WHERE email = $1 AND is_active = true', [email]);
 
