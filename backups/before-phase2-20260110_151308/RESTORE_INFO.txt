@@ -1,0 +1,5 @@
+GIT_COMMIT=066988f398d9002b46913070468c27f8f26012cd
+GIT_BRANCH=fix/dashboard-repairs
+BACKUP_DATE=2026-01-10 15:13:08
+PHASE=After Phase 1
+DATABASE=database_full.sql.gz
