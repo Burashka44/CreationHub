@@ -3,18 +3,9 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
 
-// Database connection pool (optimized)
+// Database connection
 const pool = new Pool({
-    connectionString: process.env.POSTGRES_URL,
-    max: 10,                      // Maximum 10 connections
-    idleTimeoutMillis: 30000,     // Close idle connections after 30s
-    connectionTimeoutMillis: 2000, // Connection timeout 2s
-});
-
-// Handle pool errors
-pool.on('error', (err, client) => {
-    console.error('Unexpected error on idle PostgreSQL client:', err);
-    process.exit(-1);
+    connectionString: process.env.POSTGRES_URL
 });
 
 const JWT_SECRET = process.env.JWT_SECRET;

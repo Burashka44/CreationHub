@@ -18,37 +18,6 @@ const NSENTER_PREFIX = 'nsenter --net=/host-proc/1/ns/net ';
 
 // Security constants
 const JWT_SECRET = process.env.JWT_SECRET || 'CHANGE_THIS_IN_PRODUCTION_64_CHAR_SECRET';
-
-// ==================== ENV VALIDATION ====================
-// Validate required environment variables on startup
-const requiredEnv = [
-    'JWT_SECRET',
-    'POSTGRES_URL',
-    'POSTGRES_PASSWORD'
-];
-
-console.log('🔍 Validating environment variables...');
-let missingVars = [];
-
-requiredEnv.forEach(key => {
-    if (!process.env[key] || process.env[key] === 'CHANGEME' || process.env[key] === 'changeme') {
-        missingVars.push(key);
-    }
-});
-
-if (missingVars.length > 0) {
-    console.error(`❌ FATAL: Missing or invalid required environment variables:`);
-    missingVars.forEach(v => console.error(`   - ${v}`));
-    console.error(`\nPlease check your .env file and ensure all required variables are set.`);
-    process.exit(1);
-}
-
-console.log('✅ All required environment variables are set');
-
-// Warn about optional variables
-if (!process.env.RATE_LIMIT_RPM) {
-    console.warn(`⚠️  Using default RATE_LIMIT_RPM: 500`);
-}
 const JWT_EXPIRES_IN = '7d';
 const POSTGREST_URL = 'http://creationhub_api:3000';
 
