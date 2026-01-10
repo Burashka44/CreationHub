@@ -6,6 +6,9 @@ const path = require('path');
 
 const BACKUP_DIR = process.env.BACKUP_DIR || '/backups';
 
+// In-memory storage for backup schedules (TODO: persist to DB)
+let backupSchedules = [];
+
 // Ensure backup dir exists
 if (!fs.existsSync(BACKUP_DIR)) {
     try {
@@ -202,6 +205,115 @@ router.get('/download/:filename', (req, res) => {
             // Regular file - just send it
             res.download(filePath, filename);
         }
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// ==================== BACKUP SCHEDULES ====================
+
+// GET /api/system/backups/schedules - List all backup schedules
+router.get('/schedules', (req, res) => {
+    try {
+        res.json({
+            success: true,
+            data: backupSchedules
+        });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// POST /api/system/backups/schedules - Create new backup schedule
+router.post('/schedules', (req, res) => {
+    try {
+        const { name, time, type, retention, compression } = req.body;
+
+        if (!name || !time || !type) {
+            return res.status(400).json({
+                success: false,
+                error: 'name, time, and type are required'
+            });
+        }
+
+        const newSchedule = {
+            id: `schedule_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+            name,
+            time, // Cron expression
+            type, // 'full', 'database', 'incremental'
+            retention: retention || '30days',
+            compression: compression !== false,
+            status: 'active',
+            created: new Date().toISOString(),
+            lastRun: null,
+            nextRun: null // TODO: Calculate from cron
+        };
+
+        backupSchedules.push(newSchedule);
+
+        res.json({
+            success: true,
+            message: 'Backup schedule created',
+            data: newSchedule
+        });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// DELETE /api/system/backups/schedules/:id - Remove backup schedule
+router.delete('/schedules/:id', (req, res) => {
+    try {
+        const { id } = req.params;
+        const index = backupSchedules.findIndex(s => s.id === id);
+
+        if (index === -1) {
+            return res.status(404).json({
+                success: false,
+                error: 'Schedule not found'
+            });
+        }
+
+        const deleted = backupSchedules.splice(index, 1)[0];
+
+        res.json({
+            success: true,
+            message: 'Schedule deleted',
+            data: deleted
+        });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// PUT /api/system/backups/schedules/:id - Update backup schedule
+router.put('/schedules/:id', (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, time, type, status, retention, compression } = req.body;
+
+        const schedule = backupSchedules.find(s => s.id === id);
+
+        if (!schedule) {
+            return res.status(404).json({
+                success: false,
+                error: 'Schedule not found'
+            });
+        }
+
+        // Update fields
+        if (name) schedule.name = name;
+        if (time) schedule.time = time;
+        if (type) schedule.type = type;
+        if (status) schedule.status = status;
+        if (retention) schedule.retention = retention;
+        if (compression !== undefined) schedule.compression = compression;
+
+        res.json({
+            success: true,
+            message: 'Schedule updated',
+            data: schedule
+        });
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
     }
