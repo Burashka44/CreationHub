@@ -1,0 +1,4 @@
+DATABASE_BACKUP=database_full.sql.gz
+BACKUP_DATE=2026-01-10 14:38:13
+GIT_COMMIT=9d922b5a37245d4d135dbfd0e0ccabe4ab116f39
+GIT_BRANCH=fix/dashboard-repairs
