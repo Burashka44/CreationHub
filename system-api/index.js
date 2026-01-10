@@ -173,11 +173,19 @@ app.get('/api/system/os', (req, res) => {
             });
 
             let kernel = 'Unknown';
-            try { kernel = execSync('uname -r').toString().trim(); } catch (e) { }
+            try {
+                kernel = execSync('uname -r').toString().trim();
+            } catch (e) { }
+
+            // Better display: "Ubuntu 24.04 (Kernel 6.8.0-90)"
+            const distroName = info.NAME || 'Linux';
+            const versionId = info.VERSION_ID || '';
+            const kernelShort = kernel.split('-')[0]; // "6.8.0" from "6.8.0-90-generic"
 
             res.json({
-                name: info.PRETTY_NAME || 'Linux',
-                version: info.VERSION_ID || 'Unknown',
+                name: `${distroName} ${versionId}`,
+                fullName: info.PRETTY_NAME || 'Linux',
+                version: `Kernel ${kernelShort}`,
                 arch: os.arch(),
                 kernel: kernel
             });
@@ -204,7 +212,24 @@ app.get('/api/system/uptime', (req, res) => {
         const hours = Math.floor((uptimeSeconds % (3600 * 24)) / 3600);
         const minutes = Math.floor((uptimeSeconds % 3600) / 60);
 
-        res.json({ uptime: `${days}d ${hours}h ${minutes}m`, seconds: uptimeSeconds });
+        // Better formatting: hide "0d" if less than 1 day
+        let prettyUptime;
+        if (days > 0) {
+            prettyUptime = `${days}d ${hours}h ${minutes}m`;
+        } else if (hours > 0) {
+            prettyUptime = `${hours}h ${minutes}m`;
+        } else {
+            prettyUptime = `${minutes}m`;
+        }
+
+        res.json({
+            uptime: prettyUptime,
+            pretty: prettyUptime,
+            seconds: uptimeSeconds,
+            days: days,
+            hours: hours,
+            minutes: minutes
+        });
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
     }
