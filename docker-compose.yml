@@ -88,7 +88,7 @@ services:
     container_name: creationhub_system_api
     restart: always
     ports:
-      - "9191:9191"  # Internal Docker network - isolated by default
+      - "127.0.0.1:9191:9191"  # Localhost only - prevents external access
     privileged: true
     cap_add:
       - NET_ADMIN
