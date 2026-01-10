@@ -11,6 +11,74 @@ const jwt = require('jsonwebtoken');
 const http = require('http');
 const axios = require('axios');
 const os = require('os');
+const redis = require('redis');
+const winston = require('winston');
+const DailyRotateFile = require('winston-daily-rotate-file');
+const NodeCache = require('node-cache');
+const systemCache = new NodeCache(); // Standard cache
+
+// Ensure log directory exists
+const LOG_DIR = '/var/log/system-api';
+if (!fs.existsSync(LOG_DIR)) {
+    try {
+        fs.mkdirSync(LOG_DIR, { recursive: true });
+    } catch (e) {
+        console.error('Failed to create log directory:', e);
+    }
+}
+
+// Logger Configuration
+const logger = winston.createLogger({
+    level: 'info',
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.json()
+    ),
+    transports: [
+        new winston.transports.Console({
+            format: winston.format.combine(
+                winston.format.colorize(),
+                winston.format.simple()
+            )
+        }),
+        new DailyRotateFile({
+            filename: path.join(LOG_DIR, 'app-%DATE%.log'),
+            datePattern: 'YYYY-MM-DD',
+            zippedArchive: true,
+            maxSize: '20m',
+            maxFiles: '14d'
+        }),
+        new DailyRotateFile({
+            filename: path.join(LOG_DIR, 'error-%DATE%.log'),
+            datePattern: 'YYYY-MM-DD',
+            zippedArchive: true,
+            maxSize: '20m',
+            maxFiles: '14d',
+            level: 'error'
+        })
+    ]
+});
+
+// Override console methods to use logger
+// console.log = (...args) => logger.info(args.join(' '));
+// console.error = (...args) => logger.error(args.join(' '));
+// console.warn = (...args) => logger.warn(args.join(' '));
+
+// Redis Client Setup
+const redisClient = redis.createClient({
+    url: `redis://:${process.env.REDIS_PASSWORD}@creationhub_redis:6379`
+});
+
+redisClient.on('error', (err) => console.error('Redis Client Error', err));
+redisClient.on('connect', () => console.log('✅ Connected to Redis'));
+
+(async () => {
+    try {
+        await redisClient.connect();
+    } catch (e) {
+        console.error('Failed to connect to Redis:', e);
+    }
+})();
 
 // Helper for executing commands in host network namespace (requires pid: host and privileged: true)
 // This allows WireGuard commands to affect the host's network stack
@@ -73,10 +141,11 @@ const corsOptions = {
 };
 
 // Simple rate limiter (increased for dashboard polling)
+// Redis-based Rate Limiter
 const RATE_LIMIT_RPM = parseInt(process.env.RATE_LIMIT_RPM) || 500;
-const rateLimitStore = new Map();
+const RATE_LIMIT_WINDOW = 60; // 1 minute window
 
-const rateLimiter = (req, res, next) => {
+const rateLimiter = async (req, res, next) => {
     const ip = req.ip || req.connection.remoteAddress || 'unknown';
 
     // Skip rate limiting for local network
@@ -84,44 +153,32 @@ const rateLimiter = (req, res, next) => {
         return next();
     }
 
-    const now = Date.now();
-    const windowMs = 60000; // 1 minute
+    const key = `rate:${ip}`;
 
-    if (!rateLimitStore.has(ip)) {
-        rateLimitStore.set(ip, { count: 1, resetTime: now + windowMs });
-        return next();
-    }
+    try {
+        const count = await redisClient.incr(key);
 
-    const record = rateLimitStore.get(ip);
-
-    if (now > record.resetTime) {
-        record.count = 1;
-        record.resetTime = now + windowMs;
-        return next();
-    }
-
-    record.count++;
-
-    if (record.count > RATE_LIMIT_RPM) {
-        res.setHeader('Retry-After', Math.ceil((record.resetTime - now) / 1000));
-        return res.status(429).json({
-            error: 'Too many requests',
-            retryAfter: Math.ceil((record.resetTime - now) / 1000)
-        });
-    }
-
-    next();
-};
-
-// Clean up rate limit store every 5 minutes
-setInterval(() => {
-    const now = Date.now();
-    for (const [ip, record] of rateLimitStore.entries()) {
-        if (now > record.resetTime + 300000) {
-            rateLimitStore.delete(ip);
+        // Set expiry on first request
+        if (count === 1) {
+            await redisClient.expire(key, RATE_LIMIT_WINDOW);
         }
+
+        if (count > RATE_LIMIT_RPM) {
+            const ttl = await redisClient.ttl(key);
+            res.setHeader('Retry-After', ttl);
+            return res.status(429).json({
+                error: 'Too many requests',
+                retryAfter: ttl
+            });
+        }
+
+        next();
+    } catch (e) {
+        console.error('Rate Limiter Error:', e);
+        // Fail open if Redis is down
+        next();
     }
-}, 300000);
+};
 
 const app = express();
 
@@ -154,9 +211,12 @@ app.use((req, res, next) => {
         // Only log non-health check requests or errors
         if (req.path !== '/health' && req.path !== '/api/system/glances/cpu') {
             if (res.statusCode >= 400) {
-                console.error(JSON.stringify({ level: 'error', ...log }));
+                logger.error('Request failed', log);
             } else if (duration > 1000) {
-                console.warn(JSON.stringify({ level: 'slow', ...log }));
+                logger.warn('Slow request', log);
+            } else {
+                // Debug level for normal requests (optional, to avoid noise)
+                // logger.debug('Request completed', log);
             }
         }
     });
@@ -191,6 +251,10 @@ const RESOLV_CONF_PATH = process.env.RESOLV_CONF_PATH || '/etc/resolv.conf';
 
 // ==================== OS INFO ====================
 app.get('/api/system/os', (req, res) => {
+    // Check Cache (10 minutes)
+    const cached = systemCache.get('os_info');
+    if (cached) return res.json(cached);
+
     try {
         let osPath = process.env.OS_RELEASE_PATH || '/host-os-release';
         if (!fs.existsSync(osPath)) osPath = '/etc/os-release';
@@ -211,12 +275,15 @@ app.get('/api/system/os', (req, res) => {
             // Show EXACT host OS version (PRETTY_NAME from host /etc/os-release)
             const kernelShort = kernel.split('-').slice(0, 2).join('-'); // "6.8.0-90" from "6.8.0-90-generic"
 
-            res.json({
+            const result = {
                 name: info.PRETTY_NAME || 'Linux',  // Full name from host: "Ubuntu 24.04.3 LTS"
                 version: kernelShort,                 // Kernel: "6.8.0-90"
                 arch: os.arch(),
                 kernel: kernel
-            });
+            };
+
+            systemCache.set('os_info', result, 600); // Cache for 10 minutes
+            res.json(result);
         } else {
             res.json({ name: 'Linux Container', version: 'Unknown', arch: os.arch(), kernel: 'Unknown' });
         }
@@ -265,6 +332,10 @@ app.get('/api/system/uptime', (req, res) => {
 
 // ==================== NETWORK STATS ====================
 app.get('/api/system/network', (req, res) => {
+    // Check Cache (3 seconds - fast updates but reduced file I/O)
+    const cached = systemCache.get('network_stats');
+    if (cached) return res.json(cached);
+
     try {
         const data = fs.readFileSync('/proc/net/dev', 'utf8');
         const lines = data.split('\n');
@@ -292,7 +363,9 @@ app.get('/api/system/network', (req, res) => {
             });
         }
 
-        res.json({ success: true, data: interfaces });
+        const result = { success: true, data: interfaces };
+        systemCache.set('network_stats', result, 3); // Cache for 3 seconds
+        res.json(result);
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
     }
@@ -648,6 +721,10 @@ app.put('/api/system/wireguard/:name', (req, res) => {
 
 // ==================== DNS CONFIG ====================
 app.get('/api/system/dns', (req, res) => {
+    // Check Cache (10 minutes)
+    const cached = systemCache.get('dns_info');
+    if (cached) return res.json(cached);
+
     try {
         // Try multiple possible paths for resolv.conf
         const paths = [
@@ -692,30 +769,28 @@ app.get('/api/system/dns', (req, res) => {
             }
         });
 
-        res.json({
+        const result = {
             success: true,
             data: {
                 nameservers,
                 search,
                 raw: content
             }
-        });
+        };
+        systemCache.set('dns_info', result, 600); // Cache for 10 minutes
+        res.json(result);
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
     }
 });
 
 // ==================== GEO LOCATION ====================
-// Cache for Public IP (1 hour TTL)
-let publicIPCache = null;
-let publicIPCacheTime = 0;
-const PUBLIC_IP_CACHE_TTL = 3600000; // 1 hour
-
 app.get('/api/system/public-ip', async (req, res) => {
-    // Check cache first
-    const now = Date.now();
-    if (publicIPCache && (now - publicIPCacheTime < PUBLIC_IP_CACHE_TTL)) {
-        return res.json({ ...publicIPCache, cached: true, age: Math.floor((now - publicIPCacheTime) / 1000) });
+    // Check cache first (1 hour)
+    const cached = systemCache.get('public_ip');
+    if (cached) {
+        // Add Age header or property if needed
+        return res.json({ ...cached, cached: true });
     }
 
     // Helper to normalize data
@@ -754,12 +829,11 @@ app.get('/api/system/public-ip', async (req, res) => {
         try {
             const response = await axios.get('https://ipapi.co/json/', {
                 headers: { 'User-Agent': 'CreationHub-SystemAPI/1.0' },
-                timeout: 5000 // Increased from 3000ms
+                timeout: 5000
             });
             if (response.data && response.data.ip) {
                 const result = normalize(response.data, 'ipapi');
-                publicIPCache = result;
-                publicIPCacheTime = now;
+                systemCache.set('public_ip', result, 3600); // 1 hour
                 return res.json(result);
             }
         } catch (e) {
@@ -767,11 +841,10 @@ app.get('/api/system/public-ip', async (req, res) => {
         }
 
         // Try Fallback: ipwho.is (No SSL requirement, very rate-limit friendly)
-        const response = await axios.get('http://ipwho.is/', { timeout: 5000 }); // Increased from 3000ms
+        const response = await axios.get('http://ipwho.is/', { timeout: 5000 });
         if (response.data && response.data.success) {
             const result = normalize(response.data, 'ipwhois');
-            publicIPCache = result;
-            publicIPCacheTime = now;
+            systemCache.set('public_ip', result, 3600); // 1 hour
             return res.json(result);
         } else {
             throw new Error('Fallback provider returned error');
@@ -780,18 +853,11 @@ app.get('/api/system/public-ip', async (req, res) => {
     } catch (e) {
         console.error('All GeoIP providers failed:', e.message);
 
-        // If we have stale cache, return it with warning
-        if (publicIPCache) {
-            return res.json({
-                ...publicIPCache,
-                cached: true,
-                stale: true,
-                age: Math.floor((now - publicIPCacheTime) / 1000),
-                warning: 'Using cached data (API unavailable)'
-            });
-        }
+        // If we have stale cache (via systemCache check above, but here we failed),
+        // node-cache removes expired items so we can't easily get 'stale' data unless useTtl is false.
+        // We accept that if cache expires and API fails, we return error.
 
-        // Last resort: Return error
+        // Return error
         res.status(500).json({ error: true, reason: 'Unable to determine public IP' });
     }
 });
@@ -1348,8 +1414,34 @@ app.post('/api/telegram/publish', async (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+// Start server
+const server = app.listen(PORT, () => {
     console.log(`System API listening on port ${PORT}`);
     console.log(`WireGuard config dir: ${WG_CONFIG_DIR}`);
     console.log(`OS release: ${OS_RELEASE_PATH}`);
 });
+
+// Graceful Shutdown
+const gracefulShutdown = async (signal) => {
+    console.log(`${signal} received, shutting down gracefully...`);
+
+    server.close(() => {
+        console.log('HTTP server closed');
+    });
+
+    try {
+        await redisClient.quit();
+        console.log('Redis client disconnected');
+    } catch (e) {
+        console.error('Error disconnecting Redis:', e);
+    }
+
+    // Allow pending requests to complete (max 10s)
+    setTimeout(() => {
+        console.error('Forced shutdown due to timeout');
+        process.exit(1);
+    }, 10000).unref();
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

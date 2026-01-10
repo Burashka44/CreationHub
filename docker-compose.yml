@@ -110,6 +110,12 @@ services:
       - BACKUP_DIR=/backups
       - POSTGRES_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-Tarantul1310}@creationhub_postgres:5432/${POSTGRES_DB:-postgres}
 
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9191/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
     networks:
       - default
       - creationhub-backend
