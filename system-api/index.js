@@ -41,8 +41,8 @@ const corsOptions = {
     credentials: true
 };
 
-// Simple rate limiter
-const RATE_LIMIT_RPM = parseInt(process.env.RATE_LIMIT_RPM) || 200;
+// Simple rate limiter (increased for dashboard polling)
+const RATE_LIMIT_RPM = parseInt(process.env.RATE_LIMIT_RPM) || 500;
 const rateLimitStore = new Map();
 
 const rateLimiter = (req, res, next) => {
