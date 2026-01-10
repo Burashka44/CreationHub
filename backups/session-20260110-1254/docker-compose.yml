@@ -1,0 +1,507 @@
+services:
+  # ===========================================
+  # Frontend Dashboard
+  # ===========================================
+  creationhub:
+    build: 
+      context: .
+      args:
+        - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-/api/v1}
+        - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+    container_name: creationhub
+    ports:
+      - "7777:80"
+    restart: always
+    depends_on:
+      postgrest:
+        condition: service_started
+    environment:
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-/api/v1}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+    networks:
+      - default
+      - creationhub-backend
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:80/"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================
+  # PostgREST API
+  # ===========================================
+  postgrest:
+    image: postgrest/postgrest
+    container_name: creationhub_api
+    # SECURITY: Internal only - access via nginx proxy /api/v1/
+    ports:
+      - "127.0.0.1:3000:3000"  # LAN access enabled
+    environment:
+      PGRST_DB_URI: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@creationhub_postgres:5432/${POSTGRES_DB}"
+      PGRST_DB_SCHEMA: public
+      PGRST_DB_ANON_ROLE: ${POSTGRES_USER}
+      PGRST_JWT_SECRET: "${JWT_SECRET}"
+    restart: always
+    networks:
+      - default
+      - creationhub-backend
+    # Healthcheck removed: image lacks shell/tools
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================
+  # Stats Recorder (System Metrics)
+  # ===========================================
+  stats-recorder:
+    build: ./stats-recorder
+    container_name: creationhub_stats
+    restart: always
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-Tarantul1310}@creationhub_postgres:5432/${POSTGRES_DB:-postgres}
+      - GLANCES_URL=${GLANCES_URL:-http://host.docker.internal:61208/api/4}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - default
+      - creationhub-backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================
+  # System API (Docker Monitoring + WireGuard Control)
+  # ===========================================
+  system-api:
+    build: ./system-api
+    container_name: creationhub_system_api
+    restart: always
+    ports:
+      - "9191:9191"
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    env_file: .env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/os-release:/host-os-release:ro
+      - /proc:/host-proc:ro
+      - /sys:/host-sys:ro
+      - /etc/wireguard:/etc/wireguard
+      # Mount real backup disk directly (not symlink for cleaner mount)
+      - /home/inno/compose_ARCHIVED_DO_NOT_USE/backups:/backups
+    environment:
+      - PORT=9191
+      - WG_CONFIG_DIR=/etc/wireguard
+      - OS_RELEASE_PATH=/host-os-release
+      - RESOLV_CONF_PATH=/host-resolv.conf
+      - BACKUP_DIR=/backups
+      - POSTGRES_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-Tarantul1310}@creationhub_postgres:5432/${POSTGRES_DB:-postgres}
+
+    networks:
+      - default
+      - creationhub-backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================
+  # Ollama (AI Chat)
+  # ===========================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: creationhub_ollama
+    restart: always
+    runtime: nvidia
+    ports:
+      - "0.0.0.0:11434:11434"  # LAN access enabled
+    volumes:
+      - ${AI_DATA_PATH:-./ai_data}:/root/.ollama
+    environment:
+      - OLLAMA_NUM_PARALLEL=2
+      - OLLAMA_MAX_LOADED_MODELS=2
+      - OLLAMA_KEEP_ALIVE=10m
+    deploy:
+      resources:
+        limits:
+          memory: 16G
+        reservations:
+          memory: 4G
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/11434'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================
+  # AI Services
+  # ===========================================
+  
+  # AI Transcription (Whisper)
+  ai-transcribe:
+    image: fedirz/faster-whisper-server:latest-cuda
+    container_name: creationhub_ai_transcribe
+    hostname: creationhub-ai-transcribe
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - WHISPER__MODEL=Systran/faster-whisper-large-v3
+      - WHISPER__INFERENCE_DEVICE=cuda
+    volumes:
+      - ./volumes/ai/whisper:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - default
+
+  # AI Translation (LibreTranslate)
+  ai-translate:
+    image: libretranslate/libretranslate:latest
+    container_name: creationhub_ai_translate
+    hostname: creationhub-ai-translate
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - LT_PORT=5000
+      - LT_HOST=0.0.0.0
+      - LT_LOAD_ONLY=en,de,ru,zh,es,fr,ja
+      - LT_UPDATE_MODELS=true
+    volumes:
+      - ./volumes/ai/translate:/app/db
+    networks:
+      - default
+
+  # AI TTS (OpenTTS)
+  ai-tts:
+    image: synesthesiam/opentts
+    container_name: creationhub_ai_tts
+    hostname: creationhub-ai-tts
+    restart: always
+    ports:
+      - "5500:5500"
+    command:
+      - --no-espeak
+      - --language
+      - en
+      - --language
+      - ru
+    volumes:
+      - ./volumes/ai/opentts:/data
+    networks:
+      - default
+
+  # ===========================================
+  # AI Gateway (On-Demand Service Manager)
+  # ===========================================
+  ai-gateway:
+    build: ./ai-gateway
+    container_name: creationhub_ai_gateway
+    restart: always
+    profiles: ["ai-gateway"]  # Only starts with: docker compose --profile ai-gateway up
+    ports:
+      - "9292:9292"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+    networks:
+      - default
+      - creationhub-backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+
+
+  # ===========================================
+  # PostgreSQL Database (Core)
+  # ===========================================
+  creationhub-postgres:
+    image: postgres:16-alpine
+    container_name: creationhub_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    volumes:
+      - ./volumes/postgres:/var/lib/postgresql/data
+      - ./init_db.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - default
+      - creationhub-backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================
+  # Redis (Cache & Queue)
+  # ===========================================
+  redis:
+    image: redis:7-alpine
+    container_name: creationhub_redis
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD:-changeme}
+    volumes:
+      - ./volumes/redis:/data
+    networks:
+      - default
+      - creationhub-backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-changeme}", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================
+  # Adminer (DB Management)
+  # ===========================================
+  adminer:
+    image: adminer
+    container_name: creationhub_adminer
+    restart: always
+    ports:
+      - "127.0.0.1:8083:8080"  # LAN access enabled
+    networks:
+      - default
+      - creationhub-backend
+
+
+
+
+
+  # ===========================================
+  # Restored Admin Tools
+  # ===========================================
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: creationhub_portainer
+    restart: always
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - default
+      - creationhub-backend
+
+  npm:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: creationhub_npm
+    restart: always
+    ports:
+      - "80:80"
+      - "81:81"
+      - "443:443"
+    volumes:
+      - ./volumes/npm/data:/data
+      - ./volumes/npm/letsencrypt:/etc/letsencrypt
+    networks:
+      - default
+      - creationhub-backend
+
+  filebrowser:
+    image: filebrowser/filebrowser
+    container_name: creationhub_filebrowser
+    restart: always
+    ports:
+      - "8082:80"
+    volumes:
+      - ./volumes/media:/srv
+      - ./volumes/filebrowser/filebrowser.db:/database.db
+    networks:
+      - default
+      - creationhub-backend
+
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: creationhub_dozzle
+    restart: always
+    ports:
+      - "8888:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - default
+      - creationhub-backend
+
+
+  # ===========================================
+  # Restored Missing Services
+  # ===========================================
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: creationhub_n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    volumes:
+      - ./volumes/n8n:/home/node/.n8n
+    networks:
+      - default
+      - creationhub-backend
+
+  browserless:
+    image: browserless/chrome:latest
+    container_name: creationhub_browserless
+    restart: always
+    ports:
+      - "3002:3000"
+    networks:
+      - default
+      - creationhub-backend
+
+  rsshub:
+    image: diygod/rsshub:latest
+    container_name: creationhub_rsshub
+    restart: always
+    ports:
+      - "1200:1200"
+    environment:
+      - CACHE_TYPE=redis
+      - REDIS_URL=redis://creationhub_redis:6379/
+    networks:
+      - default
+      - creationhub-backend
+
+  nextcloud:
+    image: nextcloud:apache
+    container_name: creationhub_nextcloud
+    restart: always
+    ports:
+      - "8081:80"
+    volumes:
+      - ./volumes/nextcloud/data:/var/www/html
+    networks:
+      - default
+      - creationhub-backend
+
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: creationhub_homepage
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./volumes/homepage/config:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - default
+      - creationhub-backend
+
+  healthchecks:
+    image: linuxserver/healthchecks:latest
+    container_name: creationhub_healthchecks
+    restart: always
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./volumes/healthchecks:/config
+    environment:
+      - PUID=911
+      - PGID=911
+      - SITE_ROOT=http://192.168.1.220:8001
+      - SITE_NAME=CreationHub Healthchecks
+      - SUPERUSER_EMAIL=admin@localhost
+      - SUPERUSER_PASSWORD=${HEALTHCHECKS_PASSWORD:-changeme}
+    networks:
+      - default
+      - creationhub-backend
+
+  wireguard-ui:
+    image: ngoduykhanh/wireguard-ui:latest
+    container_name: creationhub_wireguard_ui
+    restart: always
+    ports:
+      - "5003:5000"
+    volumes:
+      - /etc/wireguard:/etc/wireguard
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - default
+
+  # AI Extras
+  iopaint:
+    image: nginx:alpine # Placeholder while sanster/iopaint is unavailable
+    container_name: creationhub_iopaint
+    restart: always
+    ports:
+      - "8585:80"
+    # command: start --model=lama --device=cpu --port=8080
+    volumes:
+         - ./volumes/ai/iopaint:/data
+    networks:
+      - default
+      - creationhub-backend
+
+  # Placeholder for complex custom services to ensure DB entries have targets
+  sam-2:
+    image: nginx:alpine
+    container_name: creationhub_sam2
+    restart: always
+    ports:
+      - "8787:80"
+    networks:
+      - default
+      - creationhub-backend
+
+  video-processor:
+    image: nginx:alpine
+    container_name: creationhub_video_processor
+    restart: always
+    ports:
+      - "8686:80"
+    networks:
+      - default
+      - creationhub-backend
+volumes:
+  portainer_data:
+    external: true
+    name: dashboard_portainer_data
+
+networks:
+  creationhub-backend:
+    name: creationhub-backend
+    external: true
+  default:
+    name: dashboard_default
+

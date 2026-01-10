@@ -115,8 +115,9 @@ const ServerStats = () => {
         // Get system info (OS) - from our system-api (real host OS)
         if (systemRes.status === 'fulfilled' && systemRes.value.ok) {
           const result = await systemRes.value.json();
-          // API returns {name, version, arch, kernel} directly (not wrapped)
-          newData.osInfo = result.name || 'Linux';
+          if (result.success && result.data) {
+            newData.osInfo = result.data.pretty_name || result.data.name || 'Linux';
+          }
         }
 
         setStatsData(newData);
