@@ -64,7 +64,7 @@ const StatsBar = () => {
 
         if (osRes.ok) {
           const data = await osRes.json();
-          setOsInfo(data.data);
+          setOsInfo(data); // API returns data directly, not wrapped in .data
         }
 
         if (upRes.ok) {
