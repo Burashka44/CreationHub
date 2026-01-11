@@ -10,10 +10,13 @@ const DOCKER_SOCKET = process.env.DOCKER_SOCKET || '/var/run/docker.sock';
 
 const net = require('net');
 
+// Host IP for service checks (configurable via env)
+const HOST_IP = process.env.HOST_IP || '192.168.1.220';
+
 // GET /api/system/services/status-by-port
 router.get('/status-by-port', async (req, res) => {
     const statuses = {};
-    const checkPort = (port, host = '192.168.1.220') => new Promise(resolve => {
+    const checkPort = (port, host = HOST_IP) => new Promise(resolve => {
         const socket = new net.Socket();
         socket.setTimeout(500);
         socket.on('connect', () => { socket.destroy(); resolve(true); });

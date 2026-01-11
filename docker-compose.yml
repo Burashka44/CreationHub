@@ -94,6 +94,11 @@ services:
       - NET_ADMIN
       - SYS_ADMIN
     env_file: .env
+    depends_on:
+      creationhub-postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /etc/os-release:/host-os-release:ro
@@ -341,7 +346,8 @@ services:
       - default
       - creationhub-backend
     depends_on:
-      - prometheus
+      prometheus:
+        condition: service_started
     logging:
       driver: "json-file"
       options:

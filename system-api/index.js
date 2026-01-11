@@ -154,10 +154,13 @@ if (!process.env.RATE_LIMIT_RPM) {
 const JWT_EXPIRES_IN = '7d';
 const POSTGREST_URL = 'http://creationhub_api:3000';
 
+// Host IP for CORS and service checks
+const HOST_IP = process.env.HOST_IP || '192.168.1.220';
+
 // CORS configuration
 const CORS_ORIGINS = process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
-    : ['http://localhost:5173', 'http://localhost:7777', 'http://localhost:9191', 'http://192.168.1.220:7777'];
+    : ['http://localhost:5173', 'http://localhost:7777', 'http://localhost:9191', `http://${HOST_IP}:7777`];
 
 const corsOptions = {
     origin: function (origin, callback) {
