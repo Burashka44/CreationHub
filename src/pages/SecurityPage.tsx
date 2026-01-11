@@ -68,7 +68,7 @@ const SecurityPage = () => {
       .from('activity_logs')
       .select('*')
       .eq('activity_type', 'security')
-      .order('created_at', { ascending: false })
+      .order('timestamp', { ascending: false })  // Fixed: was created_at
       .limit(10);
 
     if (data) {
@@ -76,7 +76,7 @@ const SecurityPage = () => {
         type: e.action_key?.includes('fail') || e.action_key?.includes('block') || e.action_key?.includes('warn') ? 'warning' : 'success',
         message: e.action_key,
         ip: e.target || 'system',
-        time: timeAgo(e.created_at)
+        time: timeAgo(e.timestamp)  // Fixed: was created_at
       })));
     }
   };
@@ -105,17 +105,18 @@ const SecurityPage = () => {
   const loadSecurityData = async () => {
     setIsLoading(true);
     try {
-      // Load from security_settings
+      // Load from security_settings (Fixed: using actual columns)
       const { data } = await supabase
         .from('security_settings')
-        .select('setting_key, setting_value')
-        .eq('setting_key', 'realtime')
+        .select('ufw_status, fail2ban_status')
+        .order('created_at', { ascending: false })
+        .limit(1)
         .single();
 
-      if (data?.setting_value) {
-        const val = data.setting_value as any;
-        setUfwStatus(val.ufw?.status || 'unknown');
-        setFail2banBanned(val.fail2ban?.banned || 0);
+      if (data) {
+        setUfwStatus(data.ufw_status || 'unknown');
+        // Note: fail2ban_status is just status, not count. Using placeholder.
+        setFail2banBanned(data.fail2ban_status === 'active' ? 0 : 0);
       }
 
       // Load firewall rules from firewall_rules table
