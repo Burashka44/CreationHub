@@ -18,6 +18,23 @@ const NodeCache = require('node-cache');
 const systemCache = new NodeCache(); // Standard cache
 const promClient = require('prom-client');
 
+// ==================== ENVIRONMENT VALIDATION ====================
+// Validate critical environment variables on startup (fail-fast principle)
+const requiredEnvVars = [
+    'JWT_SECRET',
+    'POSTGRES_PASSWORD',
+    'REDIS_PASSWORD'
+];
+
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+if (missingEnvVars.length > 0) {
+    console.error('❌ FATAL: Missing required environment variables:', missingEnvVars.join(', '));
+    console.error('Please check your .env file and ensure all required variables are set.');
+    process.exit(1);
+}
+
+console.log('✅ Environment variables validated');
+
 // Prometheus Metrics Setup
 const register = new promClient.Registry();
 promClient.collectDefaultMetrics({ register }); // CPU, memory, etc.
