@@ -267,8 +267,17 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.text({ type: 'text/plain' }));
 
-// Prometheus Metrics Endpoint
+// Prometheus Metrics Endpoint (with optional token protection)
 app.get('/metrics', async (req, res) => {
+    // Optional: Protect metrics with token if METRICS_TOKEN is set
+    const requiredToken = process.env.METRICS_TOKEN;
+    if (requiredToken) {
+        const providedToken = req.headers['x-metrics-token'];
+        if (providedToken !== requiredToken) {
+            return res.status(401).json({ error: 'Unauthorized - Invalid or missing metrics token' });
+        }
+    }
+
     res.set('Content-Type', register.contentType);
     res.end(await register.metrics());
 });
