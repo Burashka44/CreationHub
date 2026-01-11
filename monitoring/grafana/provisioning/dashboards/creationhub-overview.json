@@ -1,0 +1,160 @@
+{
+  "dashboard": {
+    "title": "CreationHub System Overview",
+    "uid": "creationhub-overview",
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "5s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "System API - Request Rate",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total[1m])) by (status_code)",
+            "legendFormat": "Status {{status_code}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "API Latency (95th percentile)",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, route))",
+            "legendFormat": "{{route}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "CPU Usage",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 8, "w": 8, "h": 8},
+        "targets": [
+          {
+            "expr": "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+            "legendFormat": "CPU %",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Memory Usage",
+        "type": "graph",
+        "gridPos": {"x": 8, "y": 8, "w": 8, "h": 8},
+        "targets": [
+          {
+            "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+            "legendFormat": "Memory %",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Disk Usage",
+        "type": "graph",
+        "gridPos": {"x": 16, "y": 8, "w": 8, "h": 8},
+        "targets": [
+          {
+            "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})) * 100",
+            "legendFormat": "Disk %",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Redis Cache Performance",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(redis_cache_hits_total) by (key)",
+            "legendFormat": "Hits: {{key}}",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(redis_cache_misses_total) by (key)",
+            "legendFormat": "Misses: {{key}}",
+            "refId": "B"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Postgres Connections",
+        "type": "stat",
+        "gridPos": {"x": 12, "y": 16, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "pg_stat_activity_count",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 8,
+        "title": "Redis Keys",
+        "type": "stat",
+        "gridPos": {"x": 18, "y": 16, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "redis_db_keys",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 9,
+        "title": "Container Count",
+        "type": "stat",
+        "gridPos": {"x": 12, "y": 20, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "count(container_last_seen)",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 10,
+        "title": "Uptime",
+        "type": "stat",
+        "gridPos": {"x": 18, "y": 20, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "time() - node_boot_time_seconds",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value",
+          "unit": "s"
+        }
+      }
+    ]
+  }
+}

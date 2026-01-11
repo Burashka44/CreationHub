@@ -16,6 +16,40 @@ const winston = require('winston');
 const DailyRotateFile = require('winston-daily-rotate-file');
 const NodeCache = require('node-cache');
 const systemCache = new NodeCache(); // Standard cache
+const promClient = require('prom-client');
+
+// Prometheus Metrics Setup
+const register = new promClient.Registry();
+promClient.collectDefaultMetrics({ register }); // CPU, memory, etc.
+
+// Custom Metrics
+const httpRequestDuration = new promClient.Histogram({
+    name: 'http_request_duration_seconds',
+    help: 'Duration of HTTP requests in seconds',
+    labelNames: ['method', 'route', 'status_code'],
+    registers: [register]
+});
+
+const httpRequestsTotal = new promClient.Counter({
+    name: 'http_requests_total',
+    help: 'Total number of HTTP requests',
+    labelNames: ['method', 'route', 'status_code'],
+    registers: [register]
+});
+
+const redisCacheHits = new promClient.Counter({
+    name: 'redis_cache_hits_total',
+    help: 'Total number of Redis cache hits',
+    labelNames: ['key'],
+    registers: [register]
+});
+
+const redisCacheMisses = new promClient.Counter({
+    name: 'redis_cache_misses_total',
+    help: 'Total number of Redis cache misses',
+    labelNames: ['key'],
+    registers: [register]
+});
 
 // Ensure log directory exists
 const LOG_DIR = '/var/log/system-api';
@@ -188,11 +222,17 @@ app.set('trust proxy', true);
 app.use(cors(corsOptions));
 app.use(rateLimiter); // ENABLED: Protect against brute force
 
-// Request logging middleware
+// Request logging + Prometheus metrics middleware
 app.use((req, res, next) => {
     const start = Date.now();
     res.on('finish', () => {
         const duration = Date.now() - start;
+        const durationSeconds = duration / 1000;
+
+        // Prometheus Metrics
+        const route = req.route ? req.route.path : req.path;
+        httpRequestsTotal.inc({ method: req.method, route, status_code: res.statusCode });
+        httpRequestDuration.observe({ method: req.method, route, status_code: res.statusCode }, durationSeconds);
 
         // Sanitize sensitive data from logs
         const sanitizedBody = req.body ? { ...req.body } : {};
@@ -209,7 +249,7 @@ app.use((req, res, next) => {
             body: Object.keys(sanitizedBody).length > 0 ? sanitizedBody : undefined
         };
         // Only log non-health check requests or errors
-        if (req.path !== '/health' && req.path !== '/api/system/glances/cpu') {
+        if (req.path !== '/health' && req.path !== '/api/system/glances/cpu' && req.path !== '/metrics') {
             if (res.statusCode >= 400) {
                 logger.error('Request failed', log);
             } else if (duration > 1000) {
@@ -226,6 +266,12 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.text({ type: 'text/plain' }));
+
+// Prometheus Metrics Endpoint
+app.get('/metrics', async (req, res) => {
+    res.set('Content-Type', register.contentType);
+    res.end(await register.metrics());
+});
 
 // Mount AI routes
 const aiRoutes = require('./routes/ai');
