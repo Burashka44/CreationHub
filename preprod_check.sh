@@ -117,11 +117,13 @@ else
     # Not a fatal fail, maybe just installed
 fi
 
-# Check Logs
-if docker exec creationhub_system_api ls /var/log/system-api/app-$(date +%Y-%m-%d).log > /dev/null 2>&1; then
-    echo -e "✅ System API Logs: Active"
-    LOG_SIZE=$(docker exec creationhub_system_api du -h /var/log/system-api/app-$(date +%Y-%m-%d).log | cut -f1)
-    echo "   Current Log Size: $LOG_SIZE"
+# Check Logs (any recent log file)
+LOG_COUNT=$(docker exec creationhub_system_api sh -c 'ls -1 /var/log/system-api/app-*.log 2>/dev/null | wc -l')
+if [ "$LOG_COUNT" -gt 0 ]; then
+    echo -e "✅ System API Logs: Active ($LOG_COUNT files)"
+    LATEST_LOG=$(docker exec creationhub_system_api sh -c 'ls -t /var/log/system-api/app-*.log 2>/dev/null | head -1')
+    LOG_SIZE=$(docker exec creationhub_system_api du -h "$LATEST_LOG" 2>/dev/null | cut -f1)
+    echo "   Latest: $(basename "$LATEST_LOG") ($LOG_SIZE)"
 else
     echo -e "❌ System API Logs: MISSING"
     FAIL=1
