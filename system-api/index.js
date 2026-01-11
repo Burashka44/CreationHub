@@ -883,39 +883,57 @@ app.get('/api/system/public-ip', async (req, res) => {
     };
 
     try {
-        // Try Primary: ipapi.co
+        // Try Primary: ipapi.co (most reliable with VPN)
         try {
             const response = await axios.get('https://ipapi.co/json/', {
-                headers: { 'User-Agent': 'CreationHub-SystemAPI/1.0' },
-                timeout: 5000
+                timeout: 10000,  // Increased from 5000
+                headers: {
+                    'User-Agent': 'curl/7.68.0',  // Some APIs block non-browser User-Agents
+                    'Accept': 'application/json'
+                }
             });
             if (response.data && response.data.ip) {
                 const result = normalize(response.data, 'ipapi');
                 systemCache.set('public_ip', result, 3600); // 1 hour
+                logger.info('Public IP detected', { ip: result.ip, country: result.country });
                 return res.json(result);
             }
         } catch (e) {
-            console.warn('Primary GeoIP failed, trying fallback:', e.message);
+            logger.warn('Primary GeoIP (ipapi.co) failed:', e.message);
         }
 
-        // Try Fallback: ipwho.is (No SSL requirement, very rate-limit friendly)
-        const response = await axios.get('http://ipwho.is/', { timeout: 5000 });
-        if (response.data && response.data.success) {
-            const result = normalize(response.data, 'ipwhois');
-            systemCache.set('public_ip', result, 3600); // 1 hour
-            return res.json(result);
-        } else {
-            throw new Error('Fallback provider returned error');
+        // Try Fallback 1: ipify.org (just IP, then lookup geo)
+        try {
+            const ipResponse = await axios.get('https://api.ipify.org?format=json', { timeout: 10000 });
+            if (ipResponse.data && ipResponse.data.ip) {
+                // Got IP, now get geo from ip-api.com
+                const geoResponse = await axios.get(`http://ip-api.com/json/${ipResponse.data.ip}`, { timeout: 10000 });
+                if (geoResponse.data && geoResponse.data.status === 'success') {
+                    const result = {
+                        ip: geoResponse.data.query,
+                        city: geoResponse.data.city,
+                        region: geoResponse.data.regionName,
+                        country: geoResponse.data.country,
+                        country_code: geoResponse.data.countryCode,
+                        latitude: geoResponse.data.lat,
+                        longitude: geoResponse.data.lon,
+                        org: geoResponse.data.isp,
+                        source: 'ipify.org + ip-api.com'
+                    };
+                    systemCache.set('public_ip', result, 3600);
+                    logger.info('Public IP detected (fallback)', { ip: result.ip, country: result.country });
+                    return res.json(result);
+                }
+            }
+        } catch (e) {
+            logger.warn('Fallback GeoIP (ipify+ip-api) failed:', e.message);
         }
+
+        // All providers failed
+        throw new Error('All GeoIP providers failed');
 
     } catch (e) {
-        console.error('All GeoIP providers failed:', e.message);
-
-        // If we have stale cache (via systemCache check above, but here we failed),
-        // node-cache removes expired items so we can't easily get 'stale' data unless useTtl is false.
-        // We accept that if cache expires and API fails, we return error.
-
-        // Return error
+        logger.error('Unable to determine public IP:', e.message);
         res.status(500).json({ error: true, reason: 'Unable to determine public IP' });
     }
 });
