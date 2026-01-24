@@ -33,6 +33,12 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
 
   # ===========================================
   # PostgREST API
@@ -58,6 +64,12 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
 
   # ===========================================
   # Stats Recorder (System Metrics)
@@ -129,6 +141,13 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 256M
 
   # ===========================================
   # Ollama (AI Chat)
@@ -280,6 +299,13 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 512M
 
   # ===========================================
   # Redis (Cache & Queue)
@@ -299,6 +325,12 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
 
   # ===========================================
   # MONITORING STACK
@@ -562,7 +594,7 @@ services:
     container_name: creationhub_homepage
     restart: always
     ports:
-      - "3000:3000"
+      - "3005:3000"
     volumes:
       - ./volumes/homepage/config:/app/config
       - /var/run/docker.sock:/var/run/docker.sock:ro
