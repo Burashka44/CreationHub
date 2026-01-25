@@ -1,0 +1,33 @@
+BACKUP INFORMATION
+==================
+Timestamp: Sun Jan 11 01:51:24 PM MSK 2026
+Hostname: CreationHub
+User: inno
+Git Branch: fix/dashboard-repairs
+Git Commit: fa505c248e6f1943f03172444b475a0a8097958f
+Docker Compose Version: Docker Compose version v5.0.0
+Docker Version: Docker version 29.1.3, build f52814d
+
+BACKUP CONTENTS:
+- project-files.tar.gz: All source code and configs (except node_modules, volumes)
+- postgres-dump.sql.gz: Full PostgreSQL database
+- redis-dump.rdb: Redis persistence file
+- dot-env-SENSITIVE: Environment variables (KEEP SECRET!)
+- volumes/: Grafana and Prometheus data
+- git-info.txt: Current commit information
+- git-status.txt: Working tree status
+- git-diff.txt: Uncommitted changes
+- RESTORATION_GUIDE.md: How to restore this backup
+
+IMPORTANT FILES EXCLUDED:
+- node_modules/ (can be reinstalled via npm install)
+- dist/ build/ .next/ (can be rebuilt)
+- backups/ (to avoid recursive backups)
+- volumes/ data files (too large, only configs backed up)
+
+SECURITY WARNING:
+This backup contains SENSITIVE DATA:
+- Database passwords
+- JWT secrets
+- API keys
+Keep this backup SECURE and ENCRYPTED!

@@ -2,7 +2,7 @@ import React, { useState, createContext, useContext } from 'react';
 import {
   LayoutDashboard, Database, Shield,
   Settings, ChevronLeft, ChevronRight,
-  Activity, HardDrive, Network, History, Users, BarChart3, Sparkles, Server, Video
+  Activity, HardDrive, Network, History, Users, BarChart3, Sparkles, Server, Video, Bot
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -47,8 +47,9 @@ const Sidebar = ({ mobile = false, onNavigate }: SidebarProps = {}) => {
     { path: '/services', icon: Server, labelKey: 'services' },
     { path: '/media', icon: BarChart3, labelKey: 'mediaAnalytics' },
     { path: '/admins', icon: Users, labelKey: 'admins' },
-    { path: '/ai-hub', icon: Sparkles, labelKey: 'aiHub' },
     { path: '/video-pipeline', icon: Video, labelKey: 'videoPipeline' },
+    { path: '/bots', icon: Bot, labelKey: 'telegramBots' },
+    { path: '/ai-hub', icon: Sparkles, labelKey: 'aiHub' },
     { path: '/network', icon: Network, labelKey: 'network' },
     { path: '/security', icon: Shield, labelKey: 'security' },
     { path: '/backups', icon: HardDrive, labelKey: 'backups' },

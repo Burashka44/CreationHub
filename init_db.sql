@@ -427,3 +427,35 @@ ON CONFLICT DO NOTHING;
 INSERT INTO public.admins (email, name, role)
 VALUES ('admin@example.com', 'Admin User', 'superadmin')
 ON CONFLICT (email) DO NOTHING;
+
+-- ============================================
+-- 14. ACTIVITY LOGS (Missing from previous dumps)
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.activity_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    action_key TEXT,
+    target TEXT,
+    user_name TEXT,
+    activity_type TEXT,
+    timestamp TIMESTAMPTZ DEFAULT now(),
+    description TEXT,
+    metadata JSONB
+);
+
+ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Authenticated logs" ON public.activity_logs TO authenticated USING (true);
+CREATE POLICY "anon_select_logs" ON public.activity_logs FOR SELECT TO anon USING (true);
+
+-- ============================================
+-- 15. MAINTENANCE FUNCTIONS
+-- ============================================
+CREATE OR REPLACE FUNCTION public.cleanup_old_data()
+ RETURNS void
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    DELETE FROM system_metrics WHERE timestamp < now() - interval '7 days';
+    DELETE FROM network_traffic WHERE recorded_at < now() - interval '7 days';
+    DELETE FROM disk_snapshots WHERE timestamp < now() - interval '7 days';
+END;
+$function$;

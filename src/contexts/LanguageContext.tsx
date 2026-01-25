@@ -247,6 +247,13 @@ const translations: Translations = {
   thisMonth: { ru: 'В этом месяце', en: 'This month' },
   now: { ru: 'Сейчас', en: 'Now' },
   processes: { ru: 'Процессы', en: 'Processes' },
+
+  // Bot Management
+  telegramBots: { ru: 'Telegram Боты', en: 'Telegram Bots' },
+  myBots: { ru: 'Мои боты', en: 'My Bots' },
+  adCampaigns: { ru: 'Рекламные кампании', en: 'Ad Campaigns' },
+  stats: { ru: 'Статистика', en: 'Stats' },
+  videoPipeline: { ru: 'Видео конвейер', en: 'Video Pipeline' },
 };
 
 interface LanguageContextType {

@@ -118,7 +118,7 @@ services:
       - /sys:/host-sys:ro
       - /etc/wireguard:/etc/wireguard
       # Mount real backup disk directly (not symlink for cleaner mount)
-      - /home/inno/compose_ARCHIVED_DO_NOT_USE/backups:/backups
+      - ./backups:/backups
     environment:
       - PORT=9191
       - WG_CONFIG_DIR=/etc/wireguard

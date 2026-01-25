@@ -7,7 +7,10 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import DashboardLayout from "./layouts/DashboardLayout";
+import BotLayout from "./layouts/BotLayout";
 import DashboardPage from "./pages/DashboardPage";
+import BotDashboardPage from "./pages/bots/BotDashboardPage";
+import BotListPage from "./pages/bots/BotListPage";
 import LoginPage from "./pages/LoginPage";
 
 import DataPage from "./pages/DataPage";
@@ -54,6 +57,13 @@ const App = () => (
                   <Route path="/video-pipeline" element={<VideoPipelinePage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                 </Route>
+
+                {/* Bot Management Layout */}
+                <Route path="/bots" element={<BotLayout />}>
+                  <Route index element={<BotDashboardPage />} />
+                  <Route path="list" element={<BotListPage />} />
+                </Route>
+
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </AuthProvider>

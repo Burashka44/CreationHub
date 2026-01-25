@@ -8,9 +8,8 @@ import {
   Megaphone, BarChart, PieChart, Tv2, RefreshCw, Edit2
 } from 'lucide-react';
 import { ApiSettingsDialog } from '@/components/media/ApiSettingsDialog';
-import { YouTubeAnalytics, TwitchAnalytics, VKVideoAnalytics, RuTubeAnalytics, TikTokAnalytics, TelegramAnalytics } from '@/components/media/PlatformAnalytics';
+import { YouTubeAnalytics, TwitchAnalytics, VKVideoAnalytics, RuTubeAnalytics, TikTokAnalytics } from '@/components/media/PlatformAnalytics';
 import { AdRevenueManager } from '@/components/media/AdRevenueManager';
-import TelegramIntegration from '@/components/media/TelegramIntegration';
 import AdAnalytics from '@/components/media/AdAnalytics';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -1274,17 +1273,12 @@ const MediaAnalyticsPage = () => {
 
         {/* Telegram Tab */}
         <TabsContent value="telegram" className="space-y-6 mt-6">
-          {/* Telegram Integration - Bots & Publishing */}
-          <TelegramIntegration 
-            channels={telegramChannels.map(c => ({ 
-              id: c.id, 
-              name: c.name, 
-              username: c.username, 
-              subscribers: c.subscribers, 
-              last_synced_at: c.last_synced_at 
-            }))} 
-            onSync={fetchChannels} 
-          />
+          {/* Telegram bot management moved to dedicated Bot Studio section */}
+          <Card className="bg-muted/30 border-dashed">
+            <CardContent className="pt-6 text-center">
+              <p className="text-muted-foreground">Управление Telegram ботами перенесено в раздел <strong>"Telegram Боты"</strong> в главном меню.</p>
+            </CardContent>
+          </Card>
 
           {/* Mass Sync Button */}
           <div className="flex justify-end">
@@ -1503,8 +1497,10 @@ const MediaAnalyticsPage = () => {
                             </div>
                           </div>
                           
-                          {/* Full Telegram Analytics with Monetization */}
-                          <TelegramAnalytics channel={channel} />
+                          {/* Telegram Analytics moved to Bot Studio */}
+                          <div className="p-4 rounded-lg bg-muted/30 border-dashed border text-center">
+                            <p className="text-sm text-muted-foreground">Детальная аналитика Telegram доступна в разделе <strong>"Telegram Боты"</strong></p>
+                          </div>
                         </CardContent>
                       </CollapsibleContent>
                     </Card>

@@ -8,7 +8,6 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import TelegramBotsManager from '@/components/dashboard/TelegramBotsManager';
 import { supabase } from '@/integrations/supabase/client';
 
 const SettingsPage = () => {
@@ -434,10 +433,7 @@ const SettingsPage = () => {
         </CardContent>
       </Card>
 
-      {/* Telegram Bots */}
-      <div className="max-w-4xl">
-        <TelegramBotsManager />
-      </div>
+
     </div>
   );
 };
