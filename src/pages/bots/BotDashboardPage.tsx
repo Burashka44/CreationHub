@@ -1,22 +1,32 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, Megaphone, Activity, Bot } from "lucide-react";
+import { Users, Megaphone, Activity, Bot, HardDrive, Database } from "lucide-react";
+import { useBots } from '@/contexts/BotContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const BotDashboardPage = () => {
-    // Placeholder data
-    const stats = [
-        { title: "Total Bots", value: "3", icon: Bot, change: "+1", desc: "Active Telegram bots" },
-        { title: "Total Users", value: "1,240", icon: Users, change: "+12%", desc: "Across all bots" },
-        { title: "Ad Campaigns", value: "5", icon: Megaphone, change: "2 Active", desc: "Running campaigns" },
-        { title: "Messages Today", value: "8,920", icon: Activity, change: "+15%", desc: "Volume vs yesterday" },
+    const { bots, stats } = useBots();
+    const { t } = useLanguage();
+
+    const statCards = [
+        { title: t('totalBots'), value: stats.totalBots, icon: Bot, change: `${stats.activeBots} ${t('active')}`, desc: t('deployedInstances') },
+        { title: t('totalUsers'), value: stats.totalUsers, icon: Users, change: "+12%", desc: t('acrossAllBots') },
+        { 
+            title: t('globalStorageUsage'), 
+            value: `${(stats.usedStorage / 1024).toFixed(2)} GB`, 
+            icon: HardDrive, 
+            change: `/ 50 GB ${t('limit')}`, 
+            desc: t('totalPhysicalSpaceOccupied') 
+        },
+        { title: t('messagesToday'), value: "8,920", icon: Activity, change: "+15%", desc: t('volumeVsYesterday') },
     ];
 
     return (
         <div className="space-y-6">
-            <h1 className="text-3xl font-bold tracking-tight">Bot Studio Overview</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{t('botStudioOverview')}</h1>
             
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {stats.map((stat, i) => (
+                {statCards.map((stat, i) => (
                     <Card key={i}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">
@@ -37,39 +47,71 @@ const BotDashboardPage = () => {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                 <Card className="col-span-4">
                     <CardHeader>
-                        <CardTitle>Recent Activity</CardTitle>
+                        <CardTitle>{t('autoConnectedServices')}</CardTitle>
                         <CardDescription>
-                            Latest interactions across your bot network.
+                            {t('localServicesDescription')}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-sm text-muted-foreground py-10 text-center border-2 border-dashed rounded-lg">
-                            Chart placeholder (Messages over time)
+                        <div className="space-y-4">
+                            {/* Mock Visualizer of Service Mesh */}
+                            <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-purple-500/10 rounded-full text-purple-500">
+                                        <Activity className="h-5 w-5" />
+                                    </div>
+                                    <div>
+                                        <p className="font-medium">{t('localAi')}</p>
+                                        <p className="text-sm text-muted-foreground">Running on :11434</p>
+                                    </div>
+                                </div>
+                                <div className="text-sm font-medium text-emerald-500">{t('connected')}</div>
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-blue-500/10 rounded-full text-blue-500">
+                                        <Database className="h-5 w-5" />
+                                    </div>
+                                    <div>
+                                        <p className="font-medium">{t('sharedDb')}</p>
+                                        <p className="text-sm text-muted-foreground">PostgreSQL 16</p>
+                                    </div>
+                                </div>
+                                <div className="text-sm font-medium text-emerald-500">{t('linked')}</div>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
                 <Card className="col-span-3">
                     <CardHeader>
-                        <CardTitle>Top Performing Bots</CardTitle>
+                        <CardTitle>{t('activeBots')}</CardTitle>
                         <CardDescription>
-                            By verification and engagement.
+                            {t('currentStatusAndLoad')}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-8">
-                            {["CreationHub Helper", "Support Bot", "Sales Assistant"].map((bot, i) => (
-                                <div key={i} className="flex items-center">
+                            {bots.slice(0, 5).map((bot) => (
+                                <div key={bot.id} className="flex items-center">
                                     <div className="space-y-1">
-                                        <p className="text-sm font-medium leading-none">{bot}</p>
+                                        <p className="text-sm font-medium leading-none">{bot.name}</p>
                                         <p className="text-xs text-muted-foreground">
-                                            @{bot.replace(/\s/g, '').toLowerCase()}_bot
+                                            {bot.username}
                                         </p>
                                     </div>
-                                    <div className="ml-auto font-medium">
-                                        {(100 - i * 15) + Math.floor(Math.random() * 10)} users
+                                    <div className="ml-auto font-medium text-sm">
+                                        {bot.status === 'active' ? (
+                                            <span className="text-emerald-500">{t('running')}</span>
+                                        ) : (
+                                            <span className="text-muted-foreground">{t('stopped')}</span>
+                                        )}
                                     </div>
                                 </div>
                             ))}
+                            {bots.length === 0 && (
+                                <p className="text-sm text-muted-foreground text-center py-4">{t('noBotsConnected')}</p>
+                            )}
                         </div>
                     </CardContent>
                 </Card>

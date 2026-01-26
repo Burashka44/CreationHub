@@ -6,11 +6,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import { BotProvider } from "./contexts/BotContext";
 import DashboardLayout from "./layouts/DashboardLayout";
 import BotLayout from "./layouts/BotLayout";
 import DashboardPage from "./pages/DashboardPage";
 import BotDashboardPage from "./pages/bots/BotDashboardPage";
 import BotListPage from "./pages/bots/BotListPage";
+import BotDetailsPage from "./pages/bots/BotDetailsPage";
 import LoginPage from "./pages/LoginPage";
 
 import DataPage from "./pages/DataPage";
@@ -34,41 +36,44 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <LanguageProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <OfflineIndicator />
-          <BrowserRouter>
-            <AuthProvider>
-              <Routes>
-                <Route path="/login" element={<LoginPage />} />
+        <BotProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <OfflineIndicator />
+            <BrowserRouter>
+              <AuthProvider>
+                <Routes>
+                  <Route path="/login" element={<LoginPage />} />
 
-                <Route element={<DashboardLayout />}>
-                  <Route path="/" element={<DashboardPage />} />
-                  <Route path="/services" element={<ServicesPage />} />
-                  <Route path="/media" element={<MediaAnalyticsPage />} />
-                  <Route path="/admins" element={<AdminsPage />} />
-                  <Route path="/data" element={<DataPage />} />
-                  <Route path="/network" element={<NetworkPage />} />
-                  <Route path="/security" element={<SecurityPage />} />
-                  <Route path="/backups" element={<BackupsPage />} />
-                  <Route path="/activity" element={<ActivityPage />} />
-                  <Route path="/ai-hub" element={<AIHubPage />} />
-                  <Route path="/video-pipeline" element={<VideoPipelinePage />} />
-                  <Route path="/settings" element={<SettingsPage />} />
-                </Route>
+                  <Route element={<DashboardLayout />}>
+                    <Route path="/" element={<DashboardPage />} />
+                    <Route path="/services" element={<ServicesPage />} />
+                    <Route path="/media" element={<MediaAnalyticsPage />} />
+                    <Route path="/admins" element={<AdminsPage />} />
+                    <Route path="/data" element={<DataPage />} />
+                    <Route path="/network" element={<NetworkPage />} />
+                    <Route path="/security" element={<SecurityPage />} />
+                    <Route path="/backups" element={<BackupsPage />} />
+                    <Route path="/activity" element={<ActivityPage />} />
+                    <Route path="/ai-hub" element={<AIHubPage />} />
+                    <Route path="/video-pipeline" element={<VideoPipelinePage />} />
+                    <Route path="/settings" element={<SettingsPage />} />
+                  </Route>
 
-                {/* Bot Management Layout */}
-                <Route path="/bots" element={<BotLayout />}>
-                  <Route index element={<BotDashboardPage />} />
-                  <Route path="list" element={<BotListPage />} />
-                </Route>
+                  {/* Bot Management Layout */}
+                  <Route path="/bots" element={<BotLayout />}>
+                    <Route index element={<BotDashboardPage />} />
+                    <Route path="list" element={<BotListPage />} />
+                    <Route path=":id" element={<BotDetailsPage />} />
+                  </Route>
 
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </AuthProvider>
-          </BrowserRouter>
-        </TooltipProvider>
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </AuthProvider>
+            </BrowserRouter>
+          </TooltipProvider>
+        </BotProvider>
       </LanguageProvider>
     </ThemeProvider>
   </QueryClientProvider>
